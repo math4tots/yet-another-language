@@ -1,0 +1,122 @@
+{
+    "name": "yal",
+    "displayName": "yal",
+    "description": "Intellisense support for Yet Another Language",
+    "version": "0.0.52",
+    "publisher": "yal",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/math4tots/yet-another-lanugage"
+    },
+    "engines": {
+        "vscode": "^1.45.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "// browser": "./dist/extension.js",
+    "main": "./out/extension",
+    "// (scripts, browser)": {
+        "vscode:prepublish": "npm run package",
+        "webpack": "webpack --mode development",
+        "webpack-dev": "webpack --mode development --watch",
+        "package": "webpack --mode production --devtool hidden-source-map",
+        "test-compile": "tsc -p ./"
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run compile",
+        "compile": "tsc -p ./",
+        "lint": "eslint \"src/**/*.ts\"",
+        "watch": "tsc -watch -p ./"
+    },
+    "contributes": {
+        "configurationDefaults": {
+            "[yal]": {
+                "editor.tabSize": 2
+            }
+        },
+        "configuration": {
+            "title": "yal",
+            "properties": {
+                "yal.yalpath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Path to search for yal scripts. List of paths separated by ':'"
+                }
+            }
+        },
+        "languages": [
+            {
+                "id": "yal",
+                "aliases": [
+                    "yet-another-language"
+                ],
+                "extensions": [
+                    ".yal"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "yal",
+                "scopeName": "source.yal",
+                "path": "./syntaxes/yal.tmLanguage.json"
+            }
+        ],
+        "commands": [
+            {
+                "command": "yal.tokenize",
+                "title": "yal: Tokenize yal Code"
+            },
+            {
+                "command": "yal.parse",
+                "title": "yal: Parse yal Code"
+            },
+            {
+                "command": "yal.runfile",
+                "title": "yal: Run yal File"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "yal.runfile",
+                "key": "f5",
+                "when": "editorLangId == yal"
+            }
+        ],
+        "menus": {
+            "commandPalette": [
+                {
+                    "command": "yal.tokenize",
+                    "when": "editorLangId == yal"
+                },
+                {
+                    "command": "yal.parse",
+                    "when": "editorLangId == yal"
+                },
+                {
+                    "command": "yal.runfile",
+                    "when": "editorLangId == yal"
+                }
+            ]
+        }
+    },
+    "activationEvents": [
+        "onLanguage:yal",
+        "onCommand:yal.tokenize",
+        "onCommand:yal.parse"
+    ],
+    "devDependencies": {
+        "@types/vscode": "^1.45.0",
+        "ts-loader": "^9.4.2"
+    },
+    "// (devDependencies, browser)": {
+        "@types/vscode": "^1.45.0",
+        "ts-loader": "^9.4.2",
+        "typescript": "^5.0.4",
+        "webpack": "^5.82.0",
+        "webpack-cli": "^5.1.1"
+    }
+}
