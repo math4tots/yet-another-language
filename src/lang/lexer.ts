@@ -1,18 +1,19 @@
 export type Position = {
   /** Line number, zero indexed */
-  readonly line: number
+  readonly line: number;
   /** Column number, zero indexed */
-  readonly column: number
+  readonly column: number;
   /** UTF-16 offset */
-  readonly index: number
+  readonly index: number;
 };
 export type Range = {
-  readonly start: Position
-  readonly end: Position
+  readonly start: Position;
+  readonly end: Position;
 };
 export const Keywords = [
   'def',
-  'and', 'or',
+  'and', 'or', 'is', 'in', 'as',
+  'not',
 ] as const;
 export const Symbols = [
   // grouping tokens
@@ -107,7 +108,7 @@ export function lex(s: string): Token[] {
         range: { start, end: start },
         type: 'EOF',
         value: null,
-      })
+      });
       break;
     }
     const j = i;

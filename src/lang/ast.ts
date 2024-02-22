@@ -2,48 +2,64 @@ import { Uri } from "vscode";
 import { Range } from "./lexer";
 
 export type Location = {
-  uri: Uri
-  range: Range
+  uri: Uri;
+  range: Range;
 };
 
 export interface Visitor<R> {
-  visitFile(n: File): R
-  visitBlock(n: Block): R
-  visitNilLiteral(n: NilLiteral): R
-  visitBooleanLiteral(n: BooleanLiteral): R
-  visitNumberLiteral(n: NumberLiteral): R
-  visitStringLiteral(n: StringLiteral): R
-  visitIdentifier(n: Identifier): R
-  visitDeclaration(n: Declaration): R
-  visitAssignment(n: Assignment): R
-  visitListDisplay(n: ListDisplay): R
-  visitFunctionDisplay(n: FunctionDisplay): R
-  visitMethodCall(n: MethodCall): R
-  visitLogicalAnd(n: LogicalAnd): R
-  visitLogicalOr(n: LogicalOr): R
-  visitIf(n: If): R
-  visitWhile(n: While): R
-  visitClassDefinition(n: ClassDefinition): R
+  visitFile(n: File): R;
+  visitNone(n: None): R;
+  visitBlock(n: Block): R;
+  visitNilLiteral(n: NilLiteral): R;
+  visitBooleanLiteral(n: BooleanLiteral): R;
+  visitNumberLiteral(n: NumberLiteral): R;
+  visitStringLiteral(n: StringLiteral): R;
+  visitIdentifier(n: Identifier): R;
+  visitDeclaration(n: Declaration): R;
+  visitAssignment(n: Assignment): R;
+  visitListDisplay(n: ListDisplay): R;
+  visitFunctionDisplay(n: FunctionDisplay): R;
+  visitMethodCall(n: MethodCall): R;
+  visitLogicalAnd(n: LogicalAnd): R;
+  visitLogicalOr(n: LogicalOr): R;
+  visitIf(n: If): R;
+  visitWhile(n: While): R;
+  visitClassDefinition(n: ClassDefinition): R;
 }
 
 export interface Node {
-  readonly location: Location
-  accept<R>(visitor: Visitor<R>): R
+  readonly location: Location;
+  accept<R>(visitor: Visitor<R>): R;
 }
 
+export type ParseError = {
+  readonly location: Location;
+  readonly message: string;
+};
+
 export class File implements Node {
-  readonly location: Location
-  readonly statements: Node[]
-  constructor(location: Location, statements: Node[]) {
+  readonly location: Location;
+  readonly statements: Node[];
+  readonly errors: ParseError[];
+  constructor(location: Location, statements: Node[], errors: ParseError[]) {
     this.location = location;
     this.statements = statements;
+    this.errors = errors;
   }
   accept<R>(visitor: Visitor<R>): R { return visitor.visitFile(this); }
 }
 
+export class None implements Node {
+  readonly location: Location;
+  constructor(location: Location) {
+    this.location = location;
+  }
+  accept<R>(visitor: Visitor<R>): R { return visitor.visitNone(this); }
+}
+
 export class Block implements Node {
-  readonly location: Location
-  readonly statements: Node[]
+  readonly location: Location;
+  readonly statements: Node[];
   constructor(location: Location, statements: Node[]) {
     this.location = location;
     this.statements = statements;
@@ -52,7 +68,7 @@ export class Block implements Node {
 }
 
 export class NilLiteral implements Node {
-  readonly location: Location
+  readonly location: Location;
   constructor(location: Location) {
     this.location = location;
   }
@@ -60,8 +76,8 @@ export class NilLiteral implements Node {
 }
 
 export class BooleanLiteral implements Node {
-  readonly location: Location
-  readonly value: boolean
+  readonly location: Location;
+  readonly value: boolean;
   constructor(location: Location, value: boolean) {
     this.location = location;
     this.value = value;
@@ -70,8 +86,8 @@ export class BooleanLiteral implements Node {
 }
 
 export class NumberLiteral implements Node {
-  readonly location: Location
-  readonly value: number
+  readonly location: Location;
+  readonly value: number;
   constructor(location: Location, value: number) {
     this.location = location;
     this.value = value;
@@ -80,8 +96,8 @@ export class NumberLiteral implements Node {
 }
 
 export class StringLiteral implements Node {
-  readonly location: Location
-  readonly value: string
+  readonly location: Location;
+  readonly value: string;
   constructor(location: Location, value: string) {
     this.location = location;
     this.value = value;
@@ -90,8 +106,8 @@ export class StringLiteral implements Node {
 }
 
 export class Identifier implements Node {
-  readonly location: Location
-  readonly name: string
+  readonly location: Location;
+  readonly name: string;
   constructor(location: Location, name: string) {
     this.location = location;
     this.name = name;
@@ -100,11 +116,11 @@ export class Identifier implements Node {
 }
 
 export class Declaration implements Node {
-  readonly location: Location
-  readonly mutable: boolean
-  readonly identifier: Identifier
-  readonly type: Node | null
-  readonly value: Node | null
+  readonly location: Location;
+  readonly mutable: boolean;
+  readonly identifier: Identifier;
+  readonly type: Node | null;
+  readonly value: Node | null;
   constructor(
     location: Location,
     mutable: boolean,
@@ -121,9 +137,9 @@ export class Declaration implements Node {
 }
 
 export class Assignment implements Node {
-  readonly location: Location
-  readonly identifier: Identifier
-  readonly value: Node
+  readonly location: Location;
+  readonly identifier: Identifier;
+  readonly value: Node;
   constructor(location: Location, identifier: Identifier, value: Node) {
     this.location = location;
     this.identifier = identifier;
@@ -133,8 +149,8 @@ export class Assignment implements Node {
 }
 
 export class ListDisplay implements Node {
-  readonly location: Location
-  readonly values: Node[]
+  readonly location: Location;
+  readonly values: Node[];
   constructor(location: Location, values: Node[]) {
     this.location = location;
     this.values = values;
@@ -143,9 +159,9 @@ export class ListDisplay implements Node {
 }
 
 export class FunctionDisplay implements Node {
-  readonly location: Location
-  readonly parameters: Declaration[]
-  readonly body: Node
+  readonly location: Location;
+  readonly parameters: Declaration[];
+  readonly body: Node;
   constructor(location: Location, parameters: Declaration[], body: Node) {
     this.location = location;
     this.parameters = parameters;
@@ -155,10 +171,10 @@ export class FunctionDisplay implements Node {
 }
 
 export class MethodCall implements Node {
-  readonly location: Location
-  readonly owner: Node
-  readonly identifier: Identifier
-  readonly args: Node[]
+  readonly location: Location;
+  readonly owner: Node;
+  readonly identifier: Identifier;
+  readonly args: Node[];
   constructor(location: Location, owner: Node, identifier: Identifier, args: Node[]) {
     this.location = location;
     this.owner = owner;
@@ -169,9 +185,9 @@ export class MethodCall implements Node {
 }
 
 export class LogicalAnd implements Node {
-  readonly location: Location
-  readonly lhs: Node
-  readonly rhs: Node
+  readonly location: Location;
+  readonly lhs: Node;
+  readonly rhs: Node;
   constructor(location: Location, lhs: Node, rhs: Node) {
     this.location = location;
     this.lhs = lhs;
@@ -181,9 +197,9 @@ export class LogicalAnd implements Node {
 }
 
 export class LogicalOr implements Node {
-  readonly location: Location
-  readonly lhs: Node
-  readonly rhs: Node
+  readonly location: Location;
+  readonly lhs: Node;
+  readonly rhs: Node;
   constructor(location: Location, lhs: Node, rhs: Node) {
     this.location = location;
     this.lhs = lhs;
@@ -193,10 +209,10 @@ export class LogicalOr implements Node {
 }
 
 export class If implements Node {
-  readonly location: Location
-  readonly condition: Node
-  readonly lhs: Node
-  readonly rhs: Node
+  readonly location: Location;
+  readonly condition: Node;
+  readonly lhs: Node;
+  readonly rhs: Node;
   constructor(location: Location, condition: Node, lhs: Node, rhs: Node) {
     this.location = location;
     this.condition = condition;
@@ -207,9 +223,9 @@ export class If implements Node {
 }
 
 export class While implements Node {
-  readonly location: Location
-  readonly condition: Node
-  readonly body: Node
+  readonly location: Location;
+  readonly condition: Node;
+  readonly body: Node;
   constructor(location: Location, condition: Node, body: Node) {
     this.location = location;
     this.condition = condition;
@@ -218,12 +234,12 @@ export class While implements Node {
   accept<R>(visitor: Visitor<R>): R { return visitor.visitWhile(this); }
 }
 
-export type MemberStatement = StringLiteral | Declaration
+export type MemberStatement = StringLiteral | Declaration;
 
 export class ClassDefinition implements Node {
-  readonly location: Location
-  readonly identifier: Identifier
-  readonly statements: MemberStatement[]
+  readonly location: Location;
+  readonly identifier: Identifier;
+  readonly statements: MemberStatement[];
   constructor(location: Location, identifier: Identifier, statements: MemberStatement[]) {
     this.location = location;
     this.identifier = identifier;
