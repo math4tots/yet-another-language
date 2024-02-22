@@ -142,11 +142,7 @@ function parse(uri: Uri, source: string): ast.File {
     }
     const expression = parseExpression();
     expect(';');
-    errors.push({
-      location: { uri, range: peek.range },
-      message: `Expected statement but got ${JSON.stringify(peek.type)}`,
-    });
-    throw new Exception();
+    return expression;
   }
 
   function parseFile() {
