@@ -214,8 +214,51 @@ export function parse(uri: Uri, source: string): ast.File {
     throw new Exception();
   }
 
+  function parseArgs(): ast.Node[] {
+    const args: ast.Node[] = [];
+    expect('(');
+    while (!atEOF() && !at(')')) {
+      args.push(parseExpression());
+      if (!consume(',')) {
+        break;
+      }
+    }
+    expect(')');
+    return args;
+  }
+
   function parseInfix(lhs: ast.Node, startRange: Range): ast.Node {
-    const tokenType = tokens[i].type;
+    const optok = tokens[i];
+    const tokenType = optok.type;
+    if (tokenType === '(') {
+      const methodIdentifier = new ast.Identifier({ uri, range: optok.range }, 'operatorCall');
+      const args = parseArgs();
+      const end = tokens[i - 1].range.end;
+      return new ast.MethodCall(
+        { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, args);
+    }
+    if (consume('.')) {
+      const identifier = parseIdentifier();
+      if (at('(')) {
+        const args = parseArgs();
+        const end = tokens[i - 1].range.end;
+        return new ast.MethodCall(
+          { uri, range: { start: startRange.start, end } }, lhs, identifier, args);
+      }
+      if (consume('=')) {
+        const methodIdentifier = new ast.Identifier(
+          identifier.location, `set_${identifier.name}`);
+        const value = parseExpression();
+        const end = tokens[i - 1].range.end;
+        return new ast.MethodCall(
+          { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, [value]);
+      }
+      const methodIdentifier = new ast.Identifier(
+        identifier.location, `get_${identifier.name}`);
+      const end = tokens[i - 1].range.end;
+      return new ast.MethodCall(
+        { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, []);
+    }
     const precedence = PrecMap.get(tokenType);
     const methodName = BinopMethodMap.get(tokenType);
     if (precedence && methodName) {
