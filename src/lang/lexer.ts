@@ -11,9 +11,10 @@ export type Range = {
   readonly end: Position;
 };
 export const Keywords = [
-  'def',
   'and', 'or', 'is', 'in', 'as',
   'not',
+  'class', 'function', 'var', 'const', 'let', 'final',
+  'if', 'then', 'else', 'while',
 ] as const;
 export const Symbols = [
   // grouping tokens
@@ -27,6 +28,7 @@ export const Symbols = [
 
   // double character tokens
   '//', '**', '!=', '==', '<<', '<=', '>>', '>=', '??',
+  '=>',
 ] as const;
 export type KeywordTokenType = typeof Keywords[number];
 export type SymbolTokenType = typeof Symbols[number];

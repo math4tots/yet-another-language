@@ -27,7 +27,7 @@
 				},
 				{
 					"name": "storage.type",
-					"match": "\\b(var|final|class|def|static)\\b"
+					"match": "\\b(var|const|final|class|def|static)\\b"
 				},
 				{
 					"name": "keyword.control.yal",

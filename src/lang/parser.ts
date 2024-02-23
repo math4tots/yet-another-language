@@ -1,4 +1,4 @@
-import { Location, Uri } from 'vscode';
+import { Color, Location, Uri } from 'vscode';
 import * as ast from './ast';
 import { lex, Position, Range, Token, TokenType } from './lexer';
 
@@ -49,16 +49,20 @@ const BinopMethodMap: Map<TokenType, string> = new Map([
   ['**', '__pow__'],
 ]);
 
-function parse(uri: Uri, source: string): ast.File {
+export function parse(uri: Uri, source: string): ast.File {
   class Exception { }
 
   const tokens = lex(source);
-  const statements: ast.Node[] = [];
+  const globalStatements: ast.Node[] = [];
   const errors: ast.ParseError[] = [];
   let i = 0;
 
   function at(type: TokenType) {
     return tokens[i].type === type;
+  }
+
+  function atEOF(): boolean {
+    return i >= tokens.length || tokens[i].type === 'EOF';
   }
 
   function next() {
@@ -84,11 +88,124 @@ function parse(uri: Uri, source: string): ast.File {
     return false;
   }
 
+  function expectStatementDelimiter(): Token {
+    if (at(';')) {
+      return next();
+    }
+    // See if there's a newline here. If so, create a synthetic token
+    if (i > 0 && tokens[i - 1].range.end.line < tokens[i].range.start.line) {
+      const pos = tokens[i - 1].range.end;
+      return { range: { start: pos, end: pos }, type: ';', value: null };
+    }
+    // if not, trigger an expect error
+    return expect(';');
+  }
+
+  function parseIdentifier(): ast.Identifier {
+    const peek = tokens[i];
+    if (peek.type === 'IDENTIFIER') {
+      i++;
+      return new ast.Identifier({ uri, range: peek.range }, peek.value);
+    }
+    errors.push({
+      location: { uri, range: peek.range },
+      message: `Expected identifier but got ${JSON.stringify(peek.type)}`,
+    });
+    throw new Exception();
+  }
+
+  function atFunctionDisplay(): boolean {
+    const j = i;
+    try {
+      if (!consume('(')) return false;
+      let depth = 1;
+      while (depth > 0 && !atEOF()) {
+        switch (tokens[i++].type) {
+          case '(':
+            depth++;
+            break;
+          case ')':
+            depth--;
+            break;
+        }
+      }
+      return consume('=>');
+    } finally {
+      i = j;
+    }
+  }
+
+  function parseParameter(): ast.Declaration {
+    const identifier = parseIdentifier();
+    const type = consume(':') ? parseExpression() : null;
+    const location = {
+      uri,
+      range: {
+        start: identifier.location.range.start,
+        end: type ? type.location.range.end : identifier.location.range.end,
+      }
+    };
+    return new ast.Declaration(location, false, identifier, type, null);
+  }
+
+  function parseParameters(): ast.Declaration[] {
+    expect('(');
+    const parameters: ast.Declaration[] = [];
+    while (!atEOF() && !at(')')) {
+      parameters.push(parseParameter());
+      if (!consume(',')) {
+        break;
+      }
+    }
+    expect(')');
+    return parameters;
+  }
+
   function parsePrefix(): ast.Node {
-    const startRange = tokens[i].range;
     const peek = tokens[i];
     if (peek.type === 'NUMBER') {
-      return new ast.NumberLiteral({ uri, range: startRange }, peek.value);
+      i++;
+      return new ast.NumberLiteral({ uri, range: peek.range }, peek.value);
+    }
+    if (peek.type === 'IDENTIFIER') {
+      const identifier = parseIdentifier();
+      if (consume('=')) {
+        const rhs = parseExpression();
+        const range = { start: identifier.location.range.start, end: rhs.location.range.end };
+        return new ast.Assignment({ uri, range }, identifier, rhs);
+      }
+      if (consume('=>')) {
+        const body = at('{') ? parseBlock() : parseExpression();
+        const range = { start: identifier.location.range.start, end: body.location.range.end };
+        return new ast.FunctionDisplay(
+          { uri, range },
+          [new ast.Declaration(identifier.location, false, identifier, null, null)],
+          body);
+      }
+      return identifier;
+    }
+    if (peek.type === '(') {
+      if (atFunctionDisplay()) {
+        const parameters = parseParameters();
+        expect('=>');
+        const body = at('{') ? parseBlock() : parseExpression();
+        const range = { start: peek.range.start, end: body.location.range.end };
+        return new ast.FunctionDisplay({ uri, range }, parameters, body);
+      }
+      i++;
+      const innerExpression = parseExpression();
+      expect(')');
+      return innerExpression;
+    }
+    if (consume('if')) {
+      const condition = parseExpression();
+      expect('then');
+      const lhs = parseExpression();
+      expect('else');
+      const rhs = parseExpression();
+      const start = peek.range.start;
+      const end = rhs.location.range.end;
+      return new ast.Conditional({ uri, range: { start, end } }, condition, lhs, rhs);
     }
     errors.push({
       location: { uri, range: peek.range },
@@ -137,21 +254,88 @@ function parse(uri: Uri, source: string): ast.File {
 
   function parseStatement(): ast.Node {
     const peek = tokens[i];
-    if (consume(';')) {
-      return new ast.None({ uri, range: peek.range });
-    }
+    if (consume(';')) return new ast.None({ uri, range: peek.range });
+    if (at('if')) return parseIf();
+    if (at('while')) return parseWhile();
+    if (at('var') || at('const')) return parseDeclaration();
+    if (at('{')) return parseBlock();
+    if (at('class')) return parseClassDefinition();
     const expression = parseExpression();
-    expect(';');
+    expectStatementDelimiter();
     return expression;
   }
 
+  function parseIf(): ast.If {
+    const start = expect('if').range.start;
+    const condition = parseExpression();
+    const lhs = parseBlock();
+    const rhs = consume('else') ? (at('if') ? parseIf() : parseBlock()) : null;
+    const end = rhs ? rhs.location.range.end : lhs.location.range.end;
+    return new ast.If({ uri, range: { start, end } }, condition, lhs, rhs);
+  }
+
+  function parseWhile(): ast.While {
+    const start = expect('while').range.start;
+    const condition = parseExpression();
+    const body = parseBlock();
+    const end = body.location.range.end;
+    return new ast.While({ uri, range: { start, end } }, condition, body);
+  }
+
+  function parseDeclaration(): ast.Declaration {
+    const start = tokens[i].range.start;
+    const mutable = consume('var') ? true : (expect('const'), false);
+    const identifier = parseIdentifier();
+    const type = consume(':') ? parseExpression() : null;
+    const value = consume('=') ? parseExpression() : null;
+    const end = expectStatementDelimiter().range.end;
+    return new ast.Declaration({ uri, range: { start, end } }, mutable, identifier, type, value);
+  }
+
+  function parseBlock(): ast.Block {
+    const startPos = expect('{').range.start;
+    const statements: ast.Node[] = [];
+    try {
+      while (!atEOF() && !at('}')) {
+        statements.push(parseStatement());
+      }
+    } catch (e) {
+      if (e instanceof Exception) {
+        while (!atEOF() && !at('}')) {
+          i++;
+        }
+      } else {
+        throw e;
+      }
+    }
+    const endPos = expect('}').range.end;
+    return new ast.Block({ uri, range: { start: startPos, end: endPos } }, statements);
+  }
+
+  function parseClassDefinition(): ast.Node {
+    const startPos = expect('class').range.start;
+    const identifier = parseIdentifier();
+    const body = parseBlock();
+    return new ast.ClassDefinition(
+      { uri, range: { start: startPos, end: body.location.range.end } },
+      identifier, body.statements);
+  }
+
   function parseFile() {
-    while (i < tokens.length) {
-      statements.push(parseStatement());
+    try {
+      while (!atEOF()) {
+        globalStatements.push(parseStatement());
+      }
+    } catch (e) {
+      if (e instanceof Exception) {
+        while (!atEOF()) i++;
+      } else {
+        throw e;
+      }
     }
   }
   parseFile();
   return new ast.File(
     { uri, range: { start: tokens[0].range.start, end: tokens[tokens.length - 1].range.end } },
-    statements, errors);
+    globalStatements, errors);
 }

@@ -22,6 +22,7 @@ export interface Visitor<R> {
   visitMethodCall(n: MethodCall): R;
   visitLogicalAnd(n: LogicalAnd): R;
   visitLogicalOr(n: LogicalOr): R;
+  visitConditional(n: Conditional): R;
   visitIf(n: If): R;
   visitWhile(n: While): R;
   visitClassDefinition(n: ClassDefinition): R;
@@ -208,12 +209,26 @@ export class LogicalOr implements Node {
   accept<R>(visitor: Visitor<R>): R { return visitor.visitLogicalOr(this); }
 }
 
-export class If implements Node {
+export class Conditional implements Node {
   readonly location: Location;
   readonly condition: Node;
   readonly lhs: Node;
   readonly rhs: Node;
   constructor(location: Location, condition: Node, lhs: Node, rhs: Node) {
+    this.location = location;
+    this.condition = condition;
+    this.lhs = lhs;
+    this.rhs = rhs;
+  }
+  accept<R>(visitor: Visitor<R>): R { return visitor.visitConditional(this); }
+}
+
+export class If implements Node {
+  readonly location: Location;
+  readonly condition: Node;
+  readonly lhs: Block;
+  readonly rhs: If | Block | null;
+  constructor(location: Location, condition: Node, lhs: Block, rhs: If | Block | null) {
     this.location = location;
     this.condition = condition;
     this.lhs = lhs;
@@ -225,8 +240,8 @@ export class If implements Node {
 export class While implements Node {
   readonly location: Location;
   readonly condition: Node;
-  readonly body: Node;
-  constructor(location: Location, condition: Node, body: Node) {
+  readonly body: Block;
+  constructor(location: Location, condition: Node, body: Block) {
     this.location = location;
     this.condition = condition;
     this.body = body;
@@ -234,13 +249,11 @@ export class While implements Node {
   accept<R>(visitor: Visitor<R>): R { return visitor.visitWhile(this); }
 }
 
-export type MemberStatement = StringLiteral | Declaration;
-
 export class ClassDefinition implements Node {
   readonly location: Location;
   readonly identifier: Identifier;
-  readonly statements: MemberStatement[];
-  constructor(location: Location, identifier: Identifier, statements: MemberStatement[]) {
+  readonly statements: Node[];
+  constructor(location: Location, identifier: Identifier, statements: Node[]) {
     this.location = location;
     this.identifier = identifier;
     this.statements = statements;
