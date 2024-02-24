@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { tokenizeCommand } from './extension/tokenize';
 import { parseCommand } from './extension/parse';
+import { runCommand } from './extension/run';
 
 
 
@@ -12,4 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.commands.registerCommand(
     'yal.parse',
     parseCommand));
+  sub(vscode.commands.registerCommand(
+    'yal.run',
+    runCommand));
 }

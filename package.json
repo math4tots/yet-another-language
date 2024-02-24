@@ -75,8 +75,8 @@
                 "title": "yal: Parse yal Code"
             },
             {
-                "command": "yal.runfile",
-                "title": "yal: Run yal File"
+                "command": "yal.run",
+                "title": "yal: Run/Eval yal File"
             }
         ],
         "keybindings": [

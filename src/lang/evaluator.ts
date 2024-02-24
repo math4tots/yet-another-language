@@ -1,26 +1,66 @@
 import * as ast from './ast';
+import { RuntimeError, errorStack } from './error';
 import * as rt from './runtime';
 
-export type Variable = { location: ast.Location, isConst: boolean, value: rt.Value; };
+export type Variable = { location?: ast.Location, isConst: boolean, value: rt.Value; };
 export type Scope = { [key: string]: Variable; };
 
-class Evaluator implements ast.Visitor<rt.Value> {
+export function newScope(parent: Scope | null = null): Scope {
+  return Object.create(parent);
+}
+
+export const BASE_SCOPE: Scope = Object.create(null);
+BASE_SCOPE['repr'] =
+  { isConst: true, value: (_, args) => args.length > 0 ? rt.repr(args[0]) : '' };
+BASE_SCOPE['str'] =
+  { isConst: true, value: (_, args) => args.length > 0 ? rt.str(args[0]) : '' };
+BASE_SCOPE['print'] = { isConst: true, value: (_, args) => (console.log(args[0]), null) };
+
+class Evaluator implements
+  ast.ExpressionVisitor<rt.Value>,
+  ast.StatementVisitor<null> {
   readonly scope: Scope;
   constructor(scope: Scope) {
     this.scope = scope;
   }
-  visitFile(n: ast.File): rt.Value {
-    throw new Error('Method not implemented.');
-  }
-  visitNone(n: ast.None): rt.Value {
+  visitFile(n: ast.File): null {
+    for (const statement of n.statements) {
+      statement.accept(this);
+    }
     return null;
   }
-  visitBlock(n: ast.Block): rt.Value {
-    let last: rt.Value = null;
+  visitEmptyStatement(n: ast.EmptyStatement): null { return null; }
+  visitExpressionStatement(n: ast.ExpressionStatement): null {
+    n.expression.accept(this);
+    return null;
+  }
+  visitBlock(n: ast.Block): null {
     for (const statement of n.statements) {
-      last = statement.accept(this);
+      statement.accept(this);
     }
-    return last;
+    return null;
+  }
+  visitDeclaration(n: ast.Declaration): null {
+    const value = n.value?.accept(this) || null;
+    this.scope[n.identifier.name] = { isConst: n.isConst, location: n.location, value };
+    return null;
+  }
+  visitIf(n: ast.If): null {
+    if (rt.isTruthy(n.condition.accept(this))) {
+      n.lhs.accept(this);
+    } else {
+      n.rhs?.accept(this);
+    }
+    return null;
+  }
+  visitWhile(n: ast.While): null {
+    while (rt.isTruthy(n.condition.accept(this))) {
+      n.body.accept(this);
+    }
+    return null;
+  }
+  visitClassDefinition(n: ast.ClassDefinition): null {
+    throw new Error('Method not implemented.'); // TODO
   }
   visitNilLiteral(n: ast.NilLiteral): rt.Value {
     return null;
@@ -37,25 +77,19 @@ class Evaluator implements ast.Visitor<rt.Value> {
   visitIdentifier(n: ast.Identifier): rt.Value {
     const variable = this.scope[n.name];
     if (!variable) {
-      throw new rt.RuntimeError(`Variable ${n.name} not found`, n.location);
+      throw new RuntimeError(`Variable ${n.name} not found`, n.location);
     }
     return variable.value;
-  }
-  visitDeclaration(n: ast.Declaration): rt.Value {
-    const value: rt.Value = n.value?.accept(this) || null;
-    const variable: Variable = { location: n.location, isConst: n.isConst, value: value };
-    this.scope[n.identifier.name] = variable;
-    return value;
   }
   visitAssignment(n: ast.Assignment): rt.Value {
     const value = n.value.accept(this);
     const variable = this.scope[n.identifier.name];
     if (!variable) {
-      throw new rt.RuntimeError(`Variable ${n.identifier.name} not found`, n.identifier.location);
+      throw new RuntimeError(`Variable ${n.identifier.name} not found`, n.identifier.location);
     }
     if (variable.isConst) {
-      throw new rt.RuntimeError(
-        `Variable ${n.identifier.name} is immutable`, n.identifier.location);
+      throw new RuntimeError(
+        `Tried to modify const variable ${n.identifier.name}`, n.identifier.location);
     }
     variable.value = value;
     return value;
@@ -72,40 +106,44 @@ class Evaluator implements ast.Visitor<rt.Value> {
       const scope: Scope = Object.create(this.scope);
       scope['this'] = { location: n.location, isConst: true, value: recv };
       for (let i = 0; i < n.parameters.length; i++) {
-        const value: rt.Value = i < args.length ? args[i] : null;
-        const variable: Variable = { location: n.parameters[i].location, isConst: true, value };
-        scope[n.parameters[i].identifier.name] = variable;
+        const param = n.parameters[i];
+        const value = i < args.length ? args[i] : null;
+        scope[param.identifier.name] =
+          { location: param.location, isConst: param.isConst, value };
       }
       const evaluator = new Evaluator(scope);
-      return n.body.accept(evaluator);
+      const body = n.body;
+      if (body instanceof ast.Block) {
+        body.accept(evaluator);
+        return null; // TODO: return values
+      }
+      return body.accept(evaluator);
     };
   }
   visitMethodCall(n: ast.MethodCall): rt.Value {
     const recv = n.owner.accept(this);
     const args = n.args.map(arg => arg.accept(this));
-    try {
-      rt.errorStack.push(n.location);
-      return rt.callMethod(recv, n.identifier.name, args);
-    } finally {
-      rt.errorStack.pop();
-    }
+    errorStack.push(n.location);
+    const result = rt.callMethod(recv, n.identifier.name, args);
+    errorStack.pop();
+    return result;
   }
   visitLogicalAnd(n: ast.LogicalAnd): rt.Value {
-    throw new Error('Method not implemented.');
+    const lhs = n.lhs.accept(this);
+    return rt.isTruthy(lhs) ? n.rhs.accept(this) : lhs;
   }
   visitLogicalOr(n: ast.LogicalOr): rt.Value {
-    throw new Error('Method not implemented.');
+    const lhs = n.lhs.accept(this);
+    return rt.isTruthy(lhs) ? lhs : n.rhs.accept(this);
   }
   visitConditional(n: ast.Conditional): rt.Value {
-    throw new Error('Method not implemented.');
+    return rt.isTruthy(n.condition.accept(this)) ?
+      n.lhs.accept(this) : n.rhs.accept(this);
   }
-  visitIf(n: ast.If): rt.Value {
-    throw new Error('Method not implemented.');
-  }
-  visitWhile(n: ast.While): rt.Value {
-    throw new Error('Method not implemented.');
-  }
-  visitClassDefinition(n: ast.ClassDefinition): rt.Value {
-    throw new Error('Method not implemented.');
-  }
+};
+
+export function evaluate(node: ast.Node, scope: Scope): rt.Value {
+  const evaluator = new Evaluator(scope);
+  const n = node;
+  return n.accept(evaluator);
 }

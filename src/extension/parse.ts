@@ -1,18 +1,18 @@
 import * as vscode from 'vscode';
-import * as guc from '../lang/guc';
+import * as yal from '../lang/yal';
 import { getSelectionOrAllText, writeToNewEditor } from './utils';
 
 
-class Printer implements guc.ast.Visitor<void> {
+class Printer implements yal.ast.NodeVisitor<void> {
   out: string = '';
   depth: number = 0;
-  convert(file: guc.ast.File): string {
+  convert(file: yal.ast.File): string {
     file.accept(this);
     return this.out;
   }
   indent() { this.out += '\n' + '  '.repeat(this.depth); }
 
-  visitFile(n: guc.ast.File): void {
+  visitFile(n: yal.ast.File): void {
     this.out += 'FILE';
     this.depth++;
     for (const error of n.errors) {
@@ -25,11 +25,14 @@ class Printer implements guc.ast.Visitor<void> {
     }
     this.depth--;
   }
-  visitNone(n: guc.ast.None): void {
+  visitEmptyStatement(n: yal.ast.EmptyStatement): void {
     this.indent();
     this.out += `NONE`;
   }
-  visitBlock(n: guc.ast.Block): void {
+  visitExpressionStatement(n: yal.ast.ExpressionStatement): void {
+    n.expression.accept(this);
+  }
+  visitBlock(n: yal.ast.Block): void {
     this.indent();
     this.out += 'BLOCK';
     this.depth++;
@@ -38,41 +41,41 @@ class Printer implements guc.ast.Visitor<void> {
     }
     this.depth--;
   }
-  visitNilLiteral(n: guc.ast.NilLiteral): void {
+  visitNilLiteral(n: yal.ast.NilLiteral): void {
     this.indent();
     this.out += `nil`;
   }
-  visitBooleanLiteral(n: guc.ast.BooleanLiteral): void {
+  visitBooleanLiteral(n: yal.ast.BooleanLiteral): void {
     this.indent();
     this.out += `boolean ${n.value}`;
   }
-  visitNumberLiteral(n: guc.ast.NumberLiteral): void {
+  visitNumberLiteral(n: yal.ast.NumberLiteral): void {
     this.indent();
     this.out += `number ${n.value}`;
   }
-  visitStringLiteral(n: guc.ast.StringLiteral): void {
+  visitStringLiteral(n: yal.ast.StringLiteral): void {
     this.indent();
     this.out += `string ${JSON.stringify(n.value)}`;
   }
-  visitIdentifier(n: guc.ast.Identifier): void {
+  visitIdentifier(n: yal.ast.Identifier): void {
     this.indent();
     this.out += `IDENTIFIER ${n.name}`;
   }
-  visitDeclaration(n: guc.ast.Declaration): void {
+  visitDeclaration(n: yal.ast.Declaration): void {
     this.indent();
     this.out += `DECLARATION ${n.identifier.name}${n.isConst ? ' const' : ''}`;
     this.depth++;
     n.value?.accept(this);
     this.depth--;
   }
-  visitAssignment(n: guc.ast.Assignment): void {
+  visitAssignment(n: yal.ast.Assignment): void {
     this.indent();
     this.out += `ASSIGNMENT ${n.identifier.name}`;
     this.depth++;
     n.value.accept(this);
     this.depth--;
   }
-  visitListDisplay(n: guc.ast.ListDisplay): void {
+  visitListDisplay(n: yal.ast.ListDisplay): void {
     this.indent();
     this.out += `LIST DISPLAY`;
     this.depth++;
@@ -81,14 +84,14 @@ class Printer implements guc.ast.Visitor<void> {
     }
     this.depth--;
   }
-  visitFunctionDisplay(n: guc.ast.FunctionDisplay): void {
+  visitFunctionDisplay(n: yal.ast.FunctionDisplay): void {
     this.indent();
     this.out += `FUNCTION DISPLAY (${n.parameters.map(p => p.identifier.name).join(', ')})`;
     this.depth++;
     n.body.accept(this);
     this.depth--;
   }
-  visitMethodCall(n: guc.ast.MethodCall): void {
+  visitMethodCall(n: yal.ast.MethodCall): void {
     this.indent();
     this.out += `METHOD CALL ${n.identifier.name}`;
     this.depth++;
@@ -98,7 +101,7 @@ class Printer implements guc.ast.Visitor<void> {
     }
     this.depth--;
   }
-  visitLogicalAnd(n: guc.ast.LogicalAnd): void {
+  visitLogicalAnd(n: yal.ast.LogicalAnd): void {
     this.indent();
     this.out += `LOGICAL AND`;
     this.depth++;
@@ -106,7 +109,7 @@ class Printer implements guc.ast.Visitor<void> {
     n.rhs.accept(this);
     this.depth--;
   }
-  visitLogicalOr(n: guc.ast.LogicalOr): void {
+  visitLogicalOr(n: yal.ast.LogicalOr): void {
     this.indent();
     this.out += `LOGICAL OR`;
     this.depth++;
@@ -114,7 +117,7 @@ class Printer implements guc.ast.Visitor<void> {
     n.rhs.accept(this);
     this.depth--;
   }
-  visitConditional(n: guc.ast.Conditional): void {
+  visitConditional(n: yal.ast.Conditional): void {
     this.indent();
     this.out += `CONDITIONAL`;
     this.depth++;
@@ -123,7 +126,7 @@ class Printer implements guc.ast.Visitor<void> {
     n.rhs.accept(this);
     this.depth--;
   }
-  visitIf(n: guc.ast.If): void {
+  visitIf(n: yal.ast.If): void {
     this.indent();
     this.out += `IF`;
     this.depth++;
@@ -132,7 +135,7 @@ class Printer implements guc.ast.Visitor<void> {
     n.rhs?.accept(this);
     this.depth--;
   }
-  visitWhile(n: guc.ast.While): void {
+  visitWhile(n: yal.ast.While): void {
     this.indent();
     this.out += `WHILE`;
     this.depth++;
@@ -140,7 +143,7 @@ class Printer implements guc.ast.Visitor<void> {
     n.body.accept(this);
     this.depth--;
   }
-  visitClassDefinition(n: guc.ast.ClassDefinition): void {
+  visitClassDefinition(n: yal.ast.ClassDefinition): void {
     this.indent();
     this.out += `CLASS DEFINITION`;
     this.depth++;
@@ -157,7 +160,7 @@ export async function parseCommand() {
     return;
   }
   const text = getSelectionOrAllText(editor);
-  const file = guc.parse(editor.document.uri, text);
+  const file = yal.parse(editor.document.uri, text);
   const string = new Printer().convert(file);
 
   await writeToNewEditor(emit => { emit(string); });

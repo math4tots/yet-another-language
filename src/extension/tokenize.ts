@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import * as guc from '../lang/guc';
+import * as yal from '../lang/yal';
 import { getSelectionOrAllText, writeToNewEditor } from './utils';
 
 
@@ -10,7 +10,7 @@ export async function tokenizeCommand() {
     return;
   }
   const text = getSelectionOrAllText(editor);
-  const tokens = guc.lex(text);
+  const tokens = yal.lex(text);
 
   await writeToNewEditor(emit => {
     for (const token of tokens) {

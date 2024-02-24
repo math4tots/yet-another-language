@@ -53,7 +53,7 @@ export function parse(uri: Uri, source: string): ast.File {
   class Exception { }
 
   const tokens = lex(source);
-  const globalStatements: ast.Node[] = [];
+  const globalStatements: ast.Statement[] = [];
   const errors: ast.ParseError[] = [];
   let i = 0;
 
@@ -161,7 +161,7 @@ export function parse(uri: Uri, source: string): ast.File {
     return parameters;
   }
 
-  function parsePrefix(): ast.Node {
+  function parsePrefix(): ast.Expression {
     const peek = tokens[i];
     if (peek.type === 'NUMBER') {
       i++;
@@ -214,8 +214,8 @@ export function parse(uri: Uri, source: string): ast.File {
     throw new Exception();
   }
 
-  function parseArgs(): ast.Node[] {
-    const args: ast.Node[] = [];
+  function parseArgs(): ast.Expression[] {
+    const args: ast.Expression[] = [];
     expect('(');
     while (!atEOF() && !at(')')) {
       args.push(parseExpression());
@@ -227,11 +227,11 @@ export function parse(uri: Uri, source: string): ast.File {
     return args;
   }
 
-  function parseInfix(lhs: ast.Node, startRange: Range): ast.Node {
+  function parseInfix(lhs: ast.Expression, startRange: Range): ast.Expression {
     const optok = tokens[i];
     const tokenType = optok.type;
     if (tokenType === '(') {
-      const methodIdentifier = new ast.Identifier({ uri, range: optok.range }, 'operatorCall');
+      const methodIdentifier = new ast.Identifier({ uri, range: optok.range }, '__call__');
       const args = parseArgs();
       const end = tokens[i - 1].range.end;
       return new ast.MethodCall(
@@ -282,22 +282,22 @@ export function parse(uri: Uri, source: string): ast.File {
     throw new Exception();
   }
 
-  function parsePrec(precedence: number): ast.Node {
+  function parsePrec(precedence: number): ast.Expression {
     const startRange = tokens[i].range;
-    let expr = parsePrefix();
+    let expr: ast.Expression = parsePrefix();
     while (precedence <= (PrecMap.get(tokens[i].type) || 0)) {
       expr = parseInfix(expr, startRange);
     }
     return expr;
   }
 
-  function parseExpression(): ast.Node {
+  function parseExpression(): ast.Expression {
     return parsePrec(1);
   }
 
-  function parseStatement(): ast.Node {
+  function parseStatement(): ast.Statement {
     const peek = tokens[i];
-    if (consume(';')) return new ast.None({ uri, range: peek.range });
+    if (consume(';')) return new ast.EmptyStatement({ uri, range: peek.range });
     if (at('if')) return parseIf();
     if (at('while')) return parseWhile();
     if (at('var') || at('const')) return parseDeclaration();
@@ -305,7 +305,7 @@ export function parse(uri: Uri, source: string): ast.File {
     if (at('class')) return parseClassDefinition();
     const expression = parseExpression();
     expectStatementDelimiter();
-    return expression;
+    return new ast.ExpressionStatement(expression.location, expression);
   }
 
   function parseIf(): ast.If {
@@ -337,7 +337,7 @@ export function parse(uri: Uri, source: string): ast.File {
 
   function parseBlock(): ast.Block {
     const startPos = expect('{').range.start;
-    const statements: ast.Node[] = [];
+    const statements: ast.Statement[] = [];
     try {
       while (!atEOF() && !at('}')) {
         statements.push(parseStatement());
@@ -355,7 +355,7 @@ export function parse(uri: Uri, source: string): ast.File {
     return new ast.Block({ uri, range: { start: startPos, end: endPos } }, statements);
   }
 
-  function parseClassDefinition(): ast.Node {
+  function parseClassDefinition(): ast.ClassDefinition {
     const startPos = expect('class').range.start;
     const identifier = parseIdentifier();
     const body = parseBlock();

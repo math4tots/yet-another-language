@@ -3,8 +3,9 @@ export { lex, Token, TokenType, Position, Range } from './lexer';
 export { Location, Node } from './ast';
 export * as ast from './ast';
 export {
-  RuntimeError, errorStack,
   Value, YALClass, YALInstance, YALFunction,
   getClass, callMethod, isTruthy,
+  str, repr,
 } from './runtime';
-export { Variable, Scope } from './evaluator';
+export { Variable, Scope, newScope } from './evaluator';
+export { RuntimeError, errorStack } from './error';
