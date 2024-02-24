@@ -81,7 +81,7 @@
         ],
         "keybindings": [
             {
-                "command": "yal.runfile",
+                "command": "yal.run",
                 "key": "f5",
                 "when": "editorLangId == yal"
             }
@@ -97,7 +97,7 @@
                     "when": "editorLangId == yal"
                 },
                 {
-                    "command": "yal.runfile",
+                    "command": "yal.run",
                     "when": "editorLangId == yal"
                 }
             ]

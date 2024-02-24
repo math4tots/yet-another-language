@@ -15,7 +15,7 @@ export type Value =
 export type YALMethod = (recv: Value, args: Value[]) => Value;
 export type YALFunction = YALMethod;
 export type YALInstance = { [CLASS_KEY]: YALClass, [key: string]: Value; };
-type MethodMap = { [name: string]: YALMethod; };
+export type MethodMap = { [name: string]: YALMethod; };
 
 export class YALClass {
   readonly name: string;
@@ -56,7 +56,9 @@ export function getClass(value: Value): YALClass {
 export function callMethod(recv: Value, methodName: string, args: Value[]): Value {
   const cls = getClass(recv);
   const method = cls.methodMap[methodName];
+  console.log(`method = ${method}, typeof method = ${typeof method}`);
   if (!method) {
+    console.log(`METHOD NOT FOUND ${methodName}`);
     throw new RuntimeError(`Method ${methodName} not found on ${cls.name} instance`);
   }
   return method(recv, args);
@@ -93,6 +95,12 @@ export function repr(value: Value): string {
   }
 }
 
+ClassClass.addMethod('__call__', (recv: Value, args: Value[]): Value => {
+  const cls = recv as YALClass;
+  const instance: YALInstance = Object.create(null);
+  instance[CLASS_KEY] = cls;
+  return instance;
+});
 FunctionClass.addMethod('__call__', (recv: Value, args: Value[]): Value => {
   return (recv as YALFunction)(null, args);
 });

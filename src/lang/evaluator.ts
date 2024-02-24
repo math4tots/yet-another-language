@@ -24,6 +24,12 @@ class Evaluator implements
     this.scope = scope;
   }
   visitFile(n: ast.File): null {
+    if (n.errors.length > 0) {
+      throw new RuntimeError(n.errors.map(
+        e => `ParseError: ${e.message}\n  ` +
+          `${e.location.uri}:${e.location.range.start.line}:${e.location.range.start.column}`
+      ).join('\n'));
+    }
     for (const statement of n.statements) {
       statement.accept(this);
     }
@@ -60,7 +66,27 @@ class Evaluator implements
     return null;
   }
   visitClassDefinition(n: ast.ClassDefinition): null {
-    throw new Error('Method not implemented.'); // TODO
+    const methodMap: rt.MethodMap = Object.create(null);
+    for (const statement of n.statements) {
+      if (statement instanceof ast.ExpressionStatement) {
+        const expression = statement.expression;
+        if (expression instanceof ast.StringLiteral) {
+          // Comment statement
+          continue;
+        }
+      } else if (statement instanceof ast.Declaration) {
+        const valueExpression = statement.value;
+        if (valueExpression instanceof ast.FunctionDisplay) {
+          const yalfunc = this.visitFunctionDisplay(valueExpression);
+          methodMap[statement.identifier.name] = yalfunc;
+        }
+      }
+      throw new RuntimeError(`Unexpected statement`, statement.location);
+    }
+    const value = new rt.YALClass(n.identifier.name, methodMap);
+    this.scope[n.identifier.name] =
+      { location: n.identifier.location, isConst: true, value };
+    return null;
   }
   visitNilLiteral(n: ast.NilLiteral): rt.Value {
     return null;
@@ -101,7 +127,7 @@ class Evaluator implements
     }
     return values;
   }
-  visitFunctionDisplay(n: ast.FunctionDisplay): rt.Value {
+  visitFunctionDisplay(n: ast.FunctionDisplay): rt.YALFunction {
     return (recv: rt.Value, args: rt.Value[]): rt.Value => {
       const scope: Scope = Object.create(this.scope);
       scope['this'] = { location: n.location, isConst: true, value: recv };

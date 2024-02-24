@@ -57,6 +57,15 @@ export function parse(uri: Uri, source: string): ast.File {
   const errors: ast.ParseError[] = [];
   let i = 0;
 
+  for (const token of tokens) {
+    if (token.type === 'ERROR') {
+      errors.push({
+        location: { uri, range: token.range },
+        message: token.value,
+      });
+    }
+  }
+
   function at(type: TokenType) {
     return tokens[i].type === type;
   }
@@ -166,6 +175,10 @@ export function parse(uri: Uri, source: string): ast.File {
     if (peek.type === 'NUMBER') {
       i++;
       return new ast.NumberLiteral({ uri, range: peek.range }, peek.value);
+    }
+    if (peek.type === 'STRING') {
+      i++;
+      return new ast.StringLiteral({ uri, range: peek.range }, peek.value);
     }
     if (peek.type === 'IDENTIFIER') {
       const identifier = parseIdentifier();
