@@ -145,7 +145,7 @@ export function parse(uri: Uri, source: string): ast.File {
         end: type ? type.location.range.end : identifier.location.range.end,
       }
     };
-    return new ast.Declaration(location, false, identifier, type, null);
+    return new ast.Declaration(location, true, identifier, type, null);
   }
 
   function parseParameters(): ast.Declaration[] {
@@ -179,7 +179,7 @@ export function parse(uri: Uri, source: string): ast.File {
         const range = { start: identifier.location.range.start, end: body.location.range.end };
         return new ast.FunctionDisplay(
           { uri, range },
-          [new ast.Declaration(identifier.location, false, identifier, null, null)],
+          [new ast.Declaration(identifier.location, true, identifier, null, null)],
           body);
       }
       return identifier;
@@ -327,12 +327,12 @@ export function parse(uri: Uri, source: string): ast.File {
 
   function parseDeclaration(): ast.Declaration {
     const start = tokens[i].range.start;
-    const mutable = consume('var') ? true : (expect('const'), false);
+    const isConst = consume('const') ? true : (expect('var'), false);
     const identifier = parseIdentifier();
     const type = consume(':') ? parseExpression() : null;
     const value = consume('=') ? parseExpression() : null;
     const end = expectStatementDelimiter().range.end;
-    return new ast.Declaration({ uri, range: { start, end } }, mutable, identifier, type, value);
+    return new ast.Declaration({ uri, range: { start, end } }, isConst, identifier, type, value);
   }
 
   function parseBlock(): ast.Block {

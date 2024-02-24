@@ -118,18 +118,18 @@ export class Identifier implements Node {
 
 export class Declaration implements Node {
   readonly location: Location;
-  readonly mutable: boolean;
+  readonly isConst: boolean;
   readonly identifier: Identifier;
   readonly type: Node | null;
   readonly value: Node | null;
   constructor(
     location: Location,
-    mutable: boolean,
+    isConst: boolean,
     identifier: Identifier,
     type: Node | null,
     value: Node | null) {
     this.location = location;
-    this.mutable = mutable;
+    this.isConst = isConst;
     this.identifier = identifier;
     this.type = type;
     this.value = value;

@@ -60,7 +60,7 @@ class Printer implements guc.ast.Visitor<void> {
   }
   visitDeclaration(n: guc.ast.Declaration): void {
     this.indent();
-    this.out += `DECLARATION ${n.identifier.name}${n.mutable ? '' : ' const'}`;
+    this.out += `DECLARATION ${n.identifier.name}${n.isConst ? ' const' : ''}`;
     this.depth++;
     n.value?.accept(this);
     this.depth--;
