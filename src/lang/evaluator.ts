@@ -1,6 +1,6 @@
 import * as ast from './ast';
 import { RuntimeError, errorStack } from './error';
-import * as rt from './runtime';
+import * as rt from './value';
 
 export type Variable = { location?: ast.Location, isConst: boolean, value: rt.Value; };
 export type Scope = { [key: string]: Variable; };

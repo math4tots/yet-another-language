@@ -6,6 +6,6 @@ export {
   Value, YALClass, YALInstance, YALFunction,
   getClass, callMethod, isTruthy,
   str, repr,
-} from './runtime';
+} from './value';
 export { Variable, Scope, newScope } from './evaluator';
 export { RuntimeError, errorStack } from './error';
