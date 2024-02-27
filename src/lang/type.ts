@@ -1,8 +1,7 @@
 export const Any = Symbol('Any');
 export const Nil = Symbol('Nil');
 export const Bool = Symbol('Bool');
-export const Int = Symbol('Int');
-export const Double = Symbol('Double');
+export const Number = Symbol('Number');
 export const String = Symbol('String');
 
 export const Kind = Symbol('Kind');
@@ -34,8 +33,7 @@ function registerType(type: Type): number {
 registerType(Any);
 registerType(Nil);
 registerType(Bool);
-registerType(Int);
-registerType(Double);
+registerType(Number);
 registerType(String);
 
 const listTypeMap = new Map<Type, ListType>();
@@ -99,5 +97,5 @@ export function Function(parameters: Type[], returns: Type): FunctionType {
 
 export type Type =
   typeof Any |
-  typeof Nil | typeof Bool | typeof Int | typeof Double | typeof String |
+  typeof Nil | typeof Bool | typeof Number | typeof String |
   ListType | TupleType | StructType | FunctionType;
