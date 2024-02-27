@@ -56,9 +56,7 @@ export function getClass(value: Value): YALClass {
 export function callMethod(recv: Value, methodName: string, args: Value[]): Value {
   const cls = getClass(recv);
   const method = cls.methodMap[methodName];
-  console.log(`method = ${method}, typeof method = ${typeof method}`);
   if (!method) {
-    console.log(`METHOD NOT FOUND ${methodName}`);
     throw new RuntimeError(`Method ${methodName} not found on ${cls.name} instance`);
   }
   return method(recv, args);
