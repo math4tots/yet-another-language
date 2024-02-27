@@ -51,7 +51,7 @@ export function List(item: Type): ListType {
 
 const tupleTypeMap = new Map<string, TupleType>();
 
-export function Tuple(...types: Type[]): TupleType {
+export function Tuple(types: Type[]): TupleType {
   const key = types.map(t => registry.get(t) || -1).join(',');
   const existingType = tupleTypeMap.get(key);
   if (existingType) {
