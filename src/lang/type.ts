@@ -14,6 +14,7 @@ export class Type {
   constructor(identifier: Identifier) {
     this.identifier = identifier;
   }
+  toString(): string { return this.identifier.name; }
   addMethod(method: Method) {
     this.methodMap.set(method.identifier.name, method);
   }

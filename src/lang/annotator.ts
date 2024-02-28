@@ -12,13 +12,18 @@ export const Jumps = Symbol('Jumps'); // return, throw, break, continue, etc
 export const MaybeJumps = Symbol('MaybeJumps');
 export type RunStatus = typeof Continues | typeof Jumps | typeof MaybeJumps;
 
-type Variable = {
+export type Variable = {
   readonly isConst: boolean;
   readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly value?: Value;
 };
 type Scope = { [key: string]: Variable; };
+
+export type Reference = {
+  readonly identifier: ast.Variable,
+  readonly variable: Variable,
+};
 
 const BASE_SCOPE: Scope = Object.create(null);
 BASE_SCOPE['Any'] =
@@ -32,11 +37,24 @@ BASE_SCOPE['Number'] =
 BASE_SCOPE['String'] =
   { isConst: true, identifier: StringType.identifier, type: AnyType, value: StringType };
 
-class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisitor<RunStatus> {
+export class Annotator implements
+  ast.ExpressionVisitor<ValueInfo>,
+  ast.StatementVisitor<RunStatus> {
   readonly errors: AnnotationError[] = [];
+  readonly variables: Variable[] = [];
+  readonly references: Reference[] = [];
   private scope: Scope = Object.create(BASE_SCOPE);
   private hint: Type = AnyType;
   private currentReturnType: Type | null = null;
+
+  annotateFile(file: ast.File): void {
+    this.errors.push(...file.errors);
+    this.blockScoped(() => {
+      for (const statement of file.statements) {
+        statement.accept(this);
+      }
+    });
+  }
 
   private blockScoped<R>(f: () => R): R {
     const outerScope = this.scope;
@@ -128,6 +146,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       });
       return { type: AnyType };
     }
+    this.references.push({ identifier: n, variable });
     return 'value' in variable ?
       { type: variable.type, value: variable.value } :
       { type: variable.type };
@@ -142,6 +161,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       });
       return { type: AnyType };
     }
+    this.references.push({ identifier: n.identifier, variable });
     if (!valueType.isAssignableTo(variable.type)) {
       this.errors.push({
         location: n.location,
@@ -193,6 +213,9 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         location: n.location,
         message: `Method ${n.identifier.name} not found on type ${owner.type.identifier.name}`,
       });
+      for (const arg of n.args) {
+        this.solve(arg);
+      }
       return { type: AnyType };
     }
     const expectedArgc = method.signature.parameterTypes.length;
@@ -269,6 +292,8 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     if (variable.value === undefined) {
       delete variable.value;
     }
+    this.variables.push(variable);
+    this.references.push({ identifier: n.identifier, variable });
     return Continues;
   }
   visitIf(n: ast.If): RunStatus {
@@ -299,12 +324,14 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
   visitClassDefinition(n: ast.ClassDefinition): RunStatus {
     const cls = new Type(n.identifier);
-    this.scope[cls.identifier.name] = {
+    const variable = this.scope[cls.identifier.name] = {
       isConst: true,
       identifier: n.identifier,
       type: AnyType,
       value: cls,
     };
+    this.variables.push(variable);
+    this.references.push({ identifier: n.identifier, variable });
     return Continues;
   }
 }

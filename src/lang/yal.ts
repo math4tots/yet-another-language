@@ -9,3 +9,10 @@ export {
 } from './value';
 export { Variable, Scope, newScope } from './evaluator';
 export { RuntimeError, errorStack } from './error';
+export { AnnotationError, Annotator, Reference } from './annotator';
+export {
+  Type,
+  AnyType,
+  NilType, BoolType, NumberType, StringType,
+  ListType, FunctionType,
+} from './type';
