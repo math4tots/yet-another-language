@@ -1,101 +1,102 @@
-export const Any = Symbol('Any');
-export const Nil = Symbol('Nil');
-export const Bool = Symbol('Bool');
-export const Number = Symbol('Number');
-export const String = Symbol('String');
+import { Identifier } from "./ast";
 
-export const Kind = Symbol('Kind');
-export const ListKind = Symbol('List');
-export const TupleKind = Symbol('Tuple');
-export const StructKind = Symbol('Struct');
-export const FunctionKind = Symbol('Function');
-export type ListType = { readonly [Kind]: typeof ListKind, readonly item: Type; };
-export type TupleType = { readonly [Kind]: typeof TupleKind, readonly types: Type[]; };
-export type StructType =
-  { readonly [Kind]: typeof StructKind, readonly fields: [string, Type][]; };
-export type FunctionType = {
-  readonly [Kind]: typeof FunctionKind;
-  readonly parameters: Type[];
-  readonly returns: Type;
-};
+export type Value =
+  null | boolean | number | string |
+  Value[] |
+  Method // Single methods when passed around like values are functions
+  ;
 
-const registry = new Map<Type, number>();
-
-function registerType(type: Type): number {
-  const oldID = registry.get(type);
-  if (oldID !== undefined) {
-    return oldID;
+export class Type {
+  readonly identifier: Identifier;
+  private readonly methodMap = new Map<string, Method>();
+  _listType: ListType | null = null;
+  constructor(identifier: Identifier) {
+    this.identifier = identifier;
   }
-  const id = registry.size;
-  registry.set(type, id);
-  return id;
-}
-registerType(Any);
-registerType(Nil);
-registerType(Bool);
-registerType(Number);
-registerType(String);
-
-const listTypeMap = new Map<Type, ListType>();
-
-export function List(item: Type): ListType {
-  const existingType = listTypeMap.get(item);
-  if (existingType) {
-    return existingType;
+  addMethod(method: Method) {
+    this.methodMap.set(method.identifier.name, method);
   }
-  const type: ListType = { [Kind]: ListKind, item };
-  registerType(type);
-  listTypeMap.set(item, type);
-  return type;
+  isTypeOf(value: Value): boolean {
+    const v = value;
+    switch (typeof v) {
+      case 'boolean': return this === BoolType;
+      case 'number': return this === NumberType;
+      case 'string': return this === StringType;
+      case 'object':
+        if (v === null) return this === NilType;
+        if (Array.isArray(v)) return this instanceof ListType &&
+          v.every(i => this.itemType.isTypeOf(i));
+    }
+    return false;
+  }
 }
 
-const tupleTypeMap = new Map<string, TupleType>();
-
-export function Tuple(types: Type[]): TupleType {
-  const key = types.map(t => registry.get(t) || -1).join(',');
-  const existingType = tupleTypeMap.get(key);
-  if (existingType) {
-    return existingType;
+class ListType extends Type {
+  of(itemType: Type): ListType {
+    if (itemType._listType) {
+      return itemType._listType;
+    }
+    const listType = new ListType(
+      { location: null, name: `List[${itemType.identifier.name}]` }, itemType);
+    itemType._listType = listType;
+    return listType;
   }
-  const type: TupleType = { [Kind]: TupleKind, types: Array.from(types) };
-  registerType(type);
-  tupleTypeMap.set(key, type);
-  return type;
-}
-
-const structTypeMap = new Map<string, StructType>();
-
-export function Struct(fields: [string, Type][]): StructType {
-  const pairs = Array.from(fields).sort((a, b) => a[0] < b[0] ? -1 : a[0] === b[0] ? 0 : 1);
-  const key = pairs.map(pair => `${pair[0]},${registry.get(pair[1]) || -1}`).join(',');
-  const existingType = structTypeMap.get(key);
-  if (existingType) {
-    return existingType;
+  readonly itemType: Type;
+  private constructor(identifier: Identifier, itemType: Type) {
+    super(identifier);
+    this.itemType = itemType;
   }
-  const type: StructType = { [Kind]: StructKind, fields: Array.from(fields) };
-  registerType(type);
-  structTypeMap.set(key, type);
-  return type;
 }
 
 const functionTypeMap = new Map<string, FunctionType>();
 
-export function Function(parameters: Type[], returns: Type): FunctionType {
-  const types = Array.from(parameters);
-  types.push(returns);
-  const key = types.map(t => registry.get(t) || -1).join(',');
-  const existingType = functionTypeMap.get(key);
-  if (existingType) {
-    return existingType;
+class FunctionType extends Type {
+  of(parameterTypes: Type[], returnType: Type) {
+    const key =
+      Array.from(parameterTypes).concat([returnType]).map(t => t.identifier.name).join(',');
+    const type = functionTypeMap.get(key);
+    if (type) {
+      return type;
+    }
+    const identifier: Identifier = { location: null, name: `Function[${key}]` };
+    const functionType = new FunctionType(identifier, Array.from(parameterTypes), returnType);
+    functionTypeMap.set(key, functionType);
+    return functionType;
   }
-  const type: FunctionType =
-    { [Kind]: FunctionKind, parameters: Array.from(parameters), returns };
-  registerType(type);
-  functionTypeMap.set(key, type);
-  return type;
+  readonly parameterTypes: Type[];
+  readonly returnType: Type;
+  private constructor(identifier: Identifier, parameterTypes: Type[], returnType: Type) {
+    super(identifier);
+    this.parameterTypes = Array.from(parameterTypes);
+    this.returnType = returnType;
+  }
 }
 
-export type Type =
-  typeof Any |
-  typeof Nil | typeof Bool | typeof Number | typeof String |
-  ListType | TupleType | StructType | FunctionType;
+export const NilType = new Type({ location: null, name: 'Nil' });
+export const BoolType = new Type({ location: null, name: 'Bool' });
+export const NumberType = new Type({ location: null, name: 'Number' });
+export const StringType = new Type({ location: null, name: 'String' });
+
+export class MethodSignature {
+  readonly parameterTypes: Type[];
+  readonly returnType: Type;
+  readonly variadic: Type | null;
+  constructor(parameterTypes: Type[], returnType: Type, variadic: Type | null) {
+    this.parameterTypes = Array.from(parameterTypes);
+    this.returnType = returnType;
+    this.variadic = variadic;
+  }
+}
+
+export type MethodBody = (recv: Value, args: Value[]) => Value;
+
+export class Method {
+  readonly identifier: Identifier;
+  readonly signature: MethodSignature;
+  readonly body: MethodBody | null;
+  constructor(identifier: Identifier, signature: MethodSignature, body: MethodBody | null) {
+    this.identifier = identifier;
+    this.signature = signature;
+    this.body = body;
+  }
+}

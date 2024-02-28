@@ -2,8 +2,8 @@ import { Uri } from "vscode";
 import { Range } from "./lexer";
 
 export type Location = {
-  uri: Uri;
-  range: Range;
+  readonly uri: Uri;
+  readonly range: Range;
 };
 
 export interface Identifier {
