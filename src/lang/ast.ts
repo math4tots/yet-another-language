@@ -21,6 +21,7 @@ export interface ExpressionVisitor<R> {
   visitListDisplay(n: ListDisplay): R;
   visitFunctionDisplay(n: FunctionDisplay): R;
   visitMethodCall(n: MethodCall): R;
+  visitNew(n: New): R;
   visitLogicalAnd(n: LogicalAnd): R;
   visitLogicalOr(n: LogicalOr): R;
   visitConditional(n: Conditional): R;
@@ -66,6 +67,9 @@ export class TypeExpression {
     this.location = location;
     this.identifier = identifier;
     this.args = args;
+  }
+  toString() {
+    return this.identifier.name + (this.args.length ? `[${this.args.join(',')}]` : '');
   }
 }
 
@@ -169,6 +173,18 @@ export class MethodCall implements Expression {
     this.args = args;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitMethodCall(this); }
+}
+
+export class New implements Expression {
+  readonly location: Location;
+  readonly type: TypeExpression;
+  readonly args: Expression[];
+  constructor(location: Location, type: TypeExpression, args: Expression[]) {
+    this.location = location;
+    this.type = type;
+    this.args = args;
+  }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNew(this); }
 }
 
 export class LogicalAnd implements Expression {

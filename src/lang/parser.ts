@@ -239,6 +239,13 @@ export function parse(uri: Uri, source: string): ast.File {
       expect(')');
       return innerExpression;
     }
+    if (consume('new')) {
+      const start = peek.range.start;
+      const type = parseTypeExpression();
+      const args = parseArgs();
+      const end = tokens[i - 1].range.end;
+      return new ast.New({ uri, range: { start, end } }, type, args);
+    }
     if (consume('if')) {
       const condition = parseExpression();
       expect('then');

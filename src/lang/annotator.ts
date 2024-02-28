@@ -1,6 +1,6 @@
 import * as ast from "./ast";
 import {
-  AnyType, BoolType, FunctionType, ListType, NilType, NumberType, StringType, Type,
+  AnyType, BoolType, ClassType, FunctionType, ListType, NilType, NumberType, StringType, Type,
   Value,
 } from "./type";
 
@@ -87,6 +87,7 @@ export class Annotator implements
     }
     const value = variable.value;
     if (value instanceof Type) {
+      this.references.push({ identifier: e.identifier, variable });
       return value;
     }
     if (value !== undefined) {
@@ -231,6 +232,12 @@ export class Annotator implements
     }
     return { type: method.signature.returnType };
   }
+  visitNew(n: ast.New): ValueInfo {
+    const type = this.solveType(n.type);
+    // TODO: check args types
+    const args = n.args.map(arg => this.solve(arg));
+    return { type };
+  }
   visitLogicalAnd(n: ast.LogicalAnd): ValueInfo {
     this.solve(n.lhs, BoolType, true);
     this.solve(n.rhs, BoolType, true);
@@ -323,7 +330,7 @@ export class Annotator implements
     return Jumps;
   }
   visitClassDefinition(n: ast.ClassDefinition): RunStatus {
-    const cls = new Type(n.identifier);
+    const cls = new ClassType(n.identifier);
     const variable = this.scope[cls.identifier.name] = {
       isConst: true,
       identifier: n.identifier,

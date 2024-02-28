@@ -14,6 +14,7 @@ export const Keywords = [
   'nil', 'true', 'false',
   'and', 'or', 'is', 'in', 'as',
   'not',
+  'new',
   'class', 'function', 'var', 'const', 'let', 'final',
   'if', 'then', 'else', 'while', 'break', 'continue',
   'return',

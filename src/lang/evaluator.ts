@@ -168,6 +168,9 @@ class Evaluator implements
     errorStack.pop();
     return result;
   }
+  visitNew(n: ast.New): rt.Value {
+    throw new Error(`TODO: Evaluator.visitNew()`);
+  }
   visitLogicalAnd(n: ast.LogicalAnd): rt.Value {
     const lhs = n.lhs.accept(this);
     return rt.isTruthy(lhs) ? n.rhs.accept(this) : lhs;

@@ -101,6 +101,13 @@ class Printer implements yal.ast.NodeVisitor<void> {
     }
     this.depth--;
   }
+  visitNew(n: yal.ast.New): void {
+    this.indent();
+    this.out += `NEW ${n.type} (${n.args.length} args)`;
+    this.depth++;
+    for (const arg of n.args) arg.accept(this);
+    this.depth--;
+  }
   visitLogicalAnd(n: yal.ast.LogicalAnd): void {
     this.indent();
     this.out += `LOGICAL AND`;

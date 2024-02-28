@@ -1,4 +1,4 @@
-import { Identifier } from "./ast";
+import { Identifier, Variable } from "./ast";
 
 export type Value =
   null | boolean | number | string |
@@ -11,7 +11,7 @@ export class Type {
   readonly identifier: Identifier;
   private readonly methodMap = new Map<string, Method>();
   _listType: ListType | null = null;
-  constructor(identifier: Identifier) {
+  protected constructor(identifier: Identifier) {
     this.identifier = identifier;
   }
   toString(): string { return this.identifier.name; }
@@ -68,6 +68,18 @@ export class Type {
   }
 }
 
+export class NativeType extends Type {
+  constructor(identifier: Identifier) {
+    super(identifier);
+  }
+}
+
+export class ClassType extends Type {
+  constructor(identifier: Variable) {
+    super(identifier);
+  }
+}
+
 export class ListType extends Type {
   static of(itemType: Type): ListType {
     if (itemType._listType) {
@@ -109,11 +121,11 @@ export class FunctionType extends Type {
   }
 }
 
-export const AnyType = new Type({ location: null, name: 'Any' });
-export const NilType = new Type({ location: null, name: 'Nil' });
-export const BoolType = new Type({ location: null, name: 'Bool' });
-export const NumberType = new Type({ location: null, name: 'Number' });
-export const StringType = new Type({ location: null, name: 'String' });
+export const AnyType = new NativeType({ location: null, name: 'Any' });
+export const NilType = new NativeType({ location: null, name: 'Nil' });
+export const BoolType = new NativeType({ location: null, name: 'Bool' });
+export const NumberType = new NativeType({ location: null, name: 'Number' });
+export const StringType = new NativeType({ location: null, name: 'String' });
 
 export class MethodSignature {
   readonly parameterTypes: Type[];
