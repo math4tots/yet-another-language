@@ -1,56 +1,27 @@
 import * as ast from "./ast";
+import { AnyType, BoolType, ListType, NilType, NumberType, StringType, Type } from "./type";
 import { Value, YALClass } from "./value";
 
 export type AnnotationError = ast.ParseError;
-export type VariableInfo = {
-  readonly location?: ast.Location;
+export type ValueInfo = { type: Type, value?: Value; };
+
+type Variable = {
+  readonly identifier: ast.Identifier;
   readonly isConst: boolean;
-  readonly type: StaticType;
-  readonly value?: StaticValue;
-};
-export type StaticScope = { [key: string]: VariableInfo; };
-export type StaticValue = null | boolean | number | string | StaticValue[];
-export type StaticType = string;
-export const AnyType = 'Any';
-export const NilType = 'Nil';
-export const BooleanType = 'Boolean';
-export const NumberType = 'Number';
-export const StringType = 'String';
-export const ListType = (t: StaticType): StaticType => `List[${t}]`;
-export const FunctionType = (argtypes: StaticType[], rtype: StaticType): StaticType =>
-  `Function[${argtypes.map(t => t + ', ')}${rtype}]`;
-export type ValueInfo = {
-  readonly type: StaticType;
+  readonly type: Type;
   readonly value?: Value;
 };
+type Scope = { [key: string]: Variable; };
 
-class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisitor<null> {
-  readonly stack: StaticScope[] = [];
+class Annotator implements ast.ExpressionVisitor<ValueInfo> {
   readonly errors: AnnotationError[] = [];
-  private scope: StaticScope = Object.create(null);
-
-  solveType(e: ast.Expression): StaticType {
-    if (e instanceof ast.Variable) {
-      switch (e.name) {
-        case 'Any': return AnyType;
-        case 'Nil': return NilType;
-        case 'Boolean': return BooleanType;
-        case 'Number': return NumberType;
-        case 'String': return StringType;
-      }
-    }
-    this.errors.push({
-      location: e.location,
-      message: `Invalid type expression`,
-    });
-    return AnyType;
-  }
+  private scope: Scope = Object.create(null);
 
   visitNilLiteral(n: ast.NilLiteral): ValueInfo {
     return { type: NilType, value: null };
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): ValueInfo {
-    return { type: BooleanType, value: n.value };
+    return { type: BoolType, value: n.value };
   }
   visitNumberLiteral(n: ast.NumberLiteral): ValueInfo {
     return { type: NumberType, value: n.value };
@@ -67,41 +38,46 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       });
       return { type: AnyType };
     }
-    return (variable.isConst && 'value' in variable) ?
+    return 'value' in variable ?
       { type: variable.type, value: variable.value } :
       { type: variable.type };
   }
   visitAssignment(n: ast.Assignment): ValueInfo {
-    const value = n.value.accept(this);
+    const { type: valueType } = n.value.accept(this);
     const variable = this.scope[n.identifier.name];
     if (!variable) {
       this.errors.push({
-        location: n.identifier.location,
+        location: n.location,
         message: `Variable ${n.identifier.name} not found`,
       });
       return { type: AnyType };
     }
-    if (variable.isConst) {
+    if (!valueType.isAssignableTo(variable.type)) {
       this.errors.push({
-        location: n.identifier.location,
-        message: `Cannot assign to const variable ${n.identifier.name}`,
+        location: n.location,
+        message: `${valueType.identifier.name} is not assignable to ${variable.type}`,
       });
-      return { type: AnyType };
     }
-    return value;
+    return 'value' in variable ?
+      { type: variable.type, value: variable.value } :
+      { type: variable.type };
   }
   visitListDisplay(n: ast.ListDisplay): ValueInfo {
-    const infos = n.values.map(v => v.accept(this));
-    const type = (infos.length > 0 && infos.every(i => i.type === infos[0].type)) ?
-      ListType(infos[0].type) : ListType(AnyType);
-    const values = infos.map(v => v.value);
-    if (values.every(v => v !== undefined)) {
-      return { type, value: values as StaticValue[] };
+    if (n.values.length === 0) {
+      return { type: ListType.of(AnyType), value: [] };
     }
-    return { type };
+    const elements = n.values.map(v => v.accept(this));
+    const values: Value[] = [];
+    const types: Type[] = [];
+    for (const element of elements) {
+      if (element.value !== undefined) {
+        values.push(element.value);
+      }
+      types.push(element.type);
+    }
+    throw new Error("Method not implemented.");
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
-    const paramTypes = n.parameters.map(p => p.type ? this.solveType(p.type) : AnyType);
     throw new Error("Method not implemented.");
   }
   visitMethodCall(n: ast.MethodCall): ValueInfo {
@@ -114,30 +90,6 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     throw new Error("Method not implemented.");
   }
   visitConditional(n: ast.Conditional): ValueInfo {
-    throw new Error("Method not implemented.");
-  }
-
-  visitEmptyStatement(n: ast.EmptyStatement): null { return null; }
-  visitExpressionStatement(n: ast.ExpressionStatement): null {
-    n.expression.accept(this);
-    return null;
-  }
-  visitBlock(n: ast.Block): null {
-    throw new Error("Method not implemented.");
-  }
-  visitDeclaration(n: ast.Declaration): null {
-    throw new Error("Method not implemented.");
-  }
-  visitIf(n: ast.If): null {
-    throw new Error("Method not implemented.");
-  }
-  visitWhile(n: ast.While): null {
-    throw new Error("Method not implemented.");
-  }
-  visitReturn(n: ast.Return): null {
-    throw new Error("Method not implemented.");
-  }
-  visitClassDefinition(n: ast.ClassDefinition): null {
     throw new Error("Method not implemented.");
   }
 }

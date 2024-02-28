@@ -17,6 +17,7 @@ export class Type {
     this.methodMap.set(method.identifier.name, method);
   }
   isTypeOf(value: Value): boolean {
+    if (this === AnyType) return true;
     const v = value;
     switch (typeof v) {
       case 'boolean': return this === BoolType;
@@ -29,10 +30,18 @@ export class Type {
     }
     return false;
   }
+  isAssignableTo(targetType: Type): boolean {
+    if (targetType === AnyType) return true;
+    if (this === targetType) return true;
+    if (this instanceof ListType) {
+      return targetType instanceof ListType && this.itemType.isAssignableTo(targetType);
+    }
+    return false;
+  }
 }
 
-class ListType extends Type {
-  of(itemType: Type): ListType {
+export class ListType extends Type {
+  static of(itemType: Type): ListType {
     if (itemType._listType) {
       return itemType._listType;
     }
@@ -50,8 +59,8 @@ class ListType extends Type {
 
 const functionTypeMap = new Map<string, FunctionType>();
 
-class FunctionType extends Type {
-  of(parameterTypes: Type[], returnType: Type) {
+export class FunctionType extends Type {
+  static of(parameterTypes: Type[], returnType: Type) {
     const key =
       Array.from(parameterTypes).concat([returnType]).map(t => t.identifier.name).join(',');
     const type = functionTypeMap.get(key);
@@ -72,6 +81,7 @@ class FunctionType extends Type {
   }
 }
 
+export const AnyType = new Type({ location: null, name: 'Any' });
 export const NilType = new Type({ location: null, name: 'Nil' });
 export const BoolType = new Type({ location: null, name: 'Bool' });
 export const NumberType = new Type({ location: null, name: 'Number' });
