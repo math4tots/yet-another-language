@@ -3,6 +3,7 @@ import { Identifier } from "./ast";
 export type Value =
   null | boolean | number | string |
   Value[] |
+  Type |
   Method // Single methods when passed around like values are functions
   ;
 
@@ -18,6 +19,10 @@ export class Type {
   }
   getMethod(name: string): Method | null {
     return this.methodMap.get(name) || null;
+  }
+  getCommonType(rhs: Type): Type {
+    return this.isAssignableTo(rhs) ? rhs :
+      rhs.isAssignableTo(this) ? this : AnyType;
   }
   isTypeOf(value: Value): boolean {
     if (this === AnyType) return true;

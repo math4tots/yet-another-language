@@ -1,21 +1,111 @@
 import * as ast from "./ast";
-import { AnyType, BoolType, ListType, NilType, NumberType, StringType, Type } from "./type";
-import { Value, YALClass } from "./value";
+import {
+  AnyType, BoolType, FunctionType, ListType, NilType, NumberType, StringType, Type,
+  Value,
+} from "./type";
 
 export type AnnotationError = ast.ParseError;
 export type ValueInfo = { type: Type, value?: Value; };
 
+const Continues = Symbol('Continues');
+const Returns = Symbol('Returns');
+const MaybeReturns = Symbol('MaybeReturns');
+type RunStatus = typeof Continues | typeof Returns | typeof MaybeReturns;
+
 type Variable = {
-  readonly identifier: ast.Identifier;
   readonly isConst: boolean;
+  readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly value?: Value;
 };
 type Scope = { [key: string]: Variable; };
 
+const BASE_SCOPE: Scope = Object.create(null);
+BASE_SCOPE['Any'] =
+  { isConst: true, identifier: AnyType.identifier, type: AnyType, value: AnyType };
+BASE_SCOPE['Nil'] =
+  { isConst: true, identifier: NilType.identifier, type: AnyType, value: NilType };
+BASE_SCOPE['Bool'] =
+  { isConst: true, identifier: BoolType.identifier, type: AnyType, value: BoolType };
+BASE_SCOPE['Number'] =
+  { isConst: true, identifier: NumberType.identifier, type: AnyType, value: NumberType };
+BASE_SCOPE['String'] =
+  { isConst: true, identifier: StringType.identifier, type: AnyType, value: StringType };
+
 class Annotator implements ast.ExpressionVisitor<ValueInfo> {
   readonly errors: AnnotationError[] = [];
-  private scope: Scope = Object.create(null);
+  private scope: Scope = Object.create(BASE_SCOPE);
+  private hint: Type = AnyType;
+  private currentReturnType: Type | null = null;
+
+  private blockScoped<R>(f: () => R): R {
+    const outerScope = this.scope;
+    try {
+      this.scope = Object.create(outerScope);
+      return f();
+    } finally {
+      this.scope = outerScope;
+    }
+  }
+
+  private functionScoped<R>(rt: Type, f: () => R): R {
+    const outerReturnType = this.currentReturnType;
+    try {
+      this.currentReturnType = rt;
+      return this.blockScoped(f);
+    } finally {
+      this.currentReturnType = outerReturnType;
+    }
+  }
+
+  private solveType(e: ast.TypeExpression): Type {
+    const variable = this.scope[e.identifier.name];
+    if (!variable) {
+      this.errors.push({
+        location: e.location,
+        message: `Typename ${e.identifier.name} not found`,
+      });
+      return AnyType;
+    }
+    const value = variable.value;
+    if (value instanceof Type) {
+      return value;
+    }
+    if (value !== undefined) {
+      this.errors.push({
+        location: e.location,
+        message: `${e.identifier.name} is not a type`,
+      });
+      return AnyType;
+    }
+    if (e.args.length === 1 && e.identifier.name === 'List') {
+      return ListType.of(this.solveType(e.args[0]));
+    }
+    this.errors.push({
+      location: e.location,
+      message: `Unrecognized type`,
+    });
+    return AnyType;
+  }
+
+  private solve(e: ast.Expression, hint: Type = AnyType, required: boolean = false): ValueInfo {
+    const oldHint = this.hint;
+    try {
+      this.hint = hint;
+      const info = e.accept(this);
+      if (required) {
+        if (!info.type.isAssignableTo(hint)) {
+          this.errors.push({
+            location: e.location,
+            message: `Expected ${hint.identifier.name} but got ${info.type.identifier}`,
+          });
+        }
+      }
+      return info;
+    } finally {
+      this.hint = oldHint;
+    }
+  }
 
   visitNilLiteral(n: ast.NilLiteral): ValueInfo {
     return { type: NilType, value: null };
@@ -43,7 +133,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo> {
       { type: variable.type };
   }
   visitAssignment(n: ast.Assignment): ValueInfo {
-    const { type: valueType } = n.value.accept(this);
+    const { type: valueType } = this.solve(n.value);
     const variable = this.scope[n.identifier.name];
     if (!variable) {
       this.errors.push({
@@ -63,15 +153,13 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo> {
       { type: variable.type };
   }
   visitListDisplay(n: ast.ListDisplay): ValueInfo {
-    if (n.values.length === 0) {
-      return { type: ListType.of(AnyType), value: [] };
-    }
-    const elements = n.values.map(v => v.accept(this));
+    const elements = n.values.map(v => this.solve(v));
 
-    const firstElementType = elements[0].type;
-    const listType = ListType.of(
-      elements.length > 0 && elements.every(e => e.type === firstElementType) ?
-        firstElementType : AnyType);
+    const elementType =
+      elements.length === 0 ?
+        AnyType :
+        elements.map(e => e.type).reduce((lhs, rhs) => lhs.getCommonType(rhs));
+    const listType = ListType.of(elementType);
 
     const values: Value[] =
       elements.map(e => e.value)
@@ -83,18 +171,51 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo> {
       { type: listType };
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
-    throw new Error("Method not implemented.");
+    const parameterTypes = n.parameters.map(p => p.type ? this.solveType(p.type) : AnyType);
+    const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
+    const funcType = FunctionType.of(parameterTypes, returnType);
+    this.functionScoped(returnType, () => {
+      // TODO: body
+    });
+    return { type: funcType };
   }
   visitMethodCall(n: ast.MethodCall): ValueInfo {
-    throw new Error("Method not implemented.");
+    const owner = this.solve(n.owner);
+    const method = owner.type.getMethod(n.identifier.name);
+    if (!method) {
+      this.errors.push({
+        location: n.location,
+        message: `Method ${n.identifier.name} not found on type ${owner.type.identifier.name}`,
+      });
+      return { type: AnyType };
+    }
+    const expectedArgc = method.signature.parameterTypes.length;
+    const argc = n.args.length;
+    if (expectedArgc !== argc) {
+      this.errors.push({
+        location: n.location,
+        message: `Method ${n.identifier.name} requires ${expectedArgc} args but got ${argc}`,
+      });
+    }
+    for (let i = 0; i < n.args.length; i++) {
+      this.solve(n.args[i], method.signature.parameterTypes[i], true);
+    }
+    return { type: method.signature.returnType };
   }
   visitLogicalAnd(n: ast.LogicalAnd): ValueInfo {
-    throw new Error("Method not implemented.");
+    this.solve(n.lhs, BoolType, true);
+    this.solve(n.rhs, BoolType, true);
+    return { type: BoolType };
   }
   visitLogicalOr(n: ast.LogicalOr): ValueInfo {
-    throw new Error("Method not implemented.");
+    this.solve(n.lhs, BoolType, true);
+    this.solve(n.rhs, BoolType, true);
+    return { type: BoolType };
   }
   visitConditional(n: ast.Conditional): ValueInfo {
-    throw new Error("Method not implemented.");
+    this.solve(n.condition, BoolType, true);
+    const lhs = this.solve(n.lhs);
+    const rhs = this.solve(n.rhs);
+    return { type: lhs.type.getCommonType(rhs.type) };
   }
 }
