@@ -30,7 +30,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   private scope: StaticScope = Object.create(null);
 
   solveType(e: ast.Expression): StaticType {
-    if (e instanceof ast.Identifier) {
+    if (e instanceof ast.Variable) {
       switch (e.name) {
         case 'Any': return AnyType;
         case 'Nil': return NilType;
@@ -58,7 +58,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   visitStringLiteral(n: ast.StringLiteral): ValueInfo {
     return { type: StringType, value: n.value };
   }
-  visitIdentifier(n: ast.Identifier): ValueInfo {
+  visitVariable(n: ast.Variable): ValueInfo {
     const variable = this.scope[n.name];
     if (!variable) {
       this.errors.push({

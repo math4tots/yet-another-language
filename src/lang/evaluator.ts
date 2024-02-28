@@ -110,7 +110,7 @@ class Evaluator implements
   visitStringLiteral(n: ast.StringLiteral): rt.Value {
     return n.value;
   }
-  visitIdentifier(n: ast.Identifier): rt.Value {
+  visitVariable(n: ast.Variable): rt.Value {
     const variable = this.scope[n.name];
     if (!variable) {
       throw new RuntimeError(`Variable ${n.name} not found`, n.location);

@@ -6,12 +6,17 @@ export type Location = {
   range: Range;
 };
 
+export interface Identifier {
+  readonly location: Location | null;
+  readonly name: string;
+};
+
 export interface ExpressionVisitor<R> {
   visitNilLiteral(n: NilLiteral): R;
   visitBooleanLiteral(n: BooleanLiteral): R;
   visitNumberLiteral(n: NumberLiteral): R;
   visitStringLiteral(n: StringLiteral): R;
-  visitIdentifier(n: Identifier): R;
+  visitVariable(n: Variable): R;
   visitAssignment(n: Assignment): R;
   visitListDisplay(n: ListDisplay): R;
   visitFunctionDisplay(n: FunctionDisplay): R;
@@ -91,21 +96,21 @@ export class StringLiteral implements Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitStringLiteral(this); }
 }
 
-export class Identifier implements Expression {
+export class Variable implements Expression, Identifier {
   readonly location: Location;
   readonly name: string;
   constructor(location: Location, name: string) {
     this.location = location;
     this.name = name;
   }
-  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitIdentifier(this); }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitVariable(this); }
 }
 
 export class Assignment implements Expression {
   readonly location: Location;
-  readonly identifier: Identifier;
+  readonly identifier: Variable;
   readonly value: Expression;
-  constructor(location: Location, identifier: Identifier, value: Expression) {
+  constructor(location: Location, identifier: Variable, value: Expression) {
     this.location = location;
     this.identifier = identifier;
     this.value = value;
@@ -138,9 +143,9 @@ export class FunctionDisplay implements Expression {
 export class MethodCall implements Expression {
   readonly location: Location;
   readonly owner: Expression;
-  readonly identifier: Identifier;
+  readonly identifier: Variable;
   readonly args: Expression[];
-  constructor(location: Location, owner: Expression, identifier: Identifier, args: Expression[]) {
+  constructor(location: Location, owner: Expression, identifier: Variable, args: Expression[]) {
     this.location = location;
     this.owner = owner;
     this.identifier = identifier;
@@ -218,13 +223,13 @@ export class Block implements Statement {
 export class Declaration implements Statement {
   readonly location: Location;
   readonly isConst: boolean;
-  readonly identifier: Identifier;
+  readonly identifier: Variable;
   readonly type: Expression | null;
   readonly value: Expression | null;
   constructor(
     location: Location,
     isConst: boolean,
-    identifier: Identifier,
+    identifier: Variable,
     type: Expression | null,
     value: Expression | null) {
     this.location = location;
@@ -274,9 +279,9 @@ export class Return implements Statement {
 
 export class ClassDefinition implements Statement {
   readonly location: Location;
-  readonly identifier: Identifier;
+  readonly identifier: Variable;
   readonly statements: Statement[];
-  constructor(location: Location, identifier: Identifier, statements: Statement[]) {
+  constructor(location: Location, identifier: Variable, statements: Statement[]) {
     this.location = location;
     this.identifier = identifier;
     this.statements = statements;

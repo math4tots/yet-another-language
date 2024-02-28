@@ -110,11 +110,11 @@ export function parse(uri: Uri, source: string): ast.File {
     return expect(';');
   }
 
-  function parseIdentifier(): ast.Identifier {
+  function parseVariable(): ast.Variable {
     const peek = tokens[i];
     if (peek.type === 'IDENTIFIER') {
       i++;
-      return new ast.Identifier({ uri, range: peek.range }, peek.value);
+      return new ast.Variable({ uri, range: peek.range }, peek.value);
     }
     errors.push({
       location: { uri, range: peek.range },
@@ -145,7 +145,7 @@ export function parse(uri: Uri, source: string): ast.File {
   }
 
   function parseParameter(): ast.Declaration {
-    const identifier = parseIdentifier();
+    const identifier = parseVariable();
     const type = consume(':') ? parseExpression() : null;
     const location = {
       uri,
@@ -193,7 +193,7 @@ export function parse(uri: Uri, source: string): ast.File {
       return new ast.StringLiteral({ uri, range: peek.range }, peek.value);
     }
     if (peek.type === 'IDENTIFIER') {
-      const identifier = parseIdentifier();
+      const identifier = parseVariable();
       if (consume('=')) {
         const rhs = parseExpression();
         const range = { start: identifier.location.range.start, end: rhs.location.range.end };
@@ -256,14 +256,14 @@ export function parse(uri: Uri, source: string): ast.File {
     const optok = tokens[i];
     const tokenType = optok.type;
     if (tokenType === '(') {
-      const methodIdentifier = new ast.Identifier({ uri, range: optok.range }, '__call__');
+      const methodIdentifier = new ast.Variable({ uri, range: optok.range }, '__call__');
       const args = parseArgs();
       const end = tokens[i - 1].range.end;
       return new ast.MethodCall(
         { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, args);
     }
     if (consume('.')) {
-      const identifier = parseIdentifier();
+      const identifier = parseVariable();
       if (at('(')) {
         const args = parseArgs();
         const end = tokens[i - 1].range.end;
@@ -271,14 +271,14 @@ export function parse(uri: Uri, source: string): ast.File {
           { uri, range: { start: startRange.start, end } }, lhs, identifier, args);
       }
       if (consume('=')) {
-        const methodIdentifier = new ast.Identifier(
+        const methodIdentifier = new ast.Variable(
           identifier.location, `set_${identifier.name}`);
         const value = parseExpression();
         const end = tokens[i - 1].range.end;
         return new ast.MethodCall(
           { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, [value]);
       }
-      const methodIdentifier = new ast.Identifier(
+      const methodIdentifier = new ast.Variable(
         identifier.location, `get_${identifier.name}`);
       const end = tokens[i - 1].range.end;
       return new ast.MethodCall(
@@ -296,7 +296,7 @@ export function parse(uri: Uri, source: string): ast.File {
         uri,
         range: { start: startRange.start, end: rhs.location.range.end },
       };
-      const methodIdentifier = new ast.Identifier(
+      const methodIdentifier = new ast.Variable(
         { uri, range: operatorRange }, methodName);
       return new ast.MethodCall(location, lhs, methodIdentifier, [rhs]);
     }
@@ -362,7 +362,7 @@ export function parse(uri: Uri, source: string): ast.File {
   function parseDeclaration(): ast.Declaration {
     const start = tokens[i].range.start;
     const isConst = consume('const') ? true : (expect('var'), false);
-    const identifier = parseIdentifier();
+    const identifier = parseVariable();
     const type = consume(':') ? parseExpression() : null;
     const value = consume('=') ? parseExpression() : null;
     const end = expectStatementDelimiter().range.end;
@@ -391,7 +391,7 @@ export function parse(uri: Uri, source: string): ast.File {
 
   function parseClassDefinition(): ast.ClassDefinition {
     const startPos = expect('class').range.start;
-    const identifier = parseIdentifier();
+    const identifier = parseVariable();
     const body = parseBlock();
     return new ast.ClassDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },

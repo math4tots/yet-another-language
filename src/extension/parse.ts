@@ -57,7 +57,7 @@ class Printer implements yal.ast.NodeVisitor<void> {
     this.indent();
     this.out += `string ${JSON.stringify(n.value)}`;
   }
-  visitIdentifier(n: yal.ast.Identifier): void {
+  visitVariable(n: yal.ast.Variable): void {
     this.indent();
     this.out += `IDENTIFIER ${n.name}`;
   }
