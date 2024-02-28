@@ -74,10 +74,22 @@ export class NativeType extends Type {
   }
 }
 
+export interface Field {
+  readonly identifier: Identifier;
+  readonly type: Type;
+}
+
 export class ClassType extends Type {
+  private readonly fieldMap = new Map<string, Field>();
+  private readonly fields: Field[] = [];
   constructor(identifier: Variable) {
     super(identifier);
   }
+  addField(field: Field): void {
+    this.fieldMap.set(field.identifier.name, field);
+    this.fields.push(field);
+  }
+  getFields(): Field[] { return this.fields; }
 }
 
 export class ListType extends Type {
@@ -127,24 +139,15 @@ export const BoolType = new NativeType({ location: null, name: 'Bool' });
 export const NumberType = new NativeType({ location: null, name: 'Number' });
 export const StringType = new NativeType({ location: null, name: 'String' });
 
-export class MethodSignature {
-  readonly parameterTypes: Type[];
-  readonly returnType: Type;
-  constructor(parameterTypes: Type[], returnType: Type) {
-    this.parameterTypes = Array.from(parameterTypes);
-    this.returnType = returnType;
-  }
-}
-
 export type MethodBody = (recv: Value, args: Value[]) => Value;
 
 export class Method {
   readonly identifier: Identifier;
-  readonly signature: MethodSignature;
+  readonly type: FunctionType;
   readonly body: MethodBody | null;
-  constructor(identifier: Identifier, signature: MethodSignature, body: MethodBody | null) {
+  constructor(identifier: Identifier, type: FunctionType, body: MethodBody | null) {
     this.identifier = identifier;
-    this.signature = signature;
+    this.type = type;
     this.body = body;
   }
 }

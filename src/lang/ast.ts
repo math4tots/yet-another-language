@@ -255,18 +255,18 @@ export class Block implements Statement {
 
 export class Declaration implements Statement {
   readonly location: Location;
-  readonly isConst: boolean;
+  readonly isMutable: boolean;
   readonly identifier: Variable;
   readonly type: TypeExpression | null;
   readonly value: Expression | null;
   constructor(
     location: Location,
-    isConst: boolean,
+    isMutable: boolean,
     identifier: Variable,
     type: TypeExpression | null,
     value: Expression | null) {
     this.location = location;
-    this.isConst = isConst;
+    this.isMutable = isMutable;
     this.identifier = identifier;
     this.type = type;
     this.value = value;

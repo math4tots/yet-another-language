@@ -24,7 +24,7 @@ export function newHoverProvider(registry: Registry): vscode.HoverProvider {
           const variable = reference.variable;
           const variableName = variable.identifier.name;
           const type = reference.variable.type;
-          const storageClass = reference.variable.isConst ? 'const' : 'var';
+          const storageClass = reference.variable.isMutable ? 'var' : 'const';
           const codeBlock =
             `${storageClass} ${variableName}` +
             (type === AnyType ? '' : `: ${type}`) +

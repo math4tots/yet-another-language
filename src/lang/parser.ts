@@ -106,6 +106,8 @@ export function parse(uri: Uri, source: string): ast.File {
       const pos = tokens[i - 1].range.end;
       return { range: { start: pos, end: pos }, type: ';', value: null };
     }
+    // Also create a synthetic token if we are at a '}' token
+    if (at('}')) return { range: tokens[i].range, type: ';', value: null };
     // if not, trigger an expect error
     return expect(';');
   }
@@ -386,12 +388,12 @@ export function parse(uri: Uri, source: string): ast.File {
 
   function parseDeclaration(): ast.Declaration {
     const start = tokens[i].range.start;
-    const isConst = consume('const') ? true : (expect('var'), false);
+    const isMutable = consume('const') ? false : (expect('var'), true);
     const identifier = parseIdentifier();
     const type = consume(':') ? parseTypeExpression() : null;
     const value = consume('=') ? parseExpression() : null;
     const end = expectStatementDelimiter().range.end;
-    return new ast.Declaration({ uri, range: { start, end } }, isConst, identifier, type, value);
+    return new ast.Declaration({ uri, range: { start, end } }, isMutable, identifier, type, value);
   }
 
   function parseBlock(): ast.Block {

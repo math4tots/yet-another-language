@@ -1,7 +1,10 @@
 import * as ast from "./ast";
 import {
-  AnyType, BoolType, ClassType, FunctionType, ListType, NilType, NumberType, StringType, Type,
+  Type,
+  AnyType, BoolType, ClassType, FunctionType, ListType, NilType, NumberType, StringType,
   Value,
+  Method,
+  Field,
 } from "./type";
 
 export type AnnotationError = ast.ParseError;
@@ -13,7 +16,7 @@ export const MaybeJumps = Symbol('MaybeJumps');
 export type RunStatus = typeof Continues | typeof Jumps | typeof MaybeJumps;
 
 export type Variable = {
-  readonly isConst: boolean;
+  readonly isMutable?: boolean;
   readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly value?: Value;
@@ -27,15 +30,15 @@ export type Reference = {
 
 const BASE_SCOPE: Scope = Object.create(null);
 BASE_SCOPE['Any'] =
-  { isConst: true, identifier: AnyType.identifier, type: AnyType, value: AnyType };
+  { identifier: AnyType.identifier, type: AnyType, value: AnyType };
 BASE_SCOPE['Nil'] =
-  { isConst: true, identifier: NilType.identifier, type: AnyType, value: NilType };
+  { identifier: NilType.identifier, type: AnyType, value: NilType };
 BASE_SCOPE['Bool'] =
-  { isConst: true, identifier: BoolType.identifier, type: AnyType, value: BoolType };
+  { identifier: BoolType.identifier, type: AnyType, value: BoolType };
 BASE_SCOPE['Number'] =
-  { isConst: true, identifier: NumberType.identifier, type: AnyType, value: NumberType };
+  { identifier: NumberType.identifier, type: AnyType, value: NumberType };
 BASE_SCOPE['String'] =
-  { isConst: true, identifier: StringType.identifier, type: AnyType, value: StringType };
+  { identifier: StringType.identifier, type: AnyType, value: StringType };
 
 export class Annotator implements
   ast.ExpressionVisitor<ValueInfo>,
@@ -53,6 +56,16 @@ export class Annotator implements
       for (const statement of file.statements) {
         statement.accept(this);
       }
+    });
+  }
+
+  private classScoped<R>(thisLocation: ast.Location, thisType: ClassType, f: () => R): R {
+    return this.blockScoped<R>(() => {
+      this.scope['this'] = {
+        identifier: { location: thisLocation, name: 'this' },
+        type: thisType,
+      };
+      return f();
     });
   }
 
@@ -116,7 +129,7 @@ export class Annotator implements
         if (!info.type.isAssignableTo(hint)) {
           this.errors.push({
             location: e.location,
-            message: `Expected ${hint.identifier.name} but got ${info.type.identifier}`,
+            message: `Expected ${hint.identifier.name} but got ${info.type.identifier.name}`,
           });
         }
       }
@@ -219,7 +232,8 @@ export class Annotator implements
       }
       return { type: AnyType };
     }
-    const expectedArgc = method.signature.parameterTypes.length;
+    this.references.push({ identifier: n.identifier, variable: method });
+    const expectedArgc = method.type.parameterTypes.length;
     const argc = n.args.length;
     if (expectedArgc !== argc) {
       this.errors.push({
@@ -228,14 +242,32 @@ export class Annotator implements
       });
     }
     for (let i = 0; i < n.args.length; i++) {
-      this.solve(n.args[i], method.signature.parameterTypes[i], true);
+      this.solve(n.args[i], method.type.parameterTypes[i], true);
     }
-    return { type: method.signature.returnType };
+    return { type: method.type.returnType };
   }
   visitNew(n: ast.New): ValueInfo {
     const type = this.solveType(n.type);
+    if (!(type instanceof ClassType)) {
+      this.errors.push({
+        location: n.location,
+        message: `new requires a class type but got ${type}`,
+      });
+      return { type: AnyType };
+    }
     // TODO: check args types
-    const args = n.args.map(arg => this.solve(arg));
+    const fieldTypes = type.getFields().map(field => field.type);
+    const expectedArgc = fieldTypes.length;
+    const argc = n.args.length;
+    if (expectedArgc !== argc) {
+      this.errors.push({
+        location: n.location,
+        message: `New ${type} requires ${expectedArgc} args but got ${argc}`,
+      });
+    }
+    for (let i = 0; i < n.args.length; i++) {
+      this.solve(n.args[i], fieldTypes[i], true);
+    }
     return { type };
   }
   visitLogicalAnd(n: ast.LogicalAnd): ValueInfo {
@@ -291,7 +323,7 @@ export class Annotator implements
       });
     }
     const variable = this.scope[n.identifier.name] = {
-      isConst: n.isConst,
+      isMutable: n.isMutable,
       identifier: n.identifier,
       type: explicitType || value.type,
       value: value.value,
@@ -332,13 +364,65 @@ export class Annotator implements
   visitClassDefinition(n: ast.ClassDefinition): RunStatus {
     const cls = new ClassType(n.identifier);
     const variable = this.scope[cls.identifier.name] = {
-      isConst: true,
       identifier: n.identifier,
       type: AnyType,
       value: cls,
     };
     this.variables.push(variable);
     this.references.push({ identifier: n.identifier, variable });
+    this.classScoped(n.identifier.location, cls, () => {
+      for (const statement of n.statements) {
+        if (statement instanceof ast.ExpressionStatement) {
+          if (statement.expression instanceof ast.StringLiteral) {
+            continue; // comments
+          }
+        } else if (statement instanceof ast.Declaration) {
+          if (statement.value instanceof ast.FunctionDisplay) {
+            // method
+            const functionDisplay = statement.value;
+            const { type: funcType } = this.solve(functionDisplay);
+            if (!(funcType instanceof FunctionType)) {
+              continue;
+            }
+            const method = new Method(statement.identifier, funcType, null);
+            cls.addMethod(method);
+            this.variables.push(method);
+            this.references.push({ identifier: statement.identifier, variable: method });
+            continue;
+          } else if (statement.value === null && statement.type !== null) {
+            // field
+            const fieldType = this.solveType(statement.type);
+            const field: Field = { identifier: statement.identifier, type: fieldType };
+            cls.addField(field);
+            this.variables.push(field);
+            this.references.push({ identifier: statement.identifier, variable: field });
+
+            // synthesized field methods
+            const getType = FunctionType.of([], fieldType);
+            const setType = FunctionType.of([fieldType], NilType);
+            const name = statement.identifier.name;
+            const getIdent = new ast.Variable(statement.identifier.location, `get_${name}`);
+            const setIdent = new ast.Variable(statement.identifier.location, `set_${name}`);
+            const getMethod = new Method(getIdent, getType, null);
+            const setMethod = new Method(setIdent, setType, null);
+            cls.addMethod(getMethod);
+            this.variables.push(getMethod);
+            this.references.push({ identifier: statement.identifier, variable: getMethod });
+            if (statement.isMutable) {
+              cls.addMethod(setMethod);
+              this.variables.push(setMethod);
+              this.references.push({ identifier: statement.identifier, variable: setMethod });
+            }
+
+            continue;
+          }
+        }
+        this.errors.push({
+          location: statement.location,
+          message: `Unrecognized class statement`,
+        });
+      }
+    });
     return Continues;
   }
 }
