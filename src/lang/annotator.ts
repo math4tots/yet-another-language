@@ -134,6 +134,9 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   visitWhile(n: ast.While): null {
     throw new Error("Method not implemented.");
   }
+  visitReturn(n: ast.Return): null {
+    throw new Error("Method not implemented.");
+  }
   visitClassDefinition(n: ast.ClassDefinition): null {
     throw new Error("Method not implemented.");
   }

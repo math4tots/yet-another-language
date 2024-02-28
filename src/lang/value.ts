@@ -1,3 +1,4 @@
+import { Location } from "./ast";
 import { RuntimeError } from "./error";
 
 const CLASS_KEY = Symbol('class');
@@ -18,9 +19,11 @@ export type YALInstance = { [CLASS_KEY]: YALClass, [key: string]: Value; };
 export type MethodMap = { [name: string]: YALMethod; };
 
 export class YALClass {
+  readonly location: Location | null;
   readonly name: string;
   readonly methodMap: MethodMap;
-  constructor(name: string, methodMap: MethodMap | null = null) {
+  constructor(location: Location | null, name: string, methodMap: MethodMap | null = null) {
+    this.location = location;
     this.name = name;
     this.methodMap = methodMap || Object.create(null);
   }
@@ -29,13 +32,13 @@ export class YALClass {
   }
 }
 
-export const NilClass = new YALClass('Nil');
-export const BooleanClass = new YALClass('Boolean');
-export const NumberClass = new YALClass('Number');
-export const StringClass = new YALClass('String');
-export const ListClass = new YALClass('List');
-export const FunctionClass = new YALClass('Function');
-export const ClassClass = new YALClass('Class');
+export const NilClass = new YALClass(null, 'Nil');
+export const BooleanClass = new YALClass(null, 'Boolean');
+export const NumberClass = new YALClass(null, 'Number');
+export const StringClass = new YALClass(null, 'String');
+export const ListClass = new YALClass(null, 'List');
+export const FunctionClass = new YALClass(null, 'Function');
+export const ClassClass = new YALClass(null, 'Class');
 
 export function getClass(value: Value): YALClass {
   const v = value;

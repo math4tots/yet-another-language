@@ -16,6 +16,13 @@ BASE_SCOPE['str'] =
   { isConst: true, value: (_, args) => args.length > 0 ? rt.str(args[0]) : '' };
 BASE_SCOPE['print'] = { isConst: true, value: (_, args) => (console.log(args[0]), null) };
 
+export class ReturnException {
+  readonly value: rt.Value;
+  constructor(value: rt.Value) {
+    this.value = value;
+  }
+}
+
 class Evaluator implements
   ast.ExpressionVisitor<rt.Value>,
   ast.StatementVisitor<null> {
@@ -65,6 +72,9 @@ class Evaluator implements
     }
     return null;
   }
+  visitReturn(n: ast.Return): null {
+    throw new ReturnException(n.value.accept(this));
+  }
   visitClassDefinition(n: ast.ClassDefinition): null {
     const methodMap: rt.MethodMap = Object.create(null);
     for (const statement of n.statements) {
@@ -83,7 +93,7 @@ class Evaluator implements
       }
       throw new RuntimeError(`Unexpected statement`, statement.location);
     }
-    const value = new rt.YALClass(n.identifier.name, methodMap);
+    const value = new rt.YALClass(n.identifier.location, n.identifier.name, methodMap);
     this.scope[n.identifier.name] =
       { location: n.identifier.location, isConst: true, value };
     return null;
@@ -139,11 +149,18 @@ class Evaluator implements
       }
       const evaluator = new Evaluator(scope);
       const body = n.body;
-      if (body instanceof ast.Block) {
-        body.accept(evaluator);
-        return null; // TODO: return values
+      try {
+        if (body instanceof ast.Block) {
+          body.accept(evaluator);
+          return null; // TODO: return values
+        }
+        return body.accept(evaluator);
+      } catch (e) {
+        if (e instanceof ReturnException) {
+          return e.value;
+        }
+        throw e;
       }
-      return body.accept(evaluator);
     };
   }
   visitMethodCall(n: ast.MethodCall): rt.Value {

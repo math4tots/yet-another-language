@@ -11,10 +11,12 @@ export type Range = {
   readonly end: Position;
 };
 export const Keywords = [
+  'nil', 'true', 'false',
   'and', 'or', 'is', 'in', 'as',
   'not',
   'class', 'function', 'var', 'const', 'let', 'final',
-  'if', 'then', 'else', 'while',
+  'if', 'then', 'else', 'while', 'break', 'continue',
+  'return',
 ] as const;
 export const Symbols = [
   // grouping tokens

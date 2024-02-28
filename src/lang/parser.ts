@@ -172,6 +172,18 @@ export function parse(uri: Uri, source: string): ast.File {
 
   function parsePrefix(): ast.Expression {
     const peek = tokens[i];
+    if (peek.type === 'nil') {
+      i++;
+      return new ast.NilLiteral({ uri, range: peek.range });
+    }
+    if (peek.type === 'true') {
+      i++;
+      return new ast.BooleanLiteral({ uri, range: peek.range }, true);
+    }
+    if (peek.type === 'false') {
+      i++;
+      return new ast.BooleanLiteral({ uri, range: peek.range }, false);
+    }
     if (peek.type === 'NUMBER') {
       i++;
       return new ast.NumberLiteral({ uri, range: peek.range }, peek.value);
@@ -311,6 +323,7 @@ export function parse(uri: Uri, source: string): ast.File {
   function parseStatement(): ast.Statement {
     const peek = tokens[i];
     if (consume(';')) return new ast.EmptyStatement({ uri, range: peek.range });
+    if (at('return')) return parseReturn();
     if (at('if')) return parseIf();
     if (at('while')) return parseWhile();
     if (at('var') || at('const')) return parseDeclaration();
@@ -319,6 +332,14 @@ export function parse(uri: Uri, source: string): ast.File {
     const expression = parseExpression();
     expectStatementDelimiter();
     return new ast.ExpressionStatement(expression.location, expression);
+  }
+
+  function parseReturn(): ast.Return {
+    const start = expect('return').range.start;
+    const value = parseExpression();
+    const end = tokens[i].range.end;
+    expectStatementDelimiter();
+    return new ast.Return({ uri, range: { start, end } }, value);
   }
 
   function parseIf(): ast.If {

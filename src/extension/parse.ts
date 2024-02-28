@@ -143,6 +143,13 @@ class Printer implements yal.ast.NodeVisitor<void> {
     n.body.accept(this);
     this.depth--;
   }
+  visitReturn(n: yal.ast.Return): void {
+    this.indent();
+    this.out += `RETURN`;
+    this.depth++;
+    n.value.accept(this);
+    this.depth--;
+  }
   visitClassDefinition(n: yal.ast.ClassDefinition): void {
     this.indent();
     this.out += `CLASS DEFINITION`;

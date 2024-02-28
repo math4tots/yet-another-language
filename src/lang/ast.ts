@@ -28,6 +28,7 @@ export interface StatementVisitor<R> {
   visitDeclaration(n: Declaration): R;
   visitIf(n: If): R;
   visitWhile(n: While): R;
+  visitReturn(n: Return): R;
   visitClassDefinition(n: ClassDefinition): R;
 }
 
@@ -259,6 +260,16 @@ export class While implements Statement {
     this.body = body;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitWhile(this); }
+}
+
+export class Return implements Statement {
+  readonly location: Location;
+  readonly value: Expression;
+  constructor(location: Location, value: Expression) {
+    this.location = location;
+    this.value = value;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitReturn(this); }
 }
 
 export class ClassDefinition implements Statement {
