@@ -123,6 +123,21 @@ export function parse(uri: Uri, source: string): ast.File {
     throw new Exception();
   }
 
+  function parseTypeExpression(): ast.TypeExpression {
+    const identifier = parseIdentifier();
+    let location = identifier.location;
+    const args: ast.TypeExpression[] = [];
+    if (consume('[')) {
+      while (!at(']')) {
+        args.push(parseTypeExpression());
+        if (!consume(',')) break;
+      }
+      const end = expect(']').range.end;
+      location = { uri, range: { start: location.range.start, end } };
+    }
+    return new ast.TypeExpression(location, identifier, args);
+  }
+
   function atFunctionDisplay(): boolean {
     const j = i;
     try {
@@ -146,7 +161,7 @@ export function parse(uri: Uri, source: string): ast.File {
 
   function parseParameter(): ast.Declaration {
     const identifier = parseIdentifier();
-    const type = consume(':') ? parseExpression() : null;
+    const type = consume(':') ? parseTypeExpression() : null;
     const location = {
       uri,
       range: {
@@ -213,7 +228,7 @@ export function parse(uri: Uri, source: string): ast.File {
     if (peek.type === '(') {
       if (atFunctionDisplay()) {
         const parameters = parseParameters();
-        const returnType = consume(':') ? parseExpression() : null;
+        const returnType = consume(':') ? parseTypeExpression() : null;
         expect('=>');
         const body = at('{') ? parseBlock() : parseExpression();
         const range = { start: peek.range.start, end: body.location.range.end };
@@ -366,7 +381,7 @@ export function parse(uri: Uri, source: string): ast.File {
     const start = tokens[i].range.start;
     const isConst = consume('const') ? true : (expect('var'), false);
     const identifier = parseIdentifier();
-    const type = consume(':') ? parseExpression() : null;
+    const type = consume(':') ? parseTypeExpression() : null;
     const value = consume('=') ? parseExpression() : null;
     const end = expectStatementDelimiter().range.end;
     return new ast.Declaration({ uri, range: { start, end } }, isConst, identifier, type, value);
@@ -396,7 +411,7 @@ export function parse(uri: Uri, source: string): ast.File {
     const startPos = expect('function').range.start;
     const identifier = parseIdentifier();
     const parameters = parseParameters();
-    const returnType = consume(':') ? parseExpression() : null;
+    const returnType = consume(':') ? parseTypeExpression() : null;
     const body = parseBlock();
     const location: ast.Location =
       { uri, range: { start: startPos, end: body.location.range.end } };

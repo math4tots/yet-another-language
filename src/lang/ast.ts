@@ -58,6 +58,17 @@ export type ParseError = {
   readonly message: string;
 };
 
+export class TypeExpression {
+  readonly location: Location;
+  readonly identifier: Variable;
+  readonly args: TypeExpression[];
+  constructor(location: Location, identifier: Variable, args: TypeExpression[]) {
+    this.location = location;
+    this.identifier = identifier;
+    this.args = args;
+  }
+}
+
 export class NilLiteral implements Expression {
   readonly location: Location;
   constructor(location: Location) {
@@ -131,12 +142,12 @@ export class ListDisplay implements Expression {
 export class FunctionDisplay implements Expression {
   readonly location: Location;
   readonly parameters: Declaration[];
-  readonly returnType: Expression | null;
+  readonly returnType: TypeExpression | null;
   readonly body: Block | Expression;
   constructor(
     location: Location,
     parameters: Declaration[],
-    returnType: Expression | null,
+    returnType: TypeExpression | null,
     body: Block | Expression) {
     this.location = location;
     this.parameters = parameters;
@@ -230,13 +241,13 @@ export class Declaration implements Statement {
   readonly location: Location;
   readonly isConst: boolean;
   readonly identifier: Variable;
-  readonly type: Expression | null;
+  readonly type: TypeExpression | null;
   readonly value: Expression | null;
   constructor(
     location: Location,
     isConst: boolean,
     identifier: Variable,
-    type: Expression | null,
+    type: TypeExpression | null,
     value: Expression | null) {
     this.location = location;
     this.isConst = isConst;
