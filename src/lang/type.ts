@@ -16,6 +16,9 @@ export class Type {
   addMethod(method: Method) {
     this.methodMap.set(method.identifier.name, method);
   }
+  getMethod(name: string): Method | null {
+    return this.methodMap.get(name) || null;
+  }
   isTypeOf(value: Value): boolean {
     if (this === AnyType) return true;
     const v = value;
@@ -34,7 +37,26 @@ export class Type {
     if (targetType === AnyType) return true;
     if (this === targetType) return true;
     if (this instanceof ListType) {
+      // TODO: Reconsider whether I want to allow Lists to be
+      // treated as though they are covariant
       return targetType instanceof ListType && this.itemType.isAssignableTo(targetType);
+    }
+    if (this instanceof FunctionType) {
+      if (!(targetType instanceof FunctionType)) {
+        return false;
+      }
+      if (this.parameterTypes.length !== targetType.parameterTypes.length) {
+        return false;
+      }
+      for (let i = 0; i < this.parameterTypes.length; i++) {
+        if (!targetType.parameterTypes[i].isAssignableTo(this.parameterTypes[i])) {
+          return false;
+        }
+      }
+      if (!this.returnType.isAssignableTo(targetType.returnType)) {
+        return false;
+      }
+      return true;
     }
     return false;
   }
@@ -90,11 +112,9 @@ export const StringType = new Type({ location: null, name: 'String' });
 export class MethodSignature {
   readonly parameterTypes: Type[];
   readonly returnType: Type;
-  readonly variadic: Type | null;
-  constructor(parameterTypes: Type[], returnType: Type, variadic: Type | null) {
+  constructor(parameterTypes: Type[], returnType: Type) {
     this.parameterTypes = Array.from(parameterTypes);
     this.returnType = returnType;
-    this.variadic = variadic;
   }
 }
 

@@ -138,7 +138,7 @@ export function parse(uri: Uri, source: string): ast.File {
             break;
         }
       }
-      return consume('=>');
+      return consume(':') || consume('=>');
     } finally {
       i = j;
     }
@@ -205,6 +205,7 @@ export function parse(uri: Uri, source: string): ast.File {
         return new ast.FunctionDisplay(
           { uri, range },
           [new ast.Declaration(identifier.location, true, identifier, null, null)],
+          null,
           body);
       }
       return identifier;
@@ -212,10 +213,11 @@ export function parse(uri: Uri, source: string): ast.File {
     if (peek.type === '(') {
       if (atFunctionDisplay()) {
         const parameters = parseParameters();
+        const returnType = consume(':') ? parseExpression() : null;
         expect('=>');
         const body = at('{') ? parseBlock() : parseExpression();
         const range = { start: peek.range.start, end: body.location.range.end };
-        return new ast.FunctionDisplay({ uri, range }, parameters, body);
+        return new ast.FunctionDisplay({ uri, range }, parameters, returnType, body);
       }
       i++;
       const innerExpression = parseExpression();
@@ -394,12 +396,13 @@ export function parse(uri: Uri, source: string): ast.File {
     const startPos = expect('function').range.start;
     const identifier = parseIdentifier();
     const parameters = parseParameters();
+    const returnType = consume(':') ? parseExpression() : null;
     const body = parseBlock();
     const location: ast.Location =
       { uri, range: { start: startPos, end: body.location.range.end } };
     return new ast.Declaration(
       location,
-      true, identifier, null, new ast.FunctionDisplay(location, parameters, body));
+      true, identifier, null, new ast.FunctionDisplay(location, parameters, returnType, body));
   }
 
   function parseClassDefinition(): ast.ClassDefinition {

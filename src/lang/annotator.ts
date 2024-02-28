@@ -67,15 +67,20 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo> {
       return { type: ListType.of(AnyType), value: [] };
     }
     const elements = n.values.map(v => v.accept(this));
-    const values: Value[] = [];
-    const types: Type[] = [];
-    for (const element of elements) {
-      if (element.value !== undefined) {
-        values.push(element.value);
-      }
-      types.push(element.type);
-    }
-    throw new Error("Method not implemented.");
+
+    const firstElementType = elements[0].type;
+    const listType = ListType.of(
+      elements.length > 0 && elements.every(e => e.type === firstElementType) ?
+        firstElementType : AnyType);
+
+    const values: Value[] =
+      elements.map(e => e.value)
+        .filter(v => v !== undefined)
+        .map(v => v === undefined ? 0 : v);
+
+    return values.length === elements.length ?
+      { type: listType, value: values } :
+      { type: listType };
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
     throw new Error("Method not implemented.");

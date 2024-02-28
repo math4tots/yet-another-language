@@ -131,10 +131,16 @@ export class ListDisplay implements Expression {
 export class FunctionDisplay implements Expression {
   readonly location: Location;
   readonly parameters: Declaration[];
+  readonly returnType: Expression | null;
   readonly body: Block | Expression;
-  constructor(location: Location, parameters: Declaration[], body: Block | Expression) {
+  constructor(
+    location: Location,
+    parameters: Declaration[],
+    returnType: Expression | null,
+    body: Block | Expression) {
     this.location = location;
     this.parameters = parameters;
+    this.returnType = returnType;
     this.body = body;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitFunctionDisplay(this); }
