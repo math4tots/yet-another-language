@@ -1,4 +1,4 @@
-import { Color, Location, Uri } from 'vscode';
+import { Uri } from 'vscode';
 import * as ast from './ast';
 import { lex, Position, Range, Token, TokenType } from './lexer';
 
@@ -328,6 +328,7 @@ export function parse(uri: Uri, source: string): ast.File {
     if (at('while')) return parseWhile();
     if (at('var') || at('const')) return parseDeclaration();
     if (at('{')) return parseBlock();
+    if (at('function')) return parseFunctionDefinition();
     if (at('class')) return parseClassDefinition();
     const expression = parseExpression();
     expectStatementDelimiter();
@@ -387,6 +388,18 @@ export function parse(uri: Uri, source: string): ast.File {
     }
     const endPos = expect('}').range.end;
     return new ast.Block({ uri, range: { start: startPos, end: endPos } }, statements);
+  }
+
+  function parseFunctionDefinition(): ast.Declaration {
+    const startPos = expect('function').range.start;
+    const identifier = parseIdentifier();
+    const parameters = parseParameters();
+    const body = parseBlock();
+    const location: ast.Location =
+      { uri, range: { start: startPos, end: body.location.range.end } };
+    return new ast.Declaration(
+      location,
+      true, identifier, null, new ast.FunctionDisplay(location, parameters, body));
   }
 
   function parseClassDefinition(): ast.ClassDefinition {
