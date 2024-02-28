@@ -143,12 +143,12 @@ export class FunctionDisplay implements Expression {
   readonly location: Location;
   readonly parameters: Declaration[];
   readonly returnType: TypeExpression | null;
-  readonly body: Block | Expression;
+  readonly body: Block;
   constructor(
     location: Location,
     parameters: Declaration[],
     returnType: TypeExpression | null,
-    body: Block | Expression) {
+    body: Block) {
     this.location = location;
     this.parameters = parameters;
     this.returnType = returnType;

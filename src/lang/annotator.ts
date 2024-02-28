@@ -7,10 +7,10 @@ import {
 export type AnnotationError = ast.ParseError;
 export type ValueInfo = { type: Type, value?: Value; };
 
-const Continues = Symbol('Continues');
-const Returns = Symbol('Returns');
-const MaybeReturns = Symbol('MaybeReturns');
-type RunStatus = typeof Continues | typeof Returns | typeof MaybeReturns;
+export const Continues = Symbol('Continues');
+export const Jumps = Symbol('Jumps'); // return, throw, break, continue, etc
+export const MaybeJumps = Symbol('MaybeJumps');
+export type RunStatus = typeof Continues | typeof Jumps | typeof MaybeJumps;
 
 type Variable = {
   readonly isConst: boolean;
@@ -32,7 +32,7 @@ BASE_SCOPE['Number'] =
 BASE_SCOPE['String'] =
   { isConst: true, identifier: StringType.identifier, type: AnyType, value: StringType };
 
-class Annotator implements ast.ExpressionVisitor<ValueInfo> {
+class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisitor<RunStatus> {
   readonly errors: AnnotationError[] = [];
   private scope: Scope = Object.create(BASE_SCOPE);
   private hint: Type = AnyType;
@@ -175,7 +175,13 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo> {
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const funcType = FunctionType.of(parameterTypes, returnType);
     this.functionScoped(returnType, () => {
-      // TODO: body
+      const status = n.body.accept(this);
+      if (status !== Jumps && !NilType.isAssignableTo(returnType)) {
+        this.errors.push({
+          location: n.returnType?.location || n.body.location,
+          message: `Function with non-nil return type must have explicit return`,
+        });
+      }
     });
     return { type: funcType };
   }
@@ -217,5 +223,88 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo> {
     const lhs = this.solve(n.lhs);
     const rhs = this.solve(n.rhs);
     return { type: lhs.type.getCommonType(rhs.type) };
+  }
+
+  visitEmptyStatement(n: ast.EmptyStatement): RunStatus { return Continues; }
+  visitExpressionStatement(n: ast.ExpressionStatement): RunStatus {
+    this.solve(n.expression);
+    return Continues;
+  }
+  visitBlock(n: ast.Block): RunStatus {
+    let status: RunStatus = Continues;
+    this.blockScoped(() => {
+      for (const statement of n.statements) {
+        const statementStatus = statement.accept(this);
+        // TODO: consider detecting unreachable statements
+        if (statementStatus === Jumps || status === Jumps) {
+          status = Jumps;
+        } else if (statementStatus === MaybeJumps || status == MaybeJumps) {
+          status = MaybeJumps;
+        } else {
+          status = Continues;
+        }
+      }
+    });
+    return status;
+  }
+  visitDeclaration(n: ast.Declaration): RunStatus {
+    const explicitType = n.type ? this.solveType(n.type) : null;
+    const value = n.value ?
+      explicitType ?
+        this.solve(n.value, explicitType, true) :
+        this.solve(n.value) :
+      { type: explicitType || AnyType };
+    if (!n.value && !NilType.isAssignableTo(value.type)) {
+      this.errors.push({
+        location: n.identifier.location,
+        message: `A declaration that cannot be nil must have an explicit initial value`,
+      });
+    }
+    const variable = this.scope[n.identifier.name] = {
+      isConst: n.isConst,
+      identifier: n.identifier,
+      type: explicitType || value.type,
+      value: value.value,
+    };
+    if (variable.value === undefined) {
+      delete variable.value;
+    }
+    return Continues;
+  }
+  visitIf(n: ast.If): RunStatus {
+    this.solve(n.condition, BoolType, true);
+    const stat1 = n.lhs.accept(this);
+    const stat2 = n.rhs ? n.rhs.accept(this) : Continues;
+    if (stat1 === Jumps && stat2 === Jumps) return Jumps;
+    if (stat1 === Jumps || stat1 === MaybeJumps ||
+      stat2 === Jumps || stat2 === MaybeJumps) return MaybeJumps;
+    return Continues;
+  }
+  visitWhile(n: ast.While): RunStatus {
+    this.solve(n.condition, BoolType, true);
+    n.body.accept(this);
+    return MaybeJumps;
+  }
+  visitReturn(n: ast.Return): RunStatus {
+    const returnType = this.currentReturnType;
+    if (returnType) {
+      this.solve(n.value, returnType, true);
+    } else {
+      this.errors.push({
+        location: n.location,
+        message: `Return statements cannot appear outside of functions`,
+      });
+    }
+    return Jumps;
+  }
+  visitClassDefinition(n: ast.ClassDefinition): RunStatus {
+    const cls = new Type(n.identifier);
+    this.scope[cls.identifier.name] = {
+      isConst: true,
+      identifier: n.identifier,
+      type: AnyType,
+      value: cls,
+    };
+    return Continues;
   }
 }

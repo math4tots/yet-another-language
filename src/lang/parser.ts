@@ -215,7 +215,7 @@ export function parse(uri: Uri, source: string): ast.File {
         return new ast.Assignment({ uri, range }, identifier, rhs);
       }
       if (consume('=>')) {
-        const body = at('{') ? parseBlock() : parseExpression();
+        const body = parseBlockOrQuickReturnExpression();
         const range = { start: identifier.location.range.start, end: body.location.range.end };
         return new ast.FunctionDisplay(
           { uri, range },
@@ -230,7 +230,7 @@ export function parse(uri: Uri, source: string): ast.File {
         const parameters = parseParameters();
         const returnType = consume(':') ? parseTypeExpression() : null;
         expect('=>');
-        const body = at('{') ? parseBlock() : parseExpression();
+        const body = parseBlockOrQuickReturnExpression();
         const range = { start: peek.range.start, end: body.location.range.end };
         return new ast.FunctionDisplay({ uri, range }, parameters, returnType, body);
       }
@@ -405,6 +405,15 @@ export function parse(uri: Uri, source: string): ast.File {
     }
     const endPos = expect('}').range.end;
     return new ast.Block({ uri, range: { start: startPos, end: endPos } }, statements);
+  }
+
+  function parseBlockOrQuickReturnExpression(): ast.Block {
+    return at('{') ? parseBlock() : (() => {
+      const expression = parseExpression();
+      return new ast.Block(
+        expression.location,
+        [new ast.Return(expression.location, expression)]);
+    })();
   }
 
   function parseFunctionDefinition(): ast.Declaration {

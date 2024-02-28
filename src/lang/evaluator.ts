@@ -150,11 +150,8 @@ class Evaluator implements
       const evaluator = new Evaluator(scope);
       const body = n.body;
       try {
-        if (body instanceof ast.Block) {
-          body.accept(evaluator);
-          return null; // TODO: return values
-        }
-        return body.accept(evaluator);
+        body.accept(evaluator);
+        return null; // TODO: return values
       } catch (e) {
         if (e instanceof ReturnException) {
           return e.value;
