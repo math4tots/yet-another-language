@@ -9,4 +9,5 @@ export {
   AnyType,
   NilType, BoolType, NumberType, StringType,
   ListType, FunctionType,
+  reprValue, strValue,
 } from './type';

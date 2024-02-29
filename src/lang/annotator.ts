@@ -5,6 +5,7 @@ import {
   Value,
   Method,
   Field,
+  reprValue, strValue, MethodBody,
 } from "./type";
 
 export type AnnotationError = ast.ParseError;
@@ -39,6 +40,21 @@ BASE_SCOPE['Number'] =
   { identifier: NumberType.identifier, type: AnyType, value: NumberType };
 BASE_SCOPE['String'] =
   { identifier: StringType.identifier, type: AnyType, value: StringType };
+
+function newBuiltin(name: string, ptypes: Type[], rtype: Type, body?: MethodBody): Variable {
+  const identifier: ast.Identifier = { location: null, name };
+  const type = FunctionType.of(ptypes, rtype);
+  return { identifier, type, value: new Method(identifier, type, body || null) };
+}
+
+function addBuiltin(name: string, ptypes: Type[], rtype: Type, body?: MethodBody) {
+  BASE_SCOPE[name] = newBuiltin(name, ptypes, rtype, body);
+}
+
+addBuiltin('print', [AnyType], NilType);
+addBuiltin('str', [AnyType], StringType, (_, args) => strValue(args[0]));
+addBuiltin('repr', [AnyType], StringType, (_, args) => reprValue(args[0]));
+
 
 export class Annotator implements
   ast.ExpressionVisitor<ValueInfo>,
@@ -209,6 +225,13 @@ export class Annotator implements
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const funcType = FunctionType.of(parameterTypes, returnType);
     this.functionScoped(returnType, () => {
+      for (let i = 0; i < n.parameters.length; i++) {
+        const identifier = n.parameters[i].identifier;
+        const variable: Variable = { identifier, type: parameterTypes[i] };
+        this.variables.push(variable);
+        this.references.push({ identifier, variable });
+        this.scope[identifier.name] = variable;
+      }
       const status = n.body.accept(this);
       if (status !== Jumps && !NilType.isAssignableTo(returnType)) {
         this.errors.push({
@@ -219,8 +242,41 @@ export class Annotator implements
     });
     return { type: funcType };
   }
+  private checkArgs(location: ast.Location, types: Type[], args: ast.Expression[]): ValueInfo[] {
+    const expectedArgc = types.length;
+    const argc = args.length;
+    if (expectedArgc !== argc) {
+      this.errors.push({ location, message: `Expected ${expectedArgc} args but got ${argc}` });
+    }
+    const ret: ValueInfo[] = [];
+    for (let i = 0; i < args.length; i++) {
+      if (i < types.length) {
+        ret.push(this.solve(args[i], types[i], true));
+      } else {
+        ret.push(this.solve(args[i]));
+      }
+    }
+    return ret;
+  }
+  private applyPure(
+    method: Value | undefined, owner: ValueInfo, args: ValueInfo[]): Value | undefined {
+    if (owner.value && method instanceof Method && method?.body &&
+      args.length === method.type.parameterTypes.length &&
+      args.every((arg, i) =>
+        arg.value !== undefined &&
+        arg.type.isAssignableTo(method.type.parameterTypes[i]))) {
+      return method.body(owner.value, args.map(arg => arg.value as Value));
+    }
+    return undefined;
+  }
   visitMethodCall(n: ast.MethodCall): ValueInfo {
     const owner = this.solve(n.owner);
+    if (owner.type instanceof FunctionType && n.identifier.name === '__call__') {
+      // function call
+      const args = this.checkArgs(n.location, owner.type.parameterTypes, n.args);
+      const method = owner.value;
+      return { type: owner.type.returnType, value: this.applyPure(method, owner, args) };
+    }
     const method = owner.type.getMethod(n.identifier.name);
     if (!method) {
       this.errors.push({
@@ -233,18 +289,8 @@ export class Annotator implements
       return { type: AnyType };
     }
     this.references.push({ identifier: n.identifier, variable: method });
-    const expectedArgc = method.type.parameterTypes.length;
-    const argc = n.args.length;
-    if (expectedArgc !== argc) {
-      this.errors.push({
-        location: n.location,
-        message: `Method ${n.identifier.name} requires ${expectedArgc} args but got ${argc}`,
-      });
-    }
-    for (let i = 0; i < n.args.length; i++) {
-      this.solve(n.args[i], method.type.parameterTypes[i], true);
-    }
-    return { type: method.type.returnType };
+    const args = this.checkArgs(n.location, method.type.parameterTypes, n.args);
+    return { type: method.type.returnType, value: this.applyPure(method, owner, args) };
   }
   visitNew(n: ast.New): ValueInfo {
     const type = this.solveType(n.type);

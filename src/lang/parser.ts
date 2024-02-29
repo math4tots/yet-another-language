@@ -130,7 +130,7 @@ export function parse(uri: Uri, source: string): ast.File {
     let location = identifier.location;
     const args: ast.TypeExpression[] = [];
     if (consume('[')) {
-      while (!at(']')) {
+      while (!atEOF() && !at(']')) {
         args.push(parseTypeExpression());
         if (!consume(',')) break;
       }
@@ -240,6 +240,17 @@ export function parse(uri: Uri, source: string): ast.File {
       const innerExpression = parseExpression();
       expect(')');
       return innerExpression;
+    }
+    if (peek.type === '[') {
+      i++;
+      const start = peek.range.start;
+      const elements: ast.Expression[] = [];
+      while (!atEOF() && !at(']')) {
+        elements.push(parseExpression());
+        if (!consume(',')) break;
+      }
+      const end = expect(']').range.end;
+      return new ast.ListDisplay({ uri, range: { start, end } }, elements);
     }
     if (consume('new')) {
       const start = peek.range.start;

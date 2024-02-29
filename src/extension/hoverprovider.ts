@@ -28,7 +28,7 @@ export function newHoverProvider(registry: Registry): vscode.HoverProvider {
           const codeBlock =
             `${storageClass} ${variableName}` +
             (type === AnyType ? '' : `: ${type}`) +
-            (reference.variable.value ? ` = ${reference.variable.value}` : '');
+            (reference.variable.value ? ` = ${yal.reprValue(reference.variable.value)}` : '');
           definitionInfo.appendCodeblock(codeBlock);
         }
       }

@@ -7,6 +7,25 @@ export type Value =
   Method // Single methods when passed around like values are functions
   ;
 
+export function strValue(value: Value): string {
+  return typeof value === 'string' ? value : reprValue(value);
+}
+
+export function reprValue(value: Value): string {
+  const v = value;
+  switch (typeof v) {
+    case 'boolean':
+    case 'number': return '' + v;
+    case 'string': return JSON.stringify(v);
+    case 'object':
+      if (v === null) return 'nil';
+      if (Array.isArray(v)) return `[${v.map(e => reprValue(e)).join(', ')}]`;
+      if (v instanceof Type) return v.repr();
+      if (v instanceof Method) return `<function ${v.identifier.name}>`;
+  }
+  return `<badvalue typeof=${typeof v}, JSON=${JSON.stringify(v)}>`;
+}
+
 export class Type {
   readonly identifier: Identifier;
   private readonly methodMap = new Map<string, Method>();
@@ -66,6 +85,7 @@ export class Type {
     }
     return false;
   }
+  repr(): string { return this.identifier.name; }
 }
 
 export class NativeType extends Type {
@@ -90,6 +110,10 @@ export class ClassType extends Type {
     this.fields.push(field);
   }
   getFields(): Field[] { return this.fields; }
+  getField(name: string): Field | null {
+    return this.fieldMap.get(name) || null;
+  }
+  repr(): string { return `<class ${this.identifier.name}>`; }
 }
 
 export class ListType extends Type {
@@ -100,6 +124,7 @@ export class ListType extends Type {
     const listType = new ListType(
       { location: null, name: `List[${itemType.identifier.name}]` }, itemType);
     itemType._listType = listType;
+    addListMethods(listType);
     return listType;
   }
   readonly itemType: Type;
@@ -150,4 +175,33 @@ export class Method {
     this.type = type;
     this.body = body;
   }
+}
+
+// Add builtin methods
+(() => {
+  const N = NumberType;
+  const S = StringType;
+
+  function addMethod(name: string, c: NativeType, args: Type[], ret: Type,
+    body: MethodBody | null) {
+    c.addMethod(new Method({ location: null, name }, FunctionType.of(args, ret), body));
+  }
+
+  // Number methods
+  addMethod('__add__', N, [N], N, (recv, args) => (recv as number) + (args[0] as number));
+  addMethod('__sub__', N, [N], N, (recv, args) => (recv as number) - (args[0] as number));
+  addMethod('__mul__', N, [N], N, (recv, args) => (recv as number) * (args[0] as number));
+  addMethod('__div__', N, [N], N, (recv, args) => (recv as number) / (args[0] as number));
+  addMethod('__mod__', N, [N], N, (recv, args) => (recv as number) % (args[0] as number));
+
+  // String methods
+  addMethod('__add__', S, [S], S, (recv, args) => (recv as string) + (args[0] as string));
+})();
+
+function addListMethods(c: ListType) {
+  const N = NumberType;
+  function addMethod(name: string, args: Type[], ret: Type, body: MethodBody | null) {
+    c.addMethod(new Method({ location: null, name }, FunctionType.of(args, ret), body));
+  }
+  addMethod('get_size', [], N, (recv, args) => (recv as Value[]).length);
 }
