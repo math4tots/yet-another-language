@@ -6,7 +6,7 @@ import {
   Value,
   Method,
   Field,
-  reprValue, strValue, MethodBody,
+  reprValue, strValue, MethodBody, Instance,
 } from "./type";
 
 export type AnnotationError = ast.ParseError;
@@ -340,20 +340,21 @@ export class Annotator implements
       });
       return { type: AnyType };
     }
-    // TODO: check args types
-    const fieldTypes = type.getFields().map(field => field.type);
-    const expectedArgc = fieldTypes.length;
-    const argc = n.args.length;
-    if (expectedArgc !== argc) {
-      this.errors.push({
-        location: n.location,
-        message: `New ${type} requires ${expectedArgc} args but got ${argc}`,
-      });
+    const fields = type.getFields();
+    const fieldTypes = fields.map(field => field.type);
+    const args = this.checkArgs(n.location, fieldTypes, n.args);
+    const fieldValues: (Value | undefined)[] = [];
+    for (let i = 0; i < fieldTypes.length; i++) {
+      if (!fields[i].isMutable &&
+        i < args.length &&
+        args[i].value !== undefined &&
+        args[i].type.isAssignableTo(fieldTypes[i])) {
+        fieldValues.push(args[i].value);
+      } else {
+        fieldValues.push(undefined);
+      }
     }
-    for (let i = 0; i < n.args.length; i++) {
-      this.solve(n.args[i], fieldTypes[i], true);
-    }
-    return { type };
+    return { type, value: new Instance(type, fieldValues) };
   }
   visitLogicalAnd(n: ast.LogicalAnd): ValueInfo {
     this.solve(n.lhs, BoolType, true);
@@ -477,7 +478,11 @@ export class Annotator implements
           } else if (statement.value === null && statement.type !== null) {
             // field
             const fieldType = this.solveType(statement.type);
-            const field: Field = { identifier: statement.identifier, type: fieldType };
+            const field: Field = {
+              isMutable: statement.isMutable,
+              identifier: statement.identifier,
+              type: fieldType,
+            };
             cls.addField(field);
             this.variables.push(field);
             this.references.push({ identifier: statement.identifier, variable: field });
@@ -488,7 +493,9 @@ export class Annotator implements
             const name = statement.identifier.name;
             const getIdent = new ast.Variable(statement.identifier.location, `get_${name}`);
             const setIdent = new ast.Variable(statement.identifier.location, `set_${name}`);
-            const getMethod = new Method(getIdent, getType, null);
+            const getMethod = new Method(
+              getIdent, getType,
+              (recv) => (recv as Instance).getField(statement.identifier.name));
             const setMethod = new Method(setIdent, setType, null);
             cls.addMethod(getMethod);
             this.variables.push(getMethod);

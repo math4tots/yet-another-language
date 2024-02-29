@@ -4,7 +4,8 @@ export type Value =
   null | boolean | number | string |
   Value[] |
   Type |
-  Method // Single methods when passed around like values are functions
+  Method | // Single methods when passed around like values are functions
+  Instance
   ;
 
 export function strValue(value: Value): string {
@@ -22,6 +23,7 @@ export function reprValue(value: Value): string {
       if (Array.isArray(v)) return `[${v.map(e => reprValue(e)).join(', ')}]`;
       if (v instanceof Type) return v.repr();
       if (v instanceof Method) return `<function ${v.identifier.name}>`;
+      if (v instanceof Instance) return v.toString();
   }
   return `<badvalue typeof=${typeof v}, JSON=${JSON.stringify(v)}>`;
 }
@@ -98,6 +100,7 @@ export class NativeType extends Type {
 }
 
 export interface Field {
+  readonly isMutable: boolean;
   readonly identifier: Identifier;
   readonly type: Type;
 }
@@ -167,16 +170,40 @@ export const BoolType = new NativeType({ location: null, name: 'Bool' });
 export const NumberType = new NativeType({ location: null, name: 'Number' });
 export const StringType = new NativeType({ location: null, name: 'String' });
 
-export type MethodBody = (recv: Value, args: Value[]) => Value;
+export type MethodBody = (recv: Value, args: Value[]) => (Value | undefined);
 
 export class Method {
   readonly identifier: Identifier;
   readonly type: FunctionType;
+
+  // A "body" is only present if the method is "pure",
+  // i.e. it can be computed at compile time, and has no side-effects
+  // used for constexpr evaluation
   readonly body: MethodBody | null;
+
   constructor(identifier: Identifier, type: FunctionType, body: MethodBody | null) {
     this.identifier = identifier;
     this.type = type;
     this.body = body;
+  }
+}
+
+// An instance of a Class - used for constexpr evaluation
+export class Instance {
+  readonly type: ClassType;
+  readonly values: (Value | undefined)[]; // field values (undefined if unknown)
+  constructor(type: ClassType, values: (Value | undefined)[]) {
+    this.type = type;
+    this.values = values;
+  }
+  toString() { return `<${this.type.identifier.name} instance>`; }
+  getField(name: string): Value | undefined {
+    const fields = this.type.getFields();
+    for (let i = 0; i < fields.length; i++) {
+      if (fields[i].identifier.name === name) {
+        return i < this.values.length ? this.values[i] : undefined;
+      }
+    }
   }
 }
 
