@@ -74,6 +74,10 @@ export function parse(uri: Uri, source: string): ast.File {
     return i >= tokens.length || tokens[i].type === 'EOF';
   }
 
+  function atFirstTokenOfNewLine(): boolean {
+    return i === 0 || (tokens[i - 1].range.end.line < tokens[i].range.start.line);
+  }
+
   function next() {
     return tokens[i++];
   }
@@ -102,7 +106,7 @@ export function parse(uri: Uri, source: string): ast.File {
       return next();
     }
     // See if there's a newline here. If so, create a synthetic token
-    if (i > 0 && tokens[i - 1].range.end.line < tokens[i].range.start.line) {
+    if (atFirstTokenOfNewLine()) {
       const pos = tokens[i - 1].range.end;
       return { range: { start: pos, end: pos }, type: ';', value: null };
     }
@@ -300,8 +304,15 @@ export function parse(uri: Uri, source: string): ast.File {
         { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, args);
     }
     if (consume('.')) {
+      if (!at('IDENTIFIER') || atFirstTokenOfNewLine()) {
+        // If the person is just typing, the dot might not yet be followed by any name.
+        // We still want the parse to succeed so that we can provide completion
+        const location: ast.Location = { uri, range: tokens[i - 1].range };
+        const identifier = new ast.Variable(location, '');
+        return new ast.MethodCall(location, lhs, identifier, []);
+      }
       const identifier = parseIdentifier();
-      if (at('(')) {
+      if (at('(') && !atFirstTokenOfNewLine()) {
         const args = parseArgs();
         const end = tokens[i - 1].range.end;
         return new ast.MethodCall(
@@ -348,6 +359,11 @@ export function parse(uri: Uri, source: string): ast.File {
     const startRange = tokens[i].range;
     let expr: ast.Expression = parsePrefix();
     while (precedence <= (PrecMap.get(tokens[i].type) || 0)) {
+      // Some infix tokens that start on the next line should actually
+      // be ignored.
+      if ((tokens[i].type === '(' || tokens[i].type === '[') && atFirstTokenOfNewLine()) {
+        break;
+      }
       expr = parseInfix(expr, startRange);
     }
     return expr;

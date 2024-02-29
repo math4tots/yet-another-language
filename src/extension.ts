@@ -5,12 +5,36 @@ import { runCommand } from './extension/run';
 import { newDefinitionProvider } from './extension/definitionprovider';
 import { Registry } from './extension/registry';
 import { newHoverProvider } from './extension/hoverprovider';
-
+import { newCompletionProvider } from './extension/completionprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
-  const registry = new Registry();
   const sub = (item: vscode.Disposable) => context.subscriptions.push(item);
+  const registry = new Registry();
+
+  if (vscode.window.activeTextEditor &&
+    vscode.window.activeTextEditor.document.languageId === 'yal') {
+    registry.update(vscode.window.activeTextEditor.document);
+  }
+
+  sub(vscode.workspace.onDidOpenTextDocument(async document => {
+    if (document.languageId === 'yal') {
+      registry.update(document);
+    }
+  }));
+
+  sub(vscode.workspace.onDidSaveTextDocument(async document => {
+    if (document.languageId === 'yal') {
+      registry.update(document);
+    }
+  }));
+
+  sub(vscode.window.onDidChangeActiveTextEditor(async editor => {
+    if (editor?.document.languageId === 'yal') {
+      registry.update(editor.document);
+    }
+  }));
+
   sub(vscode.commands.registerCommand(
     'yal.tokenize',
     tokenizeCommand));
@@ -27,4 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerHoverProvider(
     { language: 'yal' },
     newHoverProvider(registry)));
+  sub(vscode.languages.registerCompletionItemProvider(
+    { language: 'yal' },
+    newCompletionProvider(registry), '.'));
 }

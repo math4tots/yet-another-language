@@ -1,4 +1,5 @@
 import * as ast from "./ast";
+import { Range } from "./lexer";
 import {
   Type,
   AnyType, BoolType, ClassType, FunctionType, ListType, NilType, NumberType, StringType,
@@ -55,6 +56,15 @@ addBuiltin('print', [AnyType], NilType);
 addBuiltin('str', [AnyType], StringType, (_, args) => strValue(args[0]));
 addBuiltin('repr', [AnyType], StringType, (_, args) => reprValue(args[0]));
 
+export interface Completion {
+  readonly name: string;
+  readonly detail?: string;
+}
+
+export interface CompletionPoint {
+  readonly range: Range;
+  getCompletions(): Completion[];
+}
 
 export class Annotator implements
   ast.ExpressionVisitor<ValueInfo>,
@@ -62,6 +72,7 @@ export class Annotator implements
   readonly errors: AnnotationError[] = [];
   readonly variables: Variable[] = [];
   readonly references: Reference[] = [];
+  readonly completionPoints: CompletionPoint[] = [];
   private scope: Scope = Object.create(BASE_SCOPE);
   private hint: Type = AnyType;
   private currentReturnType: Type | null = null;
@@ -277,11 +288,39 @@ export class Annotator implements
       const method = owner.value;
       return { type: owner.type.returnType, value: this.applyPure(method, owner, args) };
     }
+    this.completionPoints.push({
+      range: n.identifier.location.range,
+      getCompletions(): Completion[] {
+        const completions: Completion[] = [];
+        for (const method of owner.type.getMethods()) {
+          const rawName = method.identifier.name;
+          if (rawName.startsWith('set_')) {
+            // skip setters
+          } else if (rawName.startsWith('get_')) {
+            // field or property
+            const name = rawName.substring('get_'.length);
+            completions.push({
+              name,
+              detail: '(property)',
+            });
+          } else {
+            // normal methods
+            const name = rawName;
+            completions.push({
+              name,
+              detail: '(method)',
+            });
+          }
+        }
+        return completions;
+      },
+    });
     const method = owner.type.getMethod(n.identifier.name);
     if (!method) {
       this.errors.push({
         location: n.location,
-        message: `Method ${n.identifier.name} not found on type ${owner.type.identifier.name}`,
+        message: `Method ${JSON.stringify(n.identifier.name)} ` +
+          `not found on type ${owner.type.identifier.name}`,
       });
       for (const arg of n.args) {
         this.solve(arg);

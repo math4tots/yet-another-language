@@ -29,17 +29,20 @@ export function reprValue(value: Value): string {
 export class Type {
   readonly identifier: Identifier;
   private readonly methodMap = new Map<string, Method>();
+  private readonly methods: Method[] = [];
   _listType: ListType | null = null;
   protected constructor(identifier: Identifier) {
     this.identifier = identifier;
   }
   toString(): string { return this.identifier.name; }
   addMethod(method: Method) {
+    this.methods.push(method);
     this.methodMap.set(method.identifier.name, method);
   }
   getMethod(name: string): Method | null {
     return this.methodMap.get(name) || null;
   }
+  getMethods(): Method[] { return this.methods; }
   getCommonType(rhs: Type): Type {
     return this.isAssignableTo(rhs) ? rhs :
       rhs.isAssignableTo(this) ? this : AnyType;
@@ -196,6 +199,7 @@ export class Method {
 
   // String methods
   addMethod('__add__', S, [S], S, (recv, args) => (recv as string) + (args[0] as string));
+  addMethod('get_size', S, [], N, (recv, args) => (recv as string).length);
 })();
 
 function addListMethods(c: ListType) {
