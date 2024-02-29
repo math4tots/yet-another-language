@@ -6,6 +6,7 @@ import { newDefinitionProvider } from './extension/definitionprovider';
 import { Registry } from './extension/registry';
 import { newHoverProvider } from './extension/hoverprovider';
 import { newCompletionProvider } from './extension/completionprovider';
+import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -54,4 +55,6 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerCompletionItemProvider(
     { language: 'yal' },
     newCompletionProvider(registry), '.'));
+  sub(vscode.languages.registerInlayHintsProvider(
+    { language: 'yal' }, newInlayHintsProvider(registry)));
 }

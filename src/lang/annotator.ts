@@ -56,6 +56,8 @@ addBuiltin('print', [AnyType], NilType);
 addBuiltin('str', [AnyType], StringType, (_, args) => strValue(args[0]));
 addBuiltin('repr', [AnyType], StringType, (_, args) => reprValue(args[0]));
 
+const printVariable = BASE_SCOPE.print;
+
 export interface Completion {
   readonly name: string;
   readonly detail?: string;
@@ -66,6 +68,11 @@ export interface CompletionPoint {
   getCompletions(): Completion[];
 }
 
+export interface PrintInstance {
+  readonly range: Range;
+  readonly value: Value;
+}
+
 export class Annotator implements
   ast.ExpressionVisitor<ValueInfo>,
   ast.StatementVisitor<RunStatus> {
@@ -73,6 +80,7 @@ export class Annotator implements
   readonly variables: Variable[] = [];
   readonly references: Reference[] = [];
   readonly completionPoints: CompletionPoint[] = [];
+  readonly printInstances: PrintInstance[] = [];
   private scope: Scope = Object.create(BASE_SCOPE);
   private hint: Type = AnyType;
   private currentReturnType: Type | null = null;
@@ -286,6 +294,10 @@ export class Annotator implements
       // function call
       const args = this.checkArgs(n.location, owner.type.parameterTypes, n.args);
       const method = owner.value;
+      if (owner.value === printVariable.value && args.length == 1 && args[0].value !== undefined) {
+        // print value
+        this.printInstances.push({ range: n.location.range, value: args[0].value });
+      }
       return { type: owner.type.returnType, value: this.applyPure(method, owner, args) };
     }
     this.completionPoints.push({

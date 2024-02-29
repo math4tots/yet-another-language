@@ -226,6 +226,7 @@ export class Instance {
 
   // String methods
   addMethod('__add__', S, [S], S, (recv, args) => (recv as string) + (args[0] as string));
+  addMethod('__mul__', S, [N], S, (recv, args) => (recv as string).repeat(args[0] as number));
   addMethod('get_size', S, [], N, (recv, args) => (recv as string).length);
 })();
 
