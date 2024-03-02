@@ -518,9 +518,13 @@ export class Annotator implements
             this.variables.push(method);
             this.references.push({ identifier: statement.identifier, variable: method });
             continue;
-          } else if (statement.value === null && statement.type !== null) {
+          } else if (statement.value === null) {
             // field
-            const fieldType = this.solveType(statement.type);
+            const fieldType = (statement.type && this.solveType(statement.type)) || AnyType;
+            if (statement.value) {
+              this.solve(statement.value, fieldType, true);
+            }
+            const comment = statement.comment;
             const field: Field = {
               isMutable: statement.isMutable,
               identifier: statement.identifier,
@@ -532,18 +536,19 @@ export class Annotator implements
 
             // synthesized field methods
             const getType = FunctionType.of([], fieldType);
-            const setType = FunctionType.of([fieldType], NilType);
             const name = statement.identifier.name;
             const getIdent = new ast.Variable(statement.identifier.location, `get_${name}`);
-            const setIdent = new ast.Variable(statement.identifier.location, `set_${name}`);
             const getMethod = new Method(
               getIdent, getType,
-              (recv) => (recv as Instance).getField(statement.identifier.name));
-            const setMethod = new Method(setIdent, setType, null);
+              (recv) => (recv as Instance).getField(statement.identifier.name),
+              comment);
             cls.addMethod(getMethod);
             this.variables.push(getMethod);
             this.references.push({ identifier: statement.identifier, variable: getMethod });
             if (statement.isMutable) {
+              const setType = FunctionType.of([fieldType], NilType);
+              const setIdent = new ast.Variable(statement.identifier.location, `set_${name}`);
+              const setMethod = new Method(setIdent, setType, null);
               cls.addMethod(setMethod);
               this.variables.push(setMethod);
               this.references.push({ identifier: statement.identifier, variable: setMethod });

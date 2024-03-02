@@ -112,6 +112,8 @@ export function parse(uri: Uri, source: string): ast.File {
     }
     // Also create a synthetic token if we are at a '}' token
     if (at('}')) return { range: tokens[i].range, type: ';', value: null };
+    // EOF also counts as statement delimiter
+    if (at('EOF')) return { range: tokens[i].range, type: ';', value: null };
     // if not, trigger an expect error
     return expect(';');
   }
