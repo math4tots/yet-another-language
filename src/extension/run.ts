@@ -10,6 +10,11 @@ export async function runCommand() {
   }
   const text = getSelectionOrAllText(editor);
   const file = yal.parse(editor.document.uri, text);
+  const codegen = new yal.JSCodegen();
+  file.accept(codegen);
+  const translation = yal.JS_PRELUDE + codegen.out;
+  eval(translation);
+
   // const scope = yal.newScope(BASE_SCOPE);
   // await writeToNewEditor(emit => {
   //   scope['print'] = {

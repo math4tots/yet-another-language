@@ -77,6 +77,10 @@
             {
                 "command": "yal.run",
                 "title": "yal: Run/Eval yal File"
+            },
+            {
+                "command": "yal.translateToJavascript",
+                "title": "yal: Translate YAL code to Javascript (JS)"
             }
         ],
         "keybindings": [
@@ -98,6 +102,10 @@
                 },
                 {
                     "command": "yal.run",
+                    "when": "editorLangId == yal"
+                },
+                {
+                    "command": "yal.translateToJavascript",
                     "when": "editorLangId == yal"
                 }
             ]

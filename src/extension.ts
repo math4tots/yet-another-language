@@ -7,6 +7,7 @@ import { Registry } from './extension/registry';
 import { newHoverProvider } from './extension/hoverprovider';
 import { newCompletionProvider } from './extension/completionprovider';
 import { newInlayHintsProvider } from './extension/inlayhintsprovider';
+import { translateToJSCommand } from './extension/translate-to-js';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -45,6 +46,9 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.commands.registerCommand(
     'yal.run',
     runCommand));
+  sub(vscode.commands.registerCommand(
+    'yal.translateToJavascript',
+    translateToJSCommand));
 
   sub(vscode.languages.registerDefinitionProvider(
     { language: 'yal' },

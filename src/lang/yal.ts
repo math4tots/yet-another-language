@@ -12,3 +12,4 @@ export {
   ListType, FunctionType,
   reprValue, strValue,
 } from './type';
+export { JSCodegen, JS_PRELUDE } from './codegenjs';
