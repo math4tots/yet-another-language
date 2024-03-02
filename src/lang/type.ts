@@ -157,16 +157,18 @@ export class InterfaceType extends Type {
 
 export class ModuleType extends Type {
   private readonly typeMap = new Map<string, ExplicitVariable>();
+  private readonly memberTypeVariables: ExplicitVariable[] = [];
   constructor(identifier: ExplicitIdentifier) {
     super(identifier);
   }
-  getTypeMap() { return this.typeMap; }
   addMemberTypeVariable(key: string, variable: ExplicitVariable) {
     this.typeMap.set(key, variable);
+    this.memberTypeVariables.push(variable);
   }
   getMemberTypeVariable(key: string): ExplicitVariable | null {
     return this.typeMap.get(key) || null;
   }
+  getMemberTypeVariables(): ExplicitVariable[] { return this.memberTypeVariables; }
   repr(): string { return `<module ${this.identifier.name}>`; }
 }
 

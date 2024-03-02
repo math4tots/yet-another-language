@@ -134,7 +134,11 @@ export function parse(uri: Uri, source: string): ast.File {
   function parseTypeExpression(): ast.TypeExpression {
     const firstIdentifier = parseIdentifier();
     const start = firstIdentifier.location.range.start;
-    const secondIdentifier = consume('.') ? parseIdentifier() : null;
+    const secondIdentifier = consume('.') ?
+      (!atFirstTokenOfNewLine() && at('IDENTIFIER')) ?
+        parseIdentifier() :
+        new ast.IdentifierNode({ uri, range: tokens[i - 1].range }, '') :
+      null;
     const identifier = secondIdentifier || firstIdentifier;
     const qualifier = secondIdentifier ? firstIdentifier : null;
     const args: ast.TypeExpression[] = [];

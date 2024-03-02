@@ -316,6 +316,32 @@ export class Annotator implements
   }
 
   private solveType(e: ast.TypeExpression): Type {
+    if (e.args.length > 0) {
+      if (!e.qualifier) {
+        if (e.identifier.name === 'List') {
+          if (e.args.length !== 1) {
+            this.errors.push({
+              location: e.location,
+              message: `List requires exactly one parameter`,
+            });
+            return AnyType;
+          }
+          const itemType = this.solveType(e.args[0]);
+          return ListType.of(itemType);
+        }
+        if (e.identifier.name === 'Function') {
+          const types = e.args.map(arg => this.solveType(arg));
+          const returnType = types[types.length - 1];
+          const parameterTypes = types.slice(0, types.length - 1);
+          return FunctionType.of(parameterTypes, returnType);
+        }
+      }
+      this.errors.push({
+        location: e.location,
+        message: `Only builtin generics List and Function are supported right now`,
+      });
+      return AnyType;
+    }
     if (e.qualifier) {
       const importVariable = this.scope[e.qualifier.name];
       if (!importVariable) {
@@ -334,6 +360,14 @@ export class Annotator implements
         });
         return AnyType;
       }
+      this.completionPoints.push({
+        range: e.identifier.location.range,
+        getCompletions() {
+          return moduleType.getMemberTypeVariables().map(v => ({
+            name: v.identifier.name,
+          }));
+        },
+      });
       const memberVariable = moduleType.getMemberTypeVariable(e.identifier.name);
       if (!memberVariable) {
         this.errors.push({
@@ -352,6 +386,22 @@ export class Annotator implements
       }
       return memberVariable.value;
     }
+    this.completionPoints.push({
+      range: e.identifier.location.range,
+      getCompletions: () => {
+        const completions: Completion[] = [];
+        for (const key in this.scope) {
+          const variable = this.scope[key];
+          if (variable.value instanceof Type || variable.value instanceof ModuleInstance) {
+            completions.push({ name: key });
+          }
+        }
+        // Provide completions for builtin generic types
+        completions.push({ name: 'List' });
+        completions.push({ name: 'Function' });
+        return completions;
+      },
+    });
     const variable = this.scope[e.identifier.name];
     if (!variable) {
       this.errors.push({
@@ -414,6 +464,25 @@ export class Annotator implements
     return { type: StringType, value: n.value };
   }
   visitIdentifierNode(n: ast.IdentifierNode): ValueInfo {
+    this.completionPoints.push({
+      range: n.location.range,
+      getCompletions: () => {
+        const completions: Completion[] = [];
+        for (const key in this.scope) {
+          const variable = this.scope[key];
+          if (!(variable.value instanceof Type)) {
+            completions.push({
+              name: key,
+            });
+          }
+        }
+        // additionally, provide provide completions for constants
+        completions.push({ name: 'nil' });
+        completions.push({ name: 'true' });
+        completions.push({ name: 'false' });
+        return completions;
+      },
+    });
     const variable = this.scope[n.name];
     if (!variable) {
       this.errors.push({
