@@ -30,6 +30,7 @@ export function reprValue(value: Value): string {
 
 export class Type {
   readonly identifier: Identifier;
+  private readonly interfaceCache = new Map<InterfaceType, boolean>();
   private readonly methodMap = new Map<string, Method>();
   private readonly methods: Method[] = [];
   _listType: ListType | null = null;
@@ -63,27 +64,46 @@ export class Type {
     }
     return false;
   }
+  implementsMethod(methodName: string, methodType: FunctionType): boolean {
+    const method = this.methodMap.get(methodName);
+    if (!method) return false;
+    return method.type.isAssignableTo(methodType);
+  }
   isAssignableTo(targetType: Type): boolean {
-    if (targetType === AnyType) return true;
-    if (this === targetType) return true;
+    const target = targetType;
+    if (target === AnyType) return true;
+    if (this === target) return true;
+    if (target instanceof InterfaceType) {
+      const cached = this.interfaceCache.get(target);
+      if (cached !== undefined) return cached;
+      let implementsInterface = true;
+      for (const method of target.methods) {
+        if (!this.implementsMethod(method.identifier.name, method.type)) {
+          implementsInterface = false;
+          break;
+        }
+      }
+      this.interfaceCache.set(target, implementsInterface);
+      return implementsInterface;
+    }
     if (this instanceof ListType) {
       // TODO: Reconsider whether I want to allow Lists to be
       // treated as though they are covariant
-      return targetType instanceof ListType && this.itemType.isAssignableTo(targetType);
+      return target instanceof ListType && this.itemType.isAssignableTo(target);
     }
     if (this instanceof FunctionType) {
-      if (!(targetType instanceof FunctionType)) {
+      if (!(target instanceof FunctionType)) {
         return false;
       }
-      if (this.parameterTypes.length !== targetType.parameterTypes.length) {
+      if (this.parameterTypes.length !== target.parameterTypes.length) {
         return false;
       }
       for (let i = 0; i < this.parameterTypes.length; i++) {
-        if (!targetType.parameterTypes[i].isAssignableTo(this.parameterTypes[i])) {
+        if (!target.parameterTypes[i].isAssignableTo(this.parameterTypes[i])) {
           return false;
         }
       }
-      if (!this.returnType.isAssignableTo(targetType.returnType)) {
+      if (!this.returnType.isAssignableTo(target.returnType)) {
         return false;
       }
       return true;
@@ -120,6 +140,13 @@ export class ClassType extends Type {
     return this.fieldMap.get(name) || null;
   }
   repr(): string { return `<class ${this.identifier.name}>`; }
+}
+
+export class InterfaceType extends Type {
+  constructor(identifier: Variable) {
+    super(identifier);
+  }
+  repr(): string { return `<interface ${this.identifier.name}>`; }
 }
 
 export class ListType extends Type {

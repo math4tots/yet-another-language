@@ -166,6 +166,15 @@ class Printer implements yal.ast.NodeVisitor<void> {
     }
     this.depth--;
   }
+  visitInterfaceDefinition(n: yal.ast.InterfaceDefinition): void {
+    this.indent();
+    this.out += `INTERFACE DEFINITION`;
+    this.depth++;
+    for (const statement of n.statements) {
+      statement.accept(this);
+    }
+    this.depth--;
+  }
 }
 
 export async function parseCommand() {

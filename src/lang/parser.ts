@@ -383,6 +383,7 @@ export function parse(uri: Uri, source: string): ast.File {
     if (at('{')) return parseBlock();
     if (at('function')) return parseFunctionDefinition();
     if (at('class')) return parseClassDefinition();
+    if (at('interface')) return parseInterfaceDefinition();
     const expression = parseExpression();
     expectStatementDelimiter();
     return new ast.ExpressionStatement(expression.location, expression);
@@ -457,7 +458,9 @@ export function parse(uri: Uri, source: string): ast.File {
     const identifier = parseIdentifier();
     const parameters = parseParameters();
     const returnType = consume(':') ? parseTypeExpression() : null;
-    const body = parseBlock();
+    const body = (atFirstTokenOfNewLine() || consume(';')) ?
+      new ast.Block({ uri, range: tokens[i - 1].range }, []) :
+      parseBlock();
     const location: ast.Location =
       { uri, range: { start: startPos, end: body.location.range.end } };
     return new ast.Declaration(
@@ -470,6 +473,15 @@ export function parse(uri: Uri, source: string): ast.File {
     const identifier = parseIdentifier();
     const body = parseBlock();
     return new ast.ClassDefinition(
+      { uri, range: { start: startPos, end: body.location.range.end } },
+      identifier, body.statements);
+  }
+
+  function parseInterfaceDefinition(): ast.InterfaceDefinition {
+    const startPos = expect('interface').range.start;
+    const identifier = parseIdentifier();
+    const body = parseBlock();
+    return new ast.InterfaceDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
       identifier, body.statements);
   }

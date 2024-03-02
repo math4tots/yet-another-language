@@ -26,8 +26,10 @@ export class Registry {
     const key = uri.toString();
     const entry = this.map.get(key);
     if (entry && entry.version === document.version) {
+      console.log(`Registry.update (cached)`);
       return entry;
     }
+    console.log(`Registry.update`);
     const fileNode = yal.parse(uri, document.getText());
     const annotator = new yal.Annotator();
     annotator.annotateFile(fileNode);

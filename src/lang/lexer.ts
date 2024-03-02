@@ -15,7 +15,7 @@ export const Keywords = [
   'and', 'or', 'is', 'in', 'as',
   'not',
   'new',
-  'class', 'function', 'var', 'const', 'let', 'final',
+  'class', 'interface', 'function', 'var', 'const', 'let', 'final',
   'if', 'then', 'else', 'while', 'break', 'continue',
   'return',
 ] as const;

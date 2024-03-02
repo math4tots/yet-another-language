@@ -36,6 +36,7 @@ export interface StatementVisitor<R> {
   visitWhile(n: While): R;
   visitReturn(n: Return): R;
   visitClassDefinition(n: ClassDefinition): R;
+  visitInterfaceDefinition(n: InterfaceDefinition): R;
 }
 
 export interface NodeVisitor<R> extends ExpressionVisitor<R>, StatementVisitor<R> {
@@ -320,6 +321,18 @@ export class ClassDefinition implements Statement {
     this.statements = statements;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitClassDefinition(this); }
+}
+
+export class InterfaceDefinition implements Statement {
+  readonly location: Location;
+  readonly identifier: Variable;
+  readonly statements: Statement[];
+  constructor(location: Location, identifier: Variable, statements: Statement[]) {
+    this.location = location;
+    this.identifier = identifier;
+    this.statements = statements;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitInterfaceDefinition(this); }
 }
 
 export class File {

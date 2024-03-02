@@ -6,7 +6,7 @@ import {
   Value,
   Method,
   Field,
-  reprValue, strValue, MethodBody, Instance,
+  reprValue, strValue, MethodBody, Instance, InterfaceType,
 } from "./type";
 
 export type AnnotationError = ast.ParseError;
@@ -84,6 +84,7 @@ export class Annotator implements
   private scope: Scope = Object.create(BASE_SCOPE);
   private hint: Type = AnyType;
   private currentReturnType: Type | null = null;
+  private insideInterface: boolean = false;
 
   annotateFile(file: ast.File): void {
     this.errors.push(...file.errors);
@@ -102,6 +103,16 @@ export class Annotator implements
       };
       return f();
     });
+  }
+
+  private interfaceScoped<R>(f: () => R): R {
+    const save = this.insideInterface;
+    this.insideInterface = true;
+    try {
+      return f();
+    } finally {
+      this.insideInterface = save;
+    }
   }
 
   private blockScoped<R>(f: () => R): R {
@@ -252,7 +263,7 @@ export class Annotator implements
         this.scope[identifier.name] = variable;
       }
       const status = n.body.accept(this);
-      if (status !== Jumps && !NilType.isAssignableTo(returnType)) {
+      if (!this.insideInterface && status !== Jumps && !NilType.isAssignableTo(returnType)) {
         this.errors.push({
           location: n.returnType?.location || n.body.location,
           message: `Function with non-nil return type must have explicit return`,
@@ -523,7 +534,71 @@ export class Annotator implements
         }
         this.errors.push({
           location: statement.location,
-          message: `Unrecognized class statement`,
+          message: `Unsupported statement in class body`,
+        });
+      }
+    });
+    return Continues;
+  }
+  visitInterfaceDefinition(n: ast.InterfaceDefinition): RunStatus {
+    const iface = new InterfaceType(n.identifier);
+    const variable = this.scope[iface.identifier.name] = {
+      identifier: n.identifier,
+      type: AnyType,
+      value: iface,
+    };
+    this.variables.push(variable);
+    this.references.push({ identifier: n.identifier, variable });
+    this.interfaceScoped(() => {
+      for (const statement of n.statements) {
+        if (statement instanceof ast.ExpressionStatement) {
+          if (statement.expression instanceof ast.StringLiteral) {
+            continue; // comments
+          }
+        } else if (statement instanceof ast.Declaration) {
+          if (statement.value instanceof ast.FunctionDisplay) {
+            // interface method
+            if (statement.value.body.statements.some(s =>
+              !(s instanceof ast.ExpressionStatement &&
+                s.expression instanceof ast.StringLiteral))) {
+              this.errors.push({
+                location: statement.value.body.location,
+                message: `Interface methods cannot have bodies`,
+              });
+            }
+            const { type: funcType } = this.solve(statement.value);
+            if (!(funcType instanceof FunctionType)) {
+              continue;
+            }
+            const method = new Method(statement.identifier, funcType, null);
+            iface.addMethod(method);
+            this.variables.push(method);
+            this.references.push({ identifier: statement.identifier, variable: method });
+            continue;
+          } else if (statement.value === null) {
+            // field
+            const ident = statement.identifier;
+            const type = statement.type ? this.solveType(statement.type) : AnyType;
+            const getIdent = new ast.Variable(ident.location, `get_${ident.name}`);
+            const getType = FunctionType.of([], type);
+            const getMethod = new Method(getIdent, getType, null);
+            iface.addMethod(getMethod);
+            this.variables.push(getMethod);
+            this.references.push({ identifier: ident, variable: getMethod });
+            if (statement.isMutable) {
+              const setIdent = new ast.Variable(ident.location, `set_${ident.name}`);
+              const setType = FunctionType.of([type], NilType);
+              const setMethod = new Method(setIdent, setType, null);
+              iface.addMethod(setMethod);
+              this.variables.push(setMethod);
+              this.references.push({ identifier: ident, variable: setMethod });
+            }
+            continue;
+          }
+        }
+        this.errors.push({
+          location: statement.location,
+          message: `Unsupported statement in interface body`,
         });
       }
     });
