@@ -22,6 +22,7 @@ export type Variable = {
   readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly value?: Value;
+  readonly comment?: ast.StringLiteral | null;
 };
 type Scope = { [key: string]: Variable; };
 
@@ -71,6 +72,14 @@ export interface CompletionPoint {
 export interface PrintInstance {
   readonly range: Range;
   readonly value: Value;
+}
+
+function getCommentFromFunctionDisplay(fd: ast.Node | null): ast.StringLiteral | undefined {
+  return (fd instanceof ast.FunctionDisplay &&
+    fd.body.statements.length > 0 &&
+    fd.body.statements[0] instanceof ast.ExpressionStatement &&
+    fd.body.statements[0].expression instanceof ast.StringLiteral) ?
+    fd.body.statements[0].expression : undefined;
 }
 
 export class Annotator implements
@@ -431,11 +440,13 @@ export class Annotator implements
         message: `A declaration that cannot be nil must have an explicit initial value`,
       });
     }
+    const comment = n.comment || getCommentFromFunctionDisplay(n.value);
     const variable = this.scope[n.identifier.name] = {
       isMutable: n.isMutable,
       identifier: n.identifier,
       type: explicitType || value.type,
       value: value.value,
+      comment,
     };
     if (variable.value === undefined) {
       delete variable.value;
@@ -472,10 +483,15 @@ export class Annotator implements
   }
   visitClassDefinition(n: ast.ClassDefinition): RunStatus {
     const cls = new ClassType(n.identifier);
+    const comment = (n.statements.length > 0 &&
+      n.statements[0] instanceof ast.ExpressionStatement &&
+      n.statements[0].expression instanceof ast.StringLiteral) ?
+      n.statements[0].expression : undefined;
     const variable = this.scope[cls.identifier.name] = {
       identifier: n.identifier,
       type: AnyType,
       value: cls,
+      comment,
     };
     this.variables.push(variable);
     this.references.push({ identifier: n.identifier, variable });
@@ -493,7 +509,8 @@ export class Annotator implements
             if (!(funcType instanceof FunctionType)) {
               continue;
             }
-            const method = new Method(statement.identifier, funcType, null);
+            const method = new Method(statement.identifier, funcType, null,
+              getCommentFromFunctionDisplay(functionDisplay));
             cls.addMethod(method);
             this.variables.push(method);
             this.references.push({ identifier: statement.identifier, variable: method });
@@ -542,10 +559,15 @@ export class Annotator implements
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): RunStatus {
     const iface = new InterfaceType(n.identifier);
+    const comment = (n.statements.length > 0 &&
+      n.statements[0] instanceof ast.ExpressionStatement &&
+      n.statements[0].expression instanceof ast.StringLiteral) ?
+      n.statements[0].expression : undefined;
     const variable = this.scope[iface.identifier.name] = {
       identifier: n.identifier,
       type: AnyType,
       value: iface,
+      comment,
     };
     this.variables.push(variable);
     this.references.push({ identifier: n.identifier, variable });
@@ -570,7 +592,8 @@ export class Annotator implements
             if (!(funcType instanceof FunctionType)) {
               continue;
             }
-            const method = new Method(statement.identifier, funcType, null);
+            const method = new Method(statement.identifier, funcType, null,
+              getCommentFromFunctionDisplay(statement.value));
             iface.addMethod(method);
             this.variables.push(method);
             this.references.push({ identifier: statement.identifier, variable: method });

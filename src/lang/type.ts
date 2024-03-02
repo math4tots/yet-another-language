@@ -1,4 +1,4 @@
-import { Identifier, Variable } from "./ast";
+import { Identifier, Variable, StringLiteral } from "./ast";
 
 export type Value =
   null | boolean | number | string |
@@ -30,7 +30,6 @@ export function reprValue(value: Value): string {
 
 export class Type {
   readonly identifier: Identifier;
-  private readonly interfaceCache = new Map<InterfaceType, boolean>();
   private readonly methodMap = new Map<string, Method>();
   private readonly methods: Method[] = [];
   _listType: ListType | null = null;
@@ -73,19 +72,7 @@ export class Type {
     const target = targetType;
     if (target === AnyType) return true;
     if (this === target) return true;
-    if (target instanceof InterfaceType) {
-      const cached = this.interfaceCache.get(target);
-      if (cached !== undefined) return cached;
-      let implementsInterface = true;
-      for (const method of target.methods) {
-        if (!this.implementsMethod(method.identifier.name, method.type)) {
-          implementsInterface = false;
-          break;
-        }
-      }
-      this.interfaceCache.set(target, implementsInterface);
-      return implementsInterface;
-    }
+    if (target instanceof InterfaceType) return target.isImplementedBy(this);
     if (this instanceof ListType) {
       // TODO: Reconsider whether I want to allow Lists to be
       // treated as though they are covariant
@@ -143,10 +130,26 @@ export class ClassType extends Type {
 }
 
 export class InterfaceType extends Type {
+  private readonly cacheMap = new Map<Type, boolean>();
   constructor(identifier: Variable) {
     super(identifier);
   }
   repr(): string { return `<interface ${this.identifier.name}>`; }
+  isImplementedBy(src: Type): boolean {
+    const type = src;
+    if (type === this) return true;
+    const cachedResult = this.cacheMap.get(type);
+    if (cachedResult !== undefined) return cachedResult;
+    let result = true;
+    for (const method of this.getMethods()) {
+      if (!type.implementsMethod(method.identifier.name, method.type)) {
+        result = false;
+        break;
+      }
+    }
+    this.cacheMap.set(type, result);
+    return result;
+  }
 }
 
 export class ListType extends Type {
@@ -208,10 +211,14 @@ export class Method {
   // used for constexpr evaluation
   readonly body: MethodBody | null;
 
-  constructor(identifier: Identifier, type: FunctionType, body: MethodBody | null) {
+  readonly comment: StringLiteral | null;
+
+  constructor(identifier: Identifier, type: FunctionType, body: MethodBody | null,
+    comment: StringLiteral | null = null) {
     this.identifier = identifier;
     this.type = type;
     this.body = body;
+    this.comment = comment;
   }
 }
 

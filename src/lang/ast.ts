@@ -259,17 +259,20 @@ export class Declaration implements Statement {
   readonly isMutable: boolean;
   readonly identifier: Variable;
   readonly type: TypeExpression | null;
+  readonly comment: StringLiteral | null;
   readonly value: Expression | null;
   constructor(
     location: Location,
     isMutable: boolean,
     identifier: Variable,
     type: TypeExpression | null,
+    comment: StringLiteral | null,
     value: Expression | null) {
     this.location = location;
     this.isMutable = isMutable;
     this.identifier = identifier;
     this.type = type;
+    this.comment = comment;
     this.value = value;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitDeclaration(this); }

@@ -59,6 +59,6 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerCompletionItemProvider(
     { language: 'yal' },
     newCompletionProvider(registry), '.'));
-  // sub(vscode.languages.registerInlayHintsProvider(
-  //   { language: 'yal' }, newInlayHintsProvider(registry)));
+  sub(vscode.languages.registerInlayHintsProvider(
+    { language: 'yal' }, newInlayHintsProvider(registry)));
 }

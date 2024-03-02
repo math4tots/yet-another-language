@@ -175,7 +175,7 @@ export function parse(uri: Uri, source: string): ast.File {
         end: type ? type.location.range.end : identifier.location.range.end,
       }
     };
-    return new ast.Declaration(location, true, identifier, type, null);
+    return new ast.Declaration(location, true, identifier, type, null, null);
   }
 
   function parseParameters(): ast.Declaration[] {
@@ -225,7 +225,7 @@ export function parse(uri: Uri, source: string): ast.File {
         const range = { start: identifier.location.range.start, end: body.location.range.end };
         return new ast.FunctionDisplay(
           { uri, range },
-          [new ast.Declaration(identifier.location, true, identifier, null, null)],
+          [new ast.Declaration(identifier.location, true, identifier, null, null, null)],
           null,
           body);
       }
@@ -419,9 +419,13 @@ export function parse(uri: Uri, source: string): ast.File {
     const isMutable = consume('const') ? false : (expect('var'), true);
     const identifier = parseIdentifier();
     const type = consume(':') ? parseTypeExpression() : null;
+    const comment = consume('STRING') ?
+      new ast.StringLiteral({ uri, range: tokens[i - 1].range }, tokens[i - 1].value as string) :
+      null;
     const value = consume('=') ? parseExpression() : null;
     const end = expectStatementDelimiter().range.end;
-    return new ast.Declaration({ uri, range: { start, end } }, isMutable, identifier, type, value);
+    return new ast.Declaration(
+      { uri, range: { start, end } }, isMutable, identifier, type, comment, value);
   }
 
   function parseBlock(): ast.Block {
@@ -465,7 +469,8 @@ export function parse(uri: Uri, source: string): ast.File {
       { uri, range: { start: startPos, end: body.location.range.end } };
     return new ast.Declaration(
       location,
-      true, identifier, null, new ast.FunctionDisplay(location, parameters, returnType, body));
+      true, identifier, null, null,
+      new ast.FunctionDisplay(location, parameters, returnType, body));
   }
 
   function parseClassDefinition(): ast.ClassDefinition {
