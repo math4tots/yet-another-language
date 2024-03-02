@@ -8,27 +8,12 @@ export async function runCommand() {
   if (!editor) {
     return;
   }
-  const text = getSelectionOrAllText(editor);
-  const file = yal.parse(editor.document.uri, text);
-  const codegen = new yal.JSCodegen();
-  file.accept(codegen);
-  const translation = yal.JS_PRELUDE + codegen.out;
-  eval(translation);
-
-  // const scope = yal.newScope(BASE_SCOPE);
-  // await writeToNewEditor(emit => {
-  //   scope['print'] = {
-  //     isConst: true, value: (_: yal.Value, args: yal.Value[]) =>
-  //       (args.length > 0 ? emit(`${yal.str(args[0])}\n`) : 0, null)
-  //   };
-  //   try {
-  //     evaluate(file, scope);
-  //   } catch (e) {
-  //     if (e instanceof Error && e.stack) {
-  //       emit(e.stack);
-  //     } else {
-  //       emit(`ERROR: ${e}`);
-  //     }
-  //   }
-  // });
+  const printValues: string[] = [];
+  const translation = await yal.translateToJavascript(editor.document);
+  Function(`"use strict"; ${translation}`).bind({ printValues })();
+  if (printValues.length > 0) {
+    await writeToNewEditor(emit => {
+      for (const value of printValues) emit(`${value}\n`);
+    });
+  }
 }

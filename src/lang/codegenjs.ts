@@ -1,4 +1,6 @@
 import * as ast from './ast';
+import * as vscode from 'vscode';
+import { parse } from './parser';
 
 
 export const JS_PRELUDE = `
@@ -27,6 +29,12 @@ class YALNumber {
   YAL__mul__(rhs) { return new YALNumber(this.value * rhs.value); }
   YAL__div__(rhs) { return new YALNumber(this.value / rhs.value); }
   YAL__mod__(rhs) { return new YALNumber(this.value % rhs.value); }
+  YAL__lt__(rhs) { return (this.value < rhs.value) ? YALtrue : YALfalse; }
+  YAL__gt__(rhs) { return (this.value > rhs.value) ? YALtrue : YALfalse; }
+  YAL__le__(rhs) { return (this.value <= rhs.value) ? YALtrue : YALfalse; }
+  YAL__ge__(rhs) { return (this.value >= rhs.value) ? YALtrue : YALfalse; }
+  YAL__eq__(rhs) { return this.value === rhs.value; }
+  YAL__ne__(rhs) { return this.value !== rhs.value; }
 }
 class YALString {
   constructor(value) {
@@ -37,6 +45,12 @@ class YALString {
   toRepr() { return JSON.stringify(this.value); }
   YAL__add__(rhs) { return new YALString(this.value + rhs.value); }
   YALget_size() { return this.value.length; }
+  YAL__lt__(rhs) { return (this.value < rhs.value) ? YALtrue : YALfalse; }
+  YAL__gt__(rhs) { return (this.value > rhs.value) ? YALtrue : YALfalse; }
+  YAL__le__(rhs) { return (this.value <= rhs.value) ? YALtrue : YALfalse; }
+  YAL__ge__(rhs) { return (this.value >= rhs.value) ? YALtrue : YALfalse; }
+  YAL__eq__(rhs) { return this.value === rhs.value; }
+  YAL__ne__(rhs) { return this.value !== rhs.value; }
 }
 class YALList {
   constructor(value) {
@@ -60,18 +74,81 @@ class YALFunction {
 const YALnil = new YALNil();
 const YALtrue = new YALBool(true);
 const YALfalse = new YALBool(false);
-const YALprint = new YALFunction(x => (console.log(x.toString()), YALnil), 'print');
+const YALprint = new YALFunction(x => (this.printValues.push(x.toString()), YALnil), 'print');
 const YALstr = new YALFunction(x => new YALString(x.toString()), 'str');
 const YALrepr = new YALFunction(x => new YALString(x.toRepr()), 'repr');
+const moduleMap = Object.create(null);
+const moduleThunkMap = Object.create(null);
+function getModule(key) {
+  const module = moduleMap[key];
+  if (module) return module;
+  const thunk = moduleThunkMap[key];
+  if (!thunk) throw new Error('Module ' + JSON.stringify(key) + ' not found');
+  const m = thunk();
+  moduleMap[key] = m;
+  return m;
+}
+console.log("START");
 `;
+
+export async function translateToJavascript(document: vscode.TextDocument): Promise<string> {
+  const codegen = new JSCodegen();
+  const stack = [document];
+  const seen = new Set([document.uri.toString()]);
+  for (let doc = stack.pop(); doc; doc = stack.pop()) {
+    const file = parse(doc.uri, doc.getText());
+    file.accept(codegen);
+    for (const statement of file.statements) {
+      if (statement instanceof ast.Import) {
+        const uri = doc.uri;
+        const path = statement.path.value;
+        const importURI = vscode.Uri.from({
+          authority: uri.authority,
+          fragment: uri.fragment,
+          path: getParentPath(uri.path) + path.substring(1),
+          query: uri.query,
+          scheme: uri.scheme,
+        });
+        const importKey = importURI.toString();
+        if (seen.has(importKey)) continue;
+        seen.add(importKey);
+        const importDocument = await openDocument(importURI);
+        if (importDocument) stack.push(importDocument);
+      }
+    }
+  }
+  const mainKey = JSON.stringify(document.uri.toString());
+  return JS_PRELUDE + codegen.out + `getModule(${mainKey});`;
+}
 
 export class JSCodegen implements ast.NodeVisitor<void> {
   out: string = '';
 
   visitFile(n: ast.File): void {
+    const uri = n.location.uri;
+    const key = uri.toString();
+    const stringifiedKey = JSON.stringify(key);
+    this.out += `moduleThunkMap[${stringifiedKey}]=`;
+    this.out += '()=>{';
     for (const statement of n.statements) {
       statement.accept(this);
     }
+    this.out += 'return {';
+    this.out += `isTrue(){return true},`;
+    this.out += `toString(){return ${stringifiedKey}},`;
+    this.out += `toRepr(){return this.toString()},`;
+    for (const statement of n.statements) {
+      if (statement instanceof ast.Declaration) {
+        const name = statement.identifier.name;
+        this.out += `YALget_${name}(){return YAL${name}},`;
+        if (statement.isMutable) {
+          this.out += `YALset_${name}(x) { return YAL${name} = x;},`;
+        } else if (statement.value instanceof ast.FunctionDisplay) {
+          this.out += `YAL${name}(...args){return YAL${name}(...args);},`;
+        }
+      }
+    }
+    this.out += '}}\n';
   }
   visitNilLiteral(n: ast.NilLiteral): void {
     this.out += 'YALnil';
@@ -239,8 +316,34 @@ export class JSCodegen implements ast.NodeVisitor<void> {
       expr.accept(this);
       this.out += ';';
     }
-    this.out += '}}';
+    this.out += '}};';
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): void { }
-  visitImport(n: ast.Import): void { }
+  visitImport(n: ast.Import): void {
+    const uri = n.location.uri;
+    const importURI = vscode.Uri.from({
+      authority: uri.authority,
+      fragment: uri.fragment,
+      path: getParentPath(uri.path) + n.path.value.substring(1),
+      query: uri.query,
+      scheme: uri.scheme,
+    });
+    const key = JSON.stringify(importURI.toString());
+    this.out += `const YAL${n.identifier.name}=getModule(${key});`;
+  }
+}
+
+function getParentPath(path: string): string {
+  let i = path.length;
+  while (i > 0 && path[i - 1] !== '/') i--;
+  i--;
+  return path.substring(0, i);
+}
+
+async function openDocument(uri: vscode.Uri): Promise<vscode.TextDocument | null> {
+  try {
+    return await vscode.workspace.openTextDocument(uri);
+  } catch (e) {
+    return null;
+  }
 }

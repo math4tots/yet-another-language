@@ -721,7 +721,7 @@ export class Annotator implements
       isMutable: n.isMutable,
       identifier: n.identifier,
       type: explicitType || value.type,
-      value: value.value,
+      value: n.isMutable ? undefined : value.value,
       comment,
     };
     if (variable.value === undefined) {

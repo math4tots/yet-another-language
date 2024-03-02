@@ -272,6 +272,7 @@ export class ModuleInstance {
 
 // Add builtin methods
 (() => {
+  const B = BoolType;
   const N = NumberType;
   const S = StringType;
 
@@ -286,6 +287,12 @@ export class ModuleInstance {
   addMethod('__mul__', N, [N], N, (recv, args) => (recv as number) * (args[0] as number));
   addMethod('__div__', N, [N], N, (recv, args) => (recv as number) / (args[0] as number));
   addMethod('__mod__', N, [N], N, (recv, args) => (recv as number) % (args[0] as number));
+  addMethod('__lt__', N, [N], B, (recv, args) => (recv as number) < (args[0] as number));
+  addMethod('__gt__', N, [N], B, (recv, args) => (recv as number) > (args[0] as number));
+  addMethod('__le__', N, [N], B, (recv, args) => (recv as number) <= (args[0] as number));
+  addMethod('__ge__', N, [N], B, (recv, args) => (recv as number) >= (args[0] as number));
+  addMethod('__eq__', N, [N], B, (recv, args) => (recv as number) === (args[0] as number));
+  addMethod('__ne__', N, [N], B, (recv, args) => (recv as number) !== (args[0] as number));
 
   // String methods
   addMethod('__add__', S, [S], S, (recv, args) => (recv as string) + (args[0] as string));
