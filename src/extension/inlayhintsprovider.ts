@@ -13,7 +13,7 @@ function toVSRange(range: yal.Range): vscode.Range {
 export function newInlayHintsProvider(registry: Registry): vscode.InlayHintsProvider {
   return {
     async provideInlayHints(document, range, token) {
-      const entry = registry.update(document);
+      const entry = await registry.update(document);
       const hints: vscode.InlayHint[] = [];
       for (const printInstance of entry.annotator.printInstances) {
         const irange = toVSRange(printInstance.range);

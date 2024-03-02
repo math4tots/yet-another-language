@@ -1,4 +1,4 @@
-import { Identifier, Variable, StringLiteral } from "./ast";
+import { Identifier, StringLiteral, ExplicitIdentifier } from "./ast";
 
 export type Value =
   null | boolean | number | string |
@@ -115,7 +115,7 @@ export interface Field {
 export class ClassType extends Type {
   private readonly fieldMap = new Map<string, Field>();
   private readonly fields: Field[] = [];
-  constructor(identifier: Variable) {
+  constructor(identifier: ExplicitIdentifier) {
     super(identifier);
   }
   addField(field: Field): void {
@@ -131,7 +131,7 @@ export class ClassType extends Type {
 
 export class InterfaceType extends Type {
   private readonly cacheMap = new Map<Type, boolean>();
-  constructor(identifier: Variable) {
+  constructor(identifier: ExplicitIdentifier) {
     super(identifier);
   }
   repr(): string { return `<interface ${this.identifier.name}>`; }
@@ -150,6 +150,20 @@ export class InterfaceType extends Type {
     this.cacheMap.set(type, result);
     return result;
   }
+}
+
+export class ModuleType extends Type {
+  private readonly typeMap = new Map<string, Type>();
+  constructor(identifier: ExplicitIdentifier) {
+    super(identifier);
+  }
+  addMemberType(key: string, type: Type) {
+    this.typeMap.set(key, type);
+  }
+  getMemberType(key: string): Type | null {
+    return this.typeMap.get(key) || null;
+  }
+  repr(): string { return `<module ${this.identifier.name}>`; }
 }
 
 export class ListType extends Type {

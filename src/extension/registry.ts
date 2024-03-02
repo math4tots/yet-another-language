@@ -21,7 +21,11 @@ export class Registry {
   readonly diagnostics = vscode.languages.createDiagnosticCollection('yal');
   private readonly map = new Map<string, Entry>();
 
-  update(document: vscode.TextDocument): Entry {
+  startUpdate(document: vscode.TextDocument) {
+    (async () => { await this.update(document); })();
+  }
+
+  async update(document: vscode.TextDocument): Promise<Entry> {
     const uri = document.uri;
     const key = uri.toString();
     const entry = this.map.get(key);
@@ -31,8 +35,8 @@ export class Registry {
     }
     console.log(`Registry.update`);
     const fileNode = yal.parse(uri, document.getText());
-    const annotator = new yal.Annotator();
-    annotator.annotateFile(fileNode);
+    const annotator = new yal.Annotator(uri, document.version);
+    await annotator.annotateFile(fileNode);
     this.diagnostics.set(uri, annotator.errors.map(e => ({
       message: e.message,
       range: toVSRange(e.location.range),

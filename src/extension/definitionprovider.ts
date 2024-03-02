@@ -17,7 +17,7 @@ function toVSLocation(location: yal.Location): vscode.Location {
 export function newDefinitionProvider(registry: Registry): vscode.DefinitionProvider {
   return {
     async provideDefinition(document, position, token) {
-      const entry = registry.update(document);
+      const entry = await registry.update(document);
 
       for (const reference of entry.annotator.references) {
         const range = toVSRange(reference.identifier.location.range);

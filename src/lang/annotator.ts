@@ -1,3 +1,4 @@
+import * as vscode from "vscode";
 import * as ast from "./ast";
 import { Range } from "./lexer";
 import {
@@ -6,8 +7,9 @@ import {
   Value,
   Method,
   Field,
-  reprValue, strValue, MethodBody, Instance, InterfaceType,
+  reprValue, strValue, MethodBody, Instance, InterfaceType, ModuleType,
 } from "./type";
+import { parse } from "./parser";
 
 export type AnnotationError = ast.ParseError;
 export type ValueInfo = { type: Type, value?: Value; };
@@ -24,10 +26,17 @@ export type Variable = {
   readonly value?: Value;
   readonly comment?: ast.StringLiteral | null;
 };
+export type ExplicitVariable = {
+  readonly isMutable?: boolean;
+  readonly identifier: ast.ExplicitIdentifier;
+  readonly type: Type;
+  readonly value?: Value;
+  readonly comment?: ast.StringLiteral | null;
+};
 type Scope = { [key: string]: Variable; };
 
 export type Reference = {
-  readonly identifier: ast.Variable,
+  readonly identifier: ast.ExplicitIdentifier,
   readonly variable: Variable,
 };
 
@@ -88,6 +97,7 @@ function getCommentFromFunctionDisplay(fd: ast.Node | null): ast.StringLiteral |
 export class Annotator implements
   ast.ExpressionVisitor<ValueInfo>,
   ast.StatementVisitor<RunStatus> {
+  readonly uri: vscode.Uri;
   readonly errors: AnnotationError[] = [];
   readonly variables: Variable[] = [];
   readonly references: Reference[] = [];
@@ -97,14 +107,162 @@ export class Annotator implements
   private hint: Type = AnyType;
   private currentReturnType: Type | null = null;
   private insideInterface: boolean = false;
+  private readonly importCache: Map<string, Annotator>;
+  private readonly moduleType: ModuleType;
+  private readonly version: number;
+  private readonly moduleVariable: ExplicitVariable;
 
-  annotateFile(file: ast.File): void {
+  constructor(
+    uri: vscode.Uri, version: number, importCache: Map<string, Annotator> = new Map()) {
+    this.uri = uri;
+    this.version = version;
+    this.importCache = importCache;
+    const identifier: ast.ExplicitIdentifier = {
+      location: {
+        uri, range: {
+          start: { index: 0, line: 0, column: 0 },
+          end: { index: 0, line: 0, column: 0 },
+        }
+      },
+      name: `module(${uri.toString()})`,
+    };
+    this.moduleType = new ModuleType(identifier);
+    this.moduleVariable = { identifier, type: this.moduleType };
+  }
+
+  async annotateFile(file: ast.File): Promise<void> {
     this.errors.push(...file.errors);
-    this.blockScoped(() => {
+    await this.blockScoped(async () => {
+      for (const statement of file.statements) {
+        if (statement instanceof ast.Import) {
+          await this.resolveImport(statement);
+        }
+      }
       for (const statement of file.statements) {
         statement.accept(this);
+        if (statement instanceof ast.ClassDefinition ||
+          statement instanceof ast.InterfaceDefinition) {
+          const variable = this.scope[statement.identifier.name];
+          if (variable) {
+            if (variable.value instanceof Type) {
+              this.moduleType.addMemberType(statement.identifier.name, variable.value);
+            }
+          }
+        } else if (statement instanceof ast.Declaration) {
+          const variable = this.scope[statement.identifier.name];
+          if (variable) {
+            // getter method
+            this.moduleType.addMethod(new Method(
+              {
+                location: variable.identifier.location,
+                name: `get_${variable.identifier.name}`
+              },
+              FunctionType.of([], variable.type),
+              null,
+              variable.comment || null
+            ));
+            // setter method
+            if (variable.isMutable) {
+              this.moduleType.addMethod(new Method(
+                {
+                  location: variable.identifier.location,
+                  name: `set_${variable.identifier.name}`
+                },
+                FunctionType.of([variable.type], AnyType),
+                null,
+                variable.comment || null
+              ));
+            }
+            // direct method (for functions)
+            if (variable.type instanceof FunctionType &&
+              statement.value instanceof ast.FunctionDisplay) {
+              this.moduleType.addMethod(new Method(
+                variable.identifier,
+                variable.type,
+                null,
+                variable.comment || null
+              ));
+            }
+          }
+        }
       }
     });
+  }
+
+  private async openDocument(uri: vscode.Uri): Promise<vscode.TextDocument | null> {
+    try {
+      return await vscode.workspace.openTextDocument(uri);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  private async getImportVariable(uri: vscode.Uri): Promise<ExplicitVariable> {
+    const key = uri.toString();
+    const cached = this.importCache.get(key);
+    const document = await this.openDocument(uri);
+    if (!document) {
+      const annotator = new Annotator(uri, -1, this.importCache);
+      this.importCache.set(key, annotator);
+      const location = {
+        uri,
+        range: { start: { index: 0, line: 0, column: 0 }, end: { index: 0, line: 0, column: 0 } }
+      };
+      annotator.errors.push({
+        location,
+        message: `Resource ${uri.toString()} not found`,
+      });
+      return annotator.moduleVariable;
+    }
+    if (cached && cached.version === document.version) {
+      return cached.moduleVariable;
+    }
+    const annotator = new Annotator(uri, document.version, this.importCache);
+    this.importCache.set(key, annotator);
+    const text = document.getText();
+    const fileNode = parse(uri, text);
+    annotator.annotateFile(fileNode);
+    return annotator.moduleVariable;
+  }
+
+  private async resolveImport(n: ast.Import) {
+    const rawPath = n.path.value;
+    if (!rawPath.startsWith('./')) {
+      this.errors.push({
+        location: n.path.location,
+        message: `Import paths must start with './'`,
+      });
+      return Continues;
+    }
+    const importURI = vscode.Uri.from({
+      authority: this.uri.authority,
+      fragment: this.uri.fragment,
+      path: getParentPath(this.uri.path) + rawPath.substring(1),
+      query: this.uri.query,
+      scheme: this.uri.scheme,
+    });
+    const moduleVariable = await this.getImportVariable(importURI);
+
+    // Add a reference for the path to the file
+    this.references.push({
+      identifier: {
+        location: n.path.location,
+        name: n.path.value,
+      },
+      variable: moduleVariable,
+    });
+
+    // Add a reference for the local variable
+    const localVariable: Variable = {
+      identifier: n.identifier,
+      type: moduleVariable.type,
+    };
+    this.scope[n.identifier.name] = localVariable;
+    this.references.push({
+      identifier: n.identifier,
+      variable: localVariable,
+    });
+    this.variables.push(localVariable);
   }
 
   private classScoped<R>(thisLocation: ast.Location, thisType: ClassType, f: () => R): R {
@@ -638,4 +796,11 @@ export class Annotator implements
   visitImport(n: ast.Import): RunStatus {
     return Continues;
   }
+}
+
+function getParentPath(path: string): string {
+  let i = path.length;
+  while (i > 0 && path[i - 1] !== '/') i--;
+  i--;
+  return path.substring(0, i);
 }

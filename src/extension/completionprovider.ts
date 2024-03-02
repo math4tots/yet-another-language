@@ -14,7 +14,7 @@ export function newCompletionProvider(registry: Registry): vscode.CompletionItem
   return {
     async provideCompletionItems(document, position, token, context) {
       const items: vscode.CompletionItem[] = [];
-      const entry = registry.update(document);
+      const entry = await registry.update(document);
       for (const cpoint of entry.annotator.completionPoints) {
         const range = toVSRange(cpoint.range);
         if (range.contains(position)) {

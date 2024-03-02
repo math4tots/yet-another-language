@@ -11,6 +11,12 @@ export interface Identifier {
   readonly name: string;
 };
 
+/// Like Identifier, but location is required
+export interface ExplicitIdentifier {
+  readonly location: Location;
+  readonly name: string;
+};
+
 export interface ExpressionVisitor<R> {
   visitNilLiteral(n: NilLiteral): R;
   visitBooleanLiteral(n: BooleanLiteral): R;

@@ -22,7 +22,7 @@ function formatComment(s: string): string {
 export function newHoverProvider(registry: Registry): vscode.HoverProvider {
   return {
     async provideHover(document, position, token) {
-      const entry = registry.update(document);
+      const entry = await registry.update(document);
       const markedStrings: vscode.MarkdownString[] = [];
       for (const reference of entry.annotator.references) {
         const range = toVSRange(reference.identifier.location.range);

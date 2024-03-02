@@ -10,6 +10,7 @@ export {
   AnyType,
   NilType, BoolType, NumberType, StringType,
   ListType, FunctionType,
+  ClassType, InterfaceType, ModuleType,
   reprValue, strValue,
 } from './type';
 export { JSCodegen, JS_PRELUDE } from './codegenjs';

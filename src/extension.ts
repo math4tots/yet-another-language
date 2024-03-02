@@ -16,24 +16,24 @@ export function activate(context: vscode.ExtensionContext) {
 
   if (vscode.window.activeTextEditor &&
     vscode.window.activeTextEditor.document.languageId === 'yal') {
-    registry.update(vscode.window.activeTextEditor.document);
+    registry.startUpdate(vscode.window.activeTextEditor.document);
   }
 
-  sub(vscode.workspace.onDidOpenTextDocument(async document => {
-    if (document.languageId === 'yal') {
-      registry.update(document);
-    }
-  }));
+  // sub(vscode.workspace.onDidOpenTextDocument(async document => {
+  //   if (document.languageId === 'yal') {
+  //     registry.startUpdate(document);
+  //   }
+  // }));
 
   sub(vscode.workspace.onDidSaveTextDocument(async document => {
     if (document.languageId === 'yal') {
-      registry.update(document);
+      registry.startUpdate(document);
     }
   }));
 
   sub(vscode.window.onDidChangeActiveTextEditor(async editor => {
     if (editor?.document.languageId === 'yal') {
-      registry.update(editor.document);
+      registry.startUpdate(editor.document);
     }
   }));
 
