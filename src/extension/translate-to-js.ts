@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import * as yal from '../lang/yal';
 import { getSelectionOrAllText, writeToNewEditor } from './utils';
-// import { BASE_SCOPE, evaluate } from '../lang/evaluator';
 
 export async function translateToJSCommand() {
   const editor = vscode.window.activeTextEditor;

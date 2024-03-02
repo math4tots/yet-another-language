@@ -74,12 +74,15 @@ export interface PrintInstance {
   readonly value: Value;
 }
 
+function getCommentFromSeq(stmts: ast.Statement[]): ast.StringLiteral | undefined {
+  return (stmts.length > 0 &&
+    stmts[0] instanceof ast.ExpressionStatement &&
+    stmts[0].expression instanceof ast.StringLiteral) ? stmts[0].expression : undefined;
+}
+
 function getCommentFromFunctionDisplay(fd: ast.Node | null): ast.StringLiteral | undefined {
-  return (fd instanceof ast.FunctionDisplay &&
-    fd.body.statements.length > 0 &&
-    fd.body.statements[0] instanceof ast.ExpressionStatement &&
-    fd.body.statements[0].expression instanceof ast.StringLiteral) ?
-    fd.body.statements[0].expression : undefined;
+  return fd instanceof ast.FunctionDisplay ?
+    getCommentFromSeq(fd.body.statements) : undefined;
 }
 
 export class Annotator implements
