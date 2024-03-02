@@ -1,3 +1,4 @@
+import type { ExplicitVariable } from "./annotator";
 import { Identifier, StringLiteral, ExplicitIdentifier } from "./ast";
 
 export type Value =
@@ -153,14 +154,15 @@ export class InterfaceType extends Type {
 }
 
 export class ModuleType extends Type {
-  private readonly typeMap = new Map<string, Type>();
+  private readonly typeMap = new Map<string, ExplicitVariable>();
   constructor(identifier: ExplicitIdentifier) {
     super(identifier);
   }
-  addMemberType(key: string, type: Type) {
-    this.typeMap.set(key, type);
+  getTypeMap() { return this.typeMap; }
+  addMemberTypeVariable(key: string, variable: ExplicitVariable) {
+    this.typeMap.set(key, variable);
   }
-  getMemberType(key: string): Type | null {
+  getMemberTypeVariable(key: string): ExplicitVariable | null {
     return this.typeMap.get(key) || null;
   }
   repr(): string { return `<module ${this.identifier.name}>`; }

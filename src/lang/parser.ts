@@ -1,6 +1,6 @@
 import { Uri } from 'vscode';
 import * as ast from './ast';
-import { lex, Position, Range, Token, TokenType } from './lexer';
+import { lex, Range, Token, TokenType } from './lexer';
 
 const PrecList: TokenType[][] = [
   [],
@@ -132,18 +132,22 @@ export function parse(uri: Uri, source: string): ast.File {
   }
 
   function parseTypeExpression(): ast.TypeExpression {
-    const identifier = parseIdentifier();
-    let location = identifier.location;
+    const firstIdentifier = parseIdentifier();
+    const start = firstIdentifier.location.range.start;
+    const secondIdentifier = consume('.') ? parseIdentifier() : null;
+    const identifier = secondIdentifier || firstIdentifier;
+    const qualifier = secondIdentifier ? firstIdentifier : null;
     const args: ast.TypeExpression[] = [];
+    let end = identifier.location.range.end;
     if (consume('[')) {
       while (!atEOF() && !at(']')) {
         args.push(parseTypeExpression());
         if (!consume(',')) break;
       }
-      const end = expect(']').range.end;
-      location = { uri, range: { start: location.range.start, end } };
+      end = expect(']').range.end;
     }
-    return new ast.TypeExpression(location, identifier, args);
+    const location: ast.Location = { uri, range: { start, end } };
+    return new ast.TypeExpression(location, qualifier, identifier, args);
   }
 
   function atFunctionDisplay(): boolean {

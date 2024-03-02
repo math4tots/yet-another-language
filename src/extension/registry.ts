@@ -6,7 +6,6 @@ type Entry = {
   readonly version: number;
   readonly uri: vscode.Uri;
   readonly annotator: yal.Annotator;
-  readonly fileNode: yal.ast.File;
 };
 
 function toVSPosition(p: yal.Position): vscode.Position {
@@ -34,15 +33,13 @@ export class Registry {
       return entry;
     }
     console.log(`Registry.update`);
-    const fileNode = yal.parse(uri, document.getText());
-    const annotator = new yal.Annotator(uri, document.version);
-    await annotator.annotateFile(fileNode);
+    const annotator = await yal.annotateDocument(document);
     this.diagnostics.set(uri, annotator.errors.map(e => ({
       message: e.message,
       range: toVSRange(e.location.range),
       severity: vscode.DiagnosticSeverity.Warning,
     })));
-    const newEntry = { version: document.version, uri, annotator, fileNode };
+    const newEntry = { version: document.version, uri, annotator };
     this.map.set(key, newEntry);
     return newEntry;
   }

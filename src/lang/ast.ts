@@ -69,10 +69,16 @@ export type ParseError = {
 
 export class TypeExpression {
   readonly location: Location;
+  readonly qualifier: IdentifierNode | null;
   readonly identifier: IdentifierNode;
   readonly args: TypeExpression[];
-  constructor(location: Location, identifier: IdentifierNode, args: TypeExpression[]) {
+  constructor(
+    location: Location,
+    qualifier: IdentifierNode | null,
+    identifier: IdentifierNode,
+    args: TypeExpression[]) {
     this.location = location;
+    this.qualifier = qualifier;
     this.identifier = identifier;
     this.args = args;
   }

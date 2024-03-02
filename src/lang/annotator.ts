@@ -90,6 +90,13 @@ function getCommentFromFunctionDisplay(fd: ast.Node | null): ast.StringLiteral |
     getCommentFromSeq(fd.body.statements) : undefined;
 }
 
+export async function annotateDocument(document: vscode.TextDocument): Promise<Annotator> {
+  const annotator = new Annotator(document.uri, document.version);
+  const fileNode = parse(document.uri, document.getText());
+  await annotator.annotateFile(fileNode);
+  return annotator;
+}
+
 export class Annotator implements
   ast.ExpressionVisitor<ValueInfo>,
   ast.StatementVisitor<RunStatus> {
@@ -139,9 +146,10 @@ export class Annotator implements
         if (statement instanceof ast.ClassDefinition ||
           statement instanceof ast.InterfaceDefinition) {
           const variable = this.scope[statement.identifier.name];
-          if (variable) {
+          if (variable && variable.identifier.location) {
             if (variable.value instanceof Type) {
-              this.moduleType.addMemberType(statement.identifier.name, variable.value);
+              this.moduleType.addMemberTypeVariable(
+                statement.identifier.name, variable as ExplicitVariable);
             }
           }
         } else if (statement instanceof ast.Declaration) {
@@ -217,7 +225,7 @@ export class Annotator implements
     this.importCache.set(key, annotator);
     const text = document.getText();
     const fileNode = parse(uri, text);
-    annotator.annotateFile(fileNode);
+    await annotator.annotateFile(fileNode);
     return annotator.moduleVariable;
   }
 
@@ -302,6 +310,42 @@ export class Annotator implements
   }
 
   private solveType(e: ast.TypeExpression): Type {
+    if (e.qualifier) {
+      const importVariable = this.scope[e.qualifier.name];
+      if (!importVariable) {
+        this.errors.push({
+          location: e.qualifier.location,
+          message: `${e.qualifier.name} not found`,
+        });
+        return AnyType;
+      }
+      this.references.push({ identifier: e.qualifier, variable: importVariable });
+      const moduleType = importVariable.type;
+      if (!(moduleType instanceof ModuleType)) {
+        this.errors.push({
+          location: e.qualifier.location,
+          message: `${e.qualifier.name} is not a module`,
+        });
+        return AnyType;
+      }
+      const memberVariable = moduleType.getMemberTypeVariable(e.identifier.name);
+      if (!memberVariable) {
+        this.errors.push({
+          location: e.identifier.location,
+          message: `Type ${e.identifier.name} not found in module`,
+        });
+        return AnyType;
+      }
+      this.references.push({ identifier: e.identifier, variable: memberVariable });
+      if (!(memberVariable.value instanceof Type)) {
+        this.errors.push({
+          location: e.identifier.location,
+          message: `${e.qualifier.name}.${e.identifier.name} is not a type`,
+        });
+        return AnyType;
+      }
+      return memberVariable.value;
+    }
     const variable = this.scope[e.identifier.name];
     if (!variable) {
       this.errors.push({
