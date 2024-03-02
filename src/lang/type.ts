@@ -26,6 +26,7 @@ export function reprValue(value: Value): string {
       if (v instanceof Type) return v.repr();
       if (v instanceof Method) return `<function ${v.identifier.name}>`;
       if (v instanceof Instance) return v.toString();
+      if (v instanceof ModuleInstance) return v.toString();
   }
   return `<badvalue typeof=${typeof v}, JSON=${JSON.stringify(v)}>`;
 }
@@ -264,7 +265,7 @@ export class ModuleInstance {
   constructor(type: ModuleType) {
     this.type = type;
   }
-  toString() { return `<module ${this.type.identifier.name}>`; }
+  toString() { return this.type.identifier.name; }
 }
 
 // Add builtin methods

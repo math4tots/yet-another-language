@@ -120,6 +120,7 @@ export class Annotator implements
     this.uri = uri;
     this.version = version;
     this.importCache = importCache;
+    const shortName = getShortName(uri);
     const identifier: ast.ExplicitIdentifier = {
       location: {
         uri, range: {
@@ -127,7 +128,7 @@ export class Annotator implements
           end: { index: 0, line: 0, column: 0 },
         }
       },
-      name: `module(${uri.toString()})`,
+      name: `module(${JSON.stringify(shortName)})`,
     };
     this.moduleType = new ModuleType(identifier);
     this.moduleVariable = {
@@ -848,4 +849,8 @@ function getParentPath(path: string): string {
   while (i > 0 && path[i - 1] !== '/') i--;
   i--;
   return path.substring(0, i);
+}
+
+function getShortName(path: string | vscode.Uri): string {
+  return vscode.workspace.asRelativePath(path);
 }
