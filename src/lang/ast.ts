@@ -22,7 +22,7 @@ export interface ExpressionVisitor<R> {
   visitBooleanLiteral(n: BooleanLiteral): R;
   visitNumberLiteral(n: NumberLiteral): R;
   visitStringLiteral(n: StringLiteral): R;
-  visitVariable(n: Variable): R;
+  visitIdentifierNode(n: IdentifierNode): R;
   visitAssignment(n: Assignment): R;
   visitListDisplay(n: ListDisplay): R;
   visitFunctionDisplay(n: FunctionDisplay): R;
@@ -69,9 +69,9 @@ export type ParseError = {
 
 export class TypeExpression {
   readonly location: Location;
-  readonly identifier: Variable;
+  readonly identifier: IdentifierNode;
   readonly args: TypeExpression[];
-  constructor(location: Location, identifier: Variable, args: TypeExpression[]) {
+  constructor(location: Location, identifier: IdentifierNode, args: TypeExpression[]) {
     this.location = location;
     this.identifier = identifier;
     this.args = args;
@@ -119,21 +119,21 @@ export class StringLiteral implements Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitStringLiteral(this); }
 }
 
-export class Variable implements Expression, Identifier {
+export class IdentifierNode implements Expression, Identifier {
   readonly location: Location;
   readonly name: string;
   constructor(location: Location, name: string) {
     this.location = location;
     this.name = name;
   }
-  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitVariable(this); }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitIdentifierNode(this); }
 }
 
 export class Assignment implements Expression {
   readonly location: Location;
-  readonly identifier: Variable;
+  readonly identifier: IdentifierNode;
   readonly value: Expression;
-  constructor(location: Location, identifier: Variable, value: Expression) {
+  constructor(location: Location, identifier: IdentifierNode, value: Expression) {
     this.location = location;
     this.identifier = identifier;
     this.value = value;
@@ -172,9 +172,13 @@ export class FunctionDisplay implements Expression {
 export class MethodCall implements Expression {
   readonly location: Location;
   readonly owner: Expression;
-  readonly identifier: Variable;
+  readonly identifier: IdentifierNode;
   readonly args: Expression[];
-  constructor(location: Location, owner: Expression, identifier: Variable, args: Expression[]) {
+  constructor(
+    location: Location,
+    owner: Expression,
+    identifier: IdentifierNode,
+    args: Expression[]) {
     this.location = location;
     this.owner = owner;
     this.identifier = identifier;
@@ -264,14 +268,14 @@ export class Block implements Statement {
 export class Declaration implements Statement {
   readonly location: Location;
   readonly isMutable: boolean;
-  readonly identifier: Variable;
+  readonly identifier: IdentifierNode;
   readonly type: TypeExpression | null;
   readonly comment: StringLiteral | null;
   readonly value: Expression | null;
   constructor(
     location: Location,
     isMutable: boolean,
-    identifier: Variable,
+    identifier: IdentifierNode,
     type: TypeExpression | null,
     comment: StringLiteral | null,
     value: Expression | null) {
@@ -323,9 +327,9 @@ export class Return implements Statement {
 
 export class ClassDefinition implements Statement {
   readonly location: Location;
-  readonly identifier: Variable;
+  readonly identifier: IdentifierNode;
   readonly statements: Statement[];
-  constructor(location: Location, identifier: Variable, statements: Statement[]) {
+  constructor(location: Location, identifier: IdentifierNode, statements: Statement[]) {
     this.location = location;
     this.identifier = identifier;
     this.statements = statements;
@@ -335,9 +339,9 @@ export class ClassDefinition implements Statement {
 
 export class InterfaceDefinition implements Statement {
   readonly location: Location;
-  readonly identifier: Variable;
+  readonly identifier: IdentifierNode;
   readonly statements: Statement[];
-  constructor(location: Location, identifier: Variable, statements: Statement[]) {
+  constructor(location: Location, identifier: IdentifierNode, statements: Statement[]) {
     this.location = location;
     this.identifier = identifier;
     this.statements = statements;
@@ -348,8 +352,8 @@ export class InterfaceDefinition implements Statement {
 export class Import implements Statement {
   readonly location: Location;
   readonly path: StringLiteral;
-  readonly identifier: Variable;
-  constructor(location: Location, path: StringLiteral, identifier: Variable) {
+  readonly identifier: IdentifierNode;
+  constructor(location: Location, path: StringLiteral, identifier: IdentifierNode) {
     this.location = location;
     this.path = path;
     this.identifier = identifier;

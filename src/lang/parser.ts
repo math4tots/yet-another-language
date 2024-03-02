@@ -118,11 +118,11 @@ export function parse(uri: Uri, source: string): ast.File {
     return expect(';');
   }
 
-  function parseIdentifier(): ast.Variable {
+  function parseIdentifier(): ast.IdentifierNode {
     const peek = tokens[i];
     if (peek.type === 'IDENTIFIER') {
       i++;
-      return new ast.Variable({ uri, range: peek.range }, peek.value);
+      return new ast.IdentifierNode({ uri, range: peek.range }, peek.value);
     }
     errors.push({
       location: { uri, range: peek.range },
@@ -299,7 +299,7 @@ export function parse(uri: Uri, source: string): ast.File {
     const optok = tokens[i];
     const tokenType = optok.type;
     if (tokenType === '(') {
-      const methodIdentifier = new ast.Variable({ uri, range: optok.range }, '__call__');
+      const methodIdentifier = new ast.IdentifierNode({ uri, range: optok.range }, '__call__');
       const args = parseArgs();
       const end = tokens[i - 1].range.end;
       return new ast.MethodCall(
@@ -310,7 +310,7 @@ export function parse(uri: Uri, source: string): ast.File {
         // If the person is just typing, the dot might not yet be followed by any name.
         // We still want the parse to succeed so that we can provide completion
         const location: ast.Location = { uri, range: tokens[i - 1].range };
-        const identifier = new ast.Variable(location, '');
+        const identifier = new ast.IdentifierNode(location, '');
         return new ast.MethodCall(location, lhs, identifier, []);
       }
       const identifier = parseIdentifier();
@@ -321,14 +321,14 @@ export function parse(uri: Uri, source: string): ast.File {
           { uri, range: { start: startRange.start, end } }, lhs, identifier, args);
       }
       if (consume('=')) {
-        const methodIdentifier = new ast.Variable(
+        const methodIdentifier = new ast.IdentifierNode(
           identifier.location, `set_${identifier.name}`);
         const value = parseExpression();
         const end = tokens[i - 1].range.end;
         return new ast.MethodCall(
           { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, [value]);
       }
-      const methodIdentifier = new ast.Variable(
+      const methodIdentifier = new ast.IdentifierNode(
         identifier.location, `get_${identifier.name}`);
       const end = tokens[i - 1].range.end;
       return new ast.MethodCall(
@@ -346,7 +346,7 @@ export function parse(uri: Uri, source: string): ast.File {
         uri,
         range: { start: startRange.start, end: rhs.location.range.end },
       };
-      const methodIdentifier = new ast.Variable(
+      const methodIdentifier = new ast.IdentifierNode(
         { uri, range: operatorRange }, methodName);
       return new ast.MethodCall(location, lhs, methodIdentifier, [rhs]);
     }

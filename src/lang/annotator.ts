@@ -26,12 +26,8 @@ export type Variable = {
   readonly value?: Value;
   readonly comment?: ast.StringLiteral | null;
 };
-export type ExplicitVariable = {
-  readonly isMutable?: boolean;
+export type ExplicitVariable = Variable & {
   readonly identifier: ast.ExplicitIdentifier;
-  readonly type: Type;
-  readonly value?: Value;
-  readonly comment?: ast.StringLiteral | null;
 };
 type Scope = { [key: string]: Variable; };
 
@@ -367,7 +363,7 @@ export class Annotator implements
   visitStringLiteral(n: ast.StringLiteral): ValueInfo {
     return { type: StringType, value: n.value };
   }
-  visitVariable(n: ast.Variable): ValueInfo {
+  visitIdentifierNode(n: ast.IdentifierNode): ValueInfo {
     const variable = this.scope[n.name];
     if (!variable) {
       this.errors.push({
@@ -695,7 +691,7 @@ export class Annotator implements
             // synthesized field methods
             const getType = FunctionType.of([], fieldType);
             const name = statement.identifier.name;
-            const getIdent = new ast.Variable(statement.identifier.location, `get_${name}`);
+            const getIdent = new ast.IdentifierNode(statement.identifier.location, `get_${name}`);
             const getMethod = new Method(
               getIdent, getType,
               (recv) => (recv as Instance).getField(statement.identifier.name),
@@ -705,7 +701,7 @@ export class Annotator implements
             this.references.push({ identifier: statement.identifier, variable: getMethod });
             if (statement.isMutable) {
               const setType = FunctionType.of([fieldType], NilType);
-              const setIdent = new ast.Variable(statement.identifier.location, `set_${name}`);
+              const setIdent = new ast.IdentifierNode(statement.identifier.location, `set_${name}`);
               const setMethod = new Method(setIdent, setType, null);
               cls.addMethod(setMethod);
               this.variables.push(setMethod);
@@ -768,14 +764,14 @@ export class Annotator implements
             // field
             const ident = statement.identifier;
             const type = statement.type ? this.solveType(statement.type) : AnyType;
-            const getIdent = new ast.Variable(ident.location, `get_${ident.name}`);
+            const getIdent = new ast.IdentifierNode(ident.location, `get_${ident.name}`);
             const getType = FunctionType.of([], type);
             const getMethod = new Method(getIdent, getType, null);
             iface.addMethod(getMethod);
             this.variables.push(getMethod);
             this.references.push({ identifier: ident, variable: getMethod });
             if (statement.isMutable) {
-              const setIdent = new ast.Variable(ident.location, `set_${ident.name}`);
+              const setIdent = new ast.IdentifierNode(ident.location, `set_${ident.name}`);
               const setType = FunctionType.of([type], NilType);
               const setMethod = new Method(setIdent, setType, null);
               iface.addMethod(setMethod);

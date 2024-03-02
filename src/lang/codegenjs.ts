@@ -85,7 +85,7 @@ export class JSCodegen implements ast.NodeVisitor<void> {
   visitStringLiteral(n: ast.StringLiteral): void {
     this.out += `new YALString(${JSON.stringify(n.value)})`;
   }
-  visitVariable(n: ast.Variable): void {
+  visitIdentifierNode(n: ast.IdentifierNode): void {
     this.out += `YAL${n.name}`;
   }
   visitAssignment(n: ast.Assignment): void {
