@@ -386,6 +386,7 @@ export function parse(uri: Uri, source: string): ast.File {
     if (at('function')) return parseFunctionDefinition();
     if (at('class')) return parseClassDefinition();
     if (at('interface')) return parseInterfaceDefinition();
+    if (at('import')) return parseImport();
     const expression = parseExpression();
     expectStatementDelimiter();
     return new ast.ExpressionStatement(expression.location, expression);
@@ -491,6 +492,17 @@ export function parse(uri: Uri, source: string): ast.File {
     return new ast.InterfaceDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
       identifier, body.statements);
+  }
+
+  function parseImport(): ast.Import {
+    const start = expect('import').range.start;
+    const pathToken = expect('STRING');
+    const path = new ast.StringLiteral(
+      { uri, range: pathToken.range }, pathToken.value as string);
+    expect('as');
+    const identifier = parseIdentifier();
+    const end = identifier.location.range.end;
+    return new ast.Import({ uri, range: { start, end } }, path, identifier);
   }
 
   function parseFile() {

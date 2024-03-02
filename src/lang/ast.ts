@@ -37,6 +37,7 @@ export interface StatementVisitor<R> {
   visitReturn(n: Return): R;
   visitClassDefinition(n: ClassDefinition): R;
   visitInterfaceDefinition(n: InterfaceDefinition): R;
+  visitImport(n: Import): R;
 }
 
 export interface NodeVisitor<R> extends ExpressionVisitor<R>, StatementVisitor<R> {
@@ -336,6 +337,18 @@ export class InterfaceDefinition implements Statement {
     this.statements = statements;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitInterfaceDefinition(this); }
+}
+
+export class Import implements Statement {
+  readonly location: Location;
+  readonly path: StringLiteral;
+  readonly identifier: Variable;
+  constructor(location: Location, path: StringLiteral, identifier: Variable) {
+    this.location = location;
+    this.path = path;
+    this.identifier = identifier;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitImport(this); }
 }
 
 export class File {

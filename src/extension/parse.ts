@@ -175,6 +175,10 @@ class Printer implements yal.ast.NodeVisitor<void> {
     }
     this.depth--;
   }
+  visitImport(n: yal.ast.Import): void {
+    this.indent();
+    this.out += `IMPORT ${JSON.stringify(n.path.value)} AS ${n.identifier.name}`;
+  }
 }
 
 export async function parseCommand() {

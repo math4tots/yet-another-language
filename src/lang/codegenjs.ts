@@ -242,4 +242,5 @@ export class JSCodegen implements ast.NodeVisitor<void> {
     this.out += '}}';
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): void { }
+  visitImport(n: ast.Import): void { }
 }

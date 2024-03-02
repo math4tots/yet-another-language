@@ -635,4 +635,7 @@ export class Annotator implements
     });
     return Continues;
   }
+  visitImport(n: ast.Import): RunStatus {
+    return Continues;
+  }
 }
