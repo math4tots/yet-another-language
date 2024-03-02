@@ -7,7 +7,7 @@ import {
   Value,
   Method,
   Field,
-  reprValue, strValue, MethodBody, Instance, InterfaceType, ModuleType,
+  reprValue, strValue, MethodBody, Instance, InterfaceType, ModuleType, ModuleInstance,
 } from "./type";
 import { parse } from "./parser";
 
@@ -130,7 +130,11 @@ export class Annotator implements
       name: `module(${uri.toString()})`,
     };
     this.moduleType = new ModuleType(identifier);
-    this.moduleVariable = { identifier, type: this.moduleType };
+    this.moduleVariable = {
+      identifier,
+      type: this.moduleType,
+      value: new ModuleInstance(this.moduleType),
+    };
   }
 
   async annotateFile(file: ast.File): Promise<void> {
@@ -162,7 +166,7 @@ export class Annotator implements
                 name: `get_${variable.identifier.name}`
               },
               FunctionType.of([], variable.type),
-              null,
+              () => variable.value,
               variable.comment || null
             ));
             // setter method
@@ -260,6 +264,7 @@ export class Annotator implements
     const localVariable: Variable = {
       identifier: n.identifier,
       type: moduleVariable.type,
+      value: moduleVariable.value,
     };
     this.scope[n.identifier.name] = localVariable;
     this.references.push({

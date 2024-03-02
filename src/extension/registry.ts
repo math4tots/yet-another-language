@@ -29,10 +29,10 @@ export class Registry {
     const key = uri.toString();
     const entry = this.map.get(key);
     if (entry && entry.version === document.version) {
-      console.log(`Registry.update (cached)`);
+      console.log(`Registry.update(${uri.toString()}) (cached)`);
       return entry;
     }
-    console.log(`Registry.update`);
+    console.log(`Registry.update(${uri.toString()})`);
     const annotator = await yal.annotateDocument(document);
     this.diagnostics.set(uri, annotator.errors.map(e => ({
       message: e.message,

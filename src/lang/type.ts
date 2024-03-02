@@ -6,7 +6,8 @@ export type Value =
   Value[] |
   Type |
   Method | // Single methods when passed around like values are functions
-  Instance
+  Instance |
+  ModuleInstance
   ;
 
 export function strValue(value: Value): string {
@@ -255,6 +256,15 @@ export class Instance {
       }
     }
   }
+}
+
+// Like Instance, but for modules
+export class ModuleInstance {
+  readonly type: ModuleType;
+  constructor(type: ModuleType) {
+    this.type = type;
+  }
+  toString() { return `<module ${this.type.identifier.name}>`; }
 }
 
 // Add builtin methods
