@@ -313,6 +313,12 @@ export function parse(uri: Uri, source: string): ast.File {
       return new ast.MethodCall(
         { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, args);
     }
+    if (consume('as')) {
+      const type = parseTypeExpression();
+      return new ast.TypeAssertion(
+        { uri, range: { start: lhs.location.range.start, end: type.location.range.end } },
+        lhs, type);
+    }
     if (consume('.')) {
       if (!at('IDENTIFIER') || atFirstTokenOfNewLine()) {
         // If the person is just typing, the dot might not yet be followed by any name.

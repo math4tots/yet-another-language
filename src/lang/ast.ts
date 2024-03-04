@@ -31,6 +31,7 @@ export interface ExpressionVisitor<R> {
   visitLogicalAnd(n: LogicalAnd): R;
   visitLogicalOr(n: LogicalOr): R;
   visitConditional(n: Conditional): R;
+  visitTypeAssertion(n: TypeAssertion): R;
 }
 
 export interface StatementVisitor<R> {
@@ -241,6 +242,18 @@ export class Conditional implements Expression {
     this.rhs = rhs;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitConditional(this); }
+}
+
+export class TypeAssertion implements Expression {
+  readonly location: Location;
+  readonly value: Expression;
+  readonly type: TypeExpression;
+  constructor(location: Location, value: Expression, type: TypeExpression) {
+    this.location = location;
+    this.value = value;
+    this.type = type;
+  }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitTypeAssertion(this); }
 }
 
 export class EmptyStatement implements Statement {

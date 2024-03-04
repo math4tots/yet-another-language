@@ -18,6 +18,7 @@ export const Keywords = [
   'import', 'class', 'interface', 'function', 'var', 'const', 'let', 'final',
   'if', 'then', 'else', 'while', 'break', 'continue',
   'return',
+  'native',
 ] as const;
 export const Symbols = [
   // grouping tokens

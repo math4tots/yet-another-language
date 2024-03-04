@@ -133,6 +133,13 @@ class Printer implements yal.ast.NodeVisitor<void> {
     n.rhs.accept(this);
     this.depth--;
   }
+  visitTypeAssertion(n: yal.ast.TypeAssertion): void {
+    this.indent();
+    this.out += `TYPE ASSERTION (${n.type})`;
+    this.depth++;
+    n.value.accept(this);
+    this.depth--;
+  }
   visitIf(n: yal.ast.If): void {
     this.indent();
     this.out += `IF`;

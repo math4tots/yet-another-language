@@ -31,12 +31,12 @@
 				},
 				{
 					"name": "keyword.control.yal",
-					"match": "\\b(elif|else|for|if|then|return|while|pass|from|import|as|and|or|not|in|is|raise|try)\\b"
+					"match": "\\b(native|import|if|then|else|while|break|continue|return|import|as|and|or|not|in|is|raise|try)\\b"
 				},
 				{
 					"comment": "Globals provided by the runtime (functions)",
 					"name": "support.function.yal",
-					"match": "\\b(len|exit|type|repr|str|chr|ord|print|range|open)\\b"
+					"match": "\\b(print|str|repr)\\b"
 				},
 				{
 					"comment": "Globals provided by the runtime (types)",

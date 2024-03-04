@@ -680,6 +680,11 @@ export class Annotator implements
     const rhs = this.solve(n.rhs);
     return { type: lhs.type.getCommonType(rhs.type) };
   }
+  visitTypeAssertion(n: ast.TypeAssertion): ValueInfo {
+    const value = this.solve(n.value);
+    const type = this.solveType(n.type);
+    return value.type.isAssignableTo(type) ? value : { type };
+  }
 
   visitEmptyStatement(n: ast.EmptyStatement): RunStatus { return Continues; }
   visitExpressionStatement(n: ast.ExpressionStatement): RunStatus {

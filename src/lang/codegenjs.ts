@@ -226,6 +226,9 @@ export class JSCodegen implements ast.NodeVisitor<void> {
     n.rhs.accept(this);
     this.out += ')';
   }
+  visitTypeAssertion(n: ast.TypeAssertion): void {
+    n.value.accept(this);
+  }
   visitEmptyStatement(n: ast.EmptyStatement): void { }
   visitExpressionStatement(n: ast.ExpressionStatement): void {
     n.expression.accept(this);
