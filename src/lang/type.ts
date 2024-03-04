@@ -293,6 +293,8 @@ export class ModuleInstance {
   addMethod('__ge__', N, [N], B, (recv, args) => (recv as number) >= (args[0] as number));
   addMethod('__eq__', N, [N], B, (recv, args) => (recv as number) === (args[0] as number));
   addMethod('__ne__', N, [N], B, (recv, args) => (recv as number) !== (args[0] as number));
+  addMethod('__neg__', N, [], N, (recv) => -(recv as number));
+  addMethod('__pos__', N, [], N, (recv) => recv);
 
   // String methods
   addMethod('__add__', S, [S], S, (recv, args) => (recv as string) + (args[0] as string));

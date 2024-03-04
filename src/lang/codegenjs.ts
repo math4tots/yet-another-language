@@ -203,6 +203,11 @@ export class JSCodegen implements ast.NodeVisitor<void> {
     }
     this.out += '))';
   }
+  visitLogicalNot(n: ast.LogicalNot): void {
+    this.out += '(';
+    n.value.accept(this);
+    this.out += '.isTrue()?YALfalse:YALtrue)';
+  }
   visitLogicalAnd(n: ast.LogicalAnd): void {
     this.out += '(';
     n.lhs.accept(this);

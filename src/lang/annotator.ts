@@ -97,6 +97,10 @@ export async function annotateDocument(document: vscode.TextDocument): Promise<A
   return annotator;
 }
 
+function isTruthy(value: Value): boolean {
+  return !(value === null || value === false);
+}
+
 export class Annotator implements
   ast.ExpressionVisitor<ValueInfo>,
   ast.StatementVisitor<RunStatus> {
@@ -575,7 +579,7 @@ export class Annotator implements
   }
   private applyPure(
     method: Value | undefined, owner: ValueInfo, args: ValueInfo[]): Value | undefined {
-    if (owner.value && method instanceof Method && method?.body &&
+    if (owner.value !== undefined && method instanceof Method && method?.body &&
       args.length === method.type.parameterTypes.length &&
       args.every((arg, i) =>
         arg.value !== undefined &&
@@ -664,21 +668,29 @@ export class Annotator implements
     }
     return { type, value: new Instance(type, fieldValues) };
   }
+  visitLogicalNot(n: ast.LogicalNot): ValueInfo {
+    const value = this.solve(n.value, BoolType, true);
+    return value.value === undefined ?
+      { type: BoolType } :
+      { type: BoolType, value: !isTruthy(value.value) };
+  }
   visitLogicalAnd(n: ast.LogicalAnd): ValueInfo {
-    this.solve(n.lhs, BoolType, true);
-    this.solve(n.rhs, BoolType, true);
-    return { type: BoolType };
+    const lhs = this.solve(n.lhs, BoolType, true);
+    const rhs = this.solve(n.rhs, BoolType, true);
+    return lhs.value === undefined ? { type: BoolType } : (isTruthy(lhs.value) ? rhs : lhs);
   }
   visitLogicalOr(n: ast.LogicalOr): ValueInfo {
-    this.solve(n.lhs, BoolType, true);
-    this.solve(n.rhs, BoolType, true);
-    return { type: BoolType };
+    const lhs = this.solve(n.lhs, BoolType, true);
+    const rhs = this.solve(n.rhs, BoolType, true);
+    return lhs.value === undefined ? { type: BoolType } : (isTruthy(lhs.value) ? lhs : rhs);
   }
   visitConditional(n: ast.Conditional): ValueInfo {
-    this.solve(n.condition, BoolType, true);
+    const cond = this.solve(n.condition, BoolType, true);
     const lhs = this.solve(n.lhs);
     const rhs = this.solve(n.rhs);
-    return { type: lhs.type.getCommonType(rhs.type) };
+    return cond.value === undefined ?
+      { type: lhs.type.getCommonType(rhs.type) } :
+      (isTruthy(cond.value) ? lhs : rhs);
   }
   visitTypeAssertion(n: ast.TypeAssertion): ValueInfo {
     const value = this.solve(n.value);

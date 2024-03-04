@@ -48,6 +48,10 @@ const BinopMethodMap: Map<TokenType, string> = new Map([
   ['%', '__mod__'],
   ['**', '__pow__'],
 ]);
+const UnopMethodMap: Map<TokenType, string> = new Map([
+  ['-', '__neg__'],
+  ['+', '__pos__'],
+]);
 
 export function parse(uri: Uri, source: string): ast.File {
   class Exception { }
@@ -282,6 +286,24 @@ export function parse(uri: Uri, source: string): ast.File {
       const start = peek.range.start;
       const end = rhs.location.range.end;
       return new ast.Conditional({ uri, range: { start, end } }, condition, lhs, rhs);
+    }
+    if (consume('not')) {
+      const start = peek.range.start;
+      const expression = parsePrec(PREC_UNARY_NOT);
+      const end = expression.location.range.end;
+      return new ast.LogicalNot({ uri, range: { start, end } }, expression);
+    }
+    const unopMethod = UnopMethodMap.get(peek.type);
+    if (unopMethod) {
+      i++;
+      const arg = parsePrec(PREC_UNARY_MINUS);
+      const identifier = new ast.IdentifierNode({ uri, range: peek.range }, unopMethod);
+      const location: ast.Location = {
+        uri, range: {
+          start: peek.range.start, end: arg.location.range.end
+        }
+      };
+      return new ast.MethodCall(location, arg, identifier, []);
     }
     errors.push({
       location: { uri, range: peek.range },
