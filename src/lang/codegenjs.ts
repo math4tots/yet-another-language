@@ -8,6 +8,7 @@ class YALNil {
   isTrue() { return false; }
   toString() { return 'nil'; }
   toRepr() { return 'nil'; }
+  toJS() { return null; }
 }
 class YALBool {
   constructor(value) {
@@ -16,6 +17,7 @@ class YALBool {
   isTrue() { return this.value; }
   toString() { return this.value ? 'true' : 'false'; }
   toRepr() { return this.value ? 'true' : 'false'; }
+  toJS() { return this.value; }
 }
 class YALNumber {
   constructor(value) {
@@ -36,6 +38,7 @@ class YALNumber {
   YAL__ge__(rhs) { return (this.value >= rhs.value) ? YALtrue : YALfalse; }
   YAL__eq__(rhs) { return this.value === rhs.value; }
   YAL__ne__(rhs) { return this.value !== rhs.value; }
+  toJS() { return this.value; }
 }
 class YALString {
   constructor(value) {
@@ -52,6 +55,7 @@ class YALString {
   YAL__ge__(rhs) { return (this.value >= rhs.value) ? YALtrue : YALfalse; }
   YAL__eq__(rhs) { return this.value === rhs.value; }
   YAL__ne__(rhs) { return this.value !== rhs.value; }
+  toJS() { return this.value; }
 }
 class YALList {
   constructor(value) {
@@ -61,6 +65,7 @@ class YALList {
   toString() { return '[' + this.value.map(v => v.toString()).join(',') + ']'; }
   toRepr() { return '[' + this.value.map(v => v.toString()).join(',') + ']'; }
   YALget_size() { return this.value.length; }
+  toJS() { return this.value.map(v => v.toJS()); }
 }
 class YALFunction {
   constructor(value, name) {
@@ -70,7 +75,11 @@ class YALFunction {
   isTrue() { return true; }
   toString() { return '<function ' + this.name + '>'; }
   toRepr() { return '<function ' + this.name + '>'; }
+  toJS() { return (...args) => this.value(...(args.map(arg => arg.toJS()))).toJS(); }
   YAL__call__(...args) { return this.value(...args); }
+}
+class YALNativeFunction {
+
 }
 let printHandler = x => console.log(x); // default print behavior, can be modified
 const YALnil = new YALNil();
@@ -90,11 +99,12 @@ function getModule(key) {
   moduleMap[key] = m;
   return m;
 }
-function convertNativeValue(v) {
+function fromJSValue(v) {
   switch (typeof v) {
     case 'boolean': return v ? YALtrue : YALfalse;
     case 'number': return new YALNumber(v);
     case 'string': return new YALString(v);
+    case 'function': return new YALFunction(v);
     case 'object':
       if (v === null) return YALnil;
       if (Array.isArray(v)) return new YALList(v);
@@ -250,9 +260,11 @@ export class JSCodegen implements ast.NodeVisitor<void> {
   visitNativeExpression(n: ast.NativeExpression): void {
     this.out += `${n.source.value}`;
   }
-  visitNativeFunction(n: ast.NativeFunction): void {
-    const params = n.parameters.map(p => p.identifier.name).join(',');
-    this.out += `new YALFunction((${params}) => convertNativeValue(${n.body.value}), '(native)')`;
+  visitNativePureFunction(n: ast.NativePureFunction): void {
+    const passign = n.parameters.map(
+      (p, i) => `const ${p.identifier.name} = $args[${i}].toJS();`).join('');
+    const body = n.body.value;
+    this.out += `new YALFunction((...$args) => {${passign}return fromJSValue(${body})}, '(native)')`;
   }
   visitEmptyStatement(n: ast.EmptyStatement): void { }
   visitExpressionStatement(n: ast.ExpressionStatement): void {

@@ -700,20 +700,25 @@ export class Annotator implements
   visitNativeExpression(n: ast.NativeExpression): ValueInfo {
     return { type: AnyType };
   }
-  visitNativeFunction(n: ast.NativeFunction): ValueInfo {
+  visitNativePureFunction(n: ast.NativePureFunction): ValueInfo {
     const parameterTypes = n.parameters.map(p => p.type ? this.solveType(p.type) : AnyType);
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const type = FunctionType.of(parameterTypes, returnType);
-    const isPure = n.attributes.some(a => a.name === 'pure');
-    let value: Method | undefined;
-    if (isPure) {
-      const parameterNames = n.parameters.map(p => p.identifier.name);
-      const func = Function(...parameterNames, `return (${n.body.value})`);
-      value = new Method(
-        new ast.IdentifierNode(n.location, '(native)'),
-        type,
-        (recv, args) => func.apply(null, args));
+    const parameterNames = n.parameters.map(p => p.identifier.name);
+    let maybeFunc: Function | undefined;
+    try {
+      maybeFunc = Function(...parameterNames, `return (${n.body.value})`);
+    } catch (e) {
+      this.errors.push({
+        location: n.location,
+        message: `Could not make pure function: ${e}`,
+      });
     }
+    const func = maybeFunc;
+    const value = new Method(
+      new ast.IdentifierNode(n.location, '(native)'),
+      type,
+      func ? (recv, args) => func.apply(null, args) : null);
     return { type, value };
   }
 

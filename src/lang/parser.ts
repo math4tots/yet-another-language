@@ -306,14 +306,12 @@ export function parse(uri: Uri, source: string): ast.File {
       // native pure function
       const parameters = parseParameters();
       const returnType = consume(':') ? parseTypeExpression() : null;
-      const attributes: ast.IdentifierNode[] = [];
-      while (!atFirstTokenOfNewLine() && at('IDENTIFIER')) attributes.push(parseIdentifier());
       const stringToken = expect('STRING');
       const end = stringToken.range.end;
       const body = new ast.StringLiteral(
         { uri, range: stringToken.range }, stringToken.value as string);
-      return new ast.NativeFunction(
-        { uri, range: { start, end } }, parameters, returnType, attributes, body);
+      return new ast.NativePureFunction(
+        { uri, range: { start, end } }, parameters, returnType, body);
     }
     const unopMethod = UnopMethodMap.get(peek.type);
     if (unopMethod) {

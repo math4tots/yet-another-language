@@ -34,7 +34,7 @@ export interface ExpressionVisitor<R> {
   visitConditional(n: Conditional): R;
   visitTypeAssertion(n: TypeAssertion): R;
   visitNativeExpression(n: NativeExpression): R;
-  visitNativeFunction(n: NativeFunction): R;
+  visitNativePureFunction(n: NativePureFunction): R;
 }
 
 export interface StatementVisitor<R> {
@@ -279,25 +279,33 @@ export class NativeExpression implements Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativeExpression(this); }
 }
 
-export class NativeFunction implements Expression {
+// NativePureFunctions are functions that are pure (i.e. has no side-effects), and
+// implemented in native code (i.e. Javascript).
+// In terms of compiled code, these could be implemented entirely with NativeExpressions,
+// but allow the annotator to evaluate their bodies
+//
+// NOTE: There are differences in the way that the annotator and the code generator
+// formats values. See 'annotator.ts' and 'codgenjs.ts' for the differences.
+// Specifically, the annotators will use native Javascript values for a lot of
+// its values, while the code generator wraps the values.
+// This means that the sort of functions that can be used with NativePureFunction is
+// quite limited. When it gets too tricky, you should use NativeExpression instead.
+//
+export class NativePureFunction implements Expression {
   readonly location: Location;
   readonly parameters: Declaration[];
   readonly returnType: TypeExpression | null;
-  readonly attributes: IdentifierNode[];
   readonly body: StringLiteral;
   constructor(location: Location,
     parameters: Declaration[],
     returnType: TypeExpression | null,
-    attributes: IdentifierNode[],
     body: StringLiteral) {
     this.location = location;
     this.parameters = parameters;
     this.returnType = returnType;
-    this.attributes = attributes;
     this.body = body;
   }
-  isPure(): boolean { return this.attributes.some(a => a.name === 'pure'); }
-  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativeFunction(this); }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativePureFunction(this); }
 }
 
 export class EmptyStatement implements Statement {
