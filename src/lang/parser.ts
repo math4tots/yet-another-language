@@ -293,6 +293,16 @@ export function parse(uri: Uri, source: string): ast.File {
       const end = expression.location.range.end;
       return new ast.LogicalNot({ uri, range: { start, end } }, expression);
     }
+    if (consume('native')) {
+      const start = peek.range.start;
+      const paren = consume('(');
+      const stringToken = expect('STRING');
+      let end = stringToken.range.end;
+      if (paren) end = expect(')').range.end;
+      const stringLiteral = new ast.StringLiteral(
+        { uri, range: stringToken.range }, stringToken.value as string);
+      return new ast.NativeExpression({ uri, range: { start, end } }, stringLiteral);
+    }
     const unopMethod = UnopMethodMap.get(peek.type);
     if (unopMethod) {
       i++;

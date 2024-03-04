@@ -71,10 +71,11 @@ class YALFunction {
   toRepr() { return '<function ' + this.name + '>'; }
   YAL__call__(...args) { return this.value(...args); }
 }
+let printHandler = x => console.log(x); // default print behavior, can be modified
 const YALnil = new YALNil();
 const YALtrue = new YALBool(true);
 const YALfalse = new YALBool(false);
-const YALprint = new YALFunction(x => (this.printValues.push(x.toString()), YALnil), 'print');
+const YALprint = new YALFunction(x => (printHandler(x), YALnil), 'print');
 const YALstr = new YALFunction(x => new YALString(x.toString()), 'str');
 const YALrepr = new YALFunction(x => new YALString(x.toRepr()), 'repr');
 const moduleMap = Object.create(null);
@@ -88,10 +89,10 @@ function getModule(key) {
   moduleMap[key] = m;
   return m;
 }
-console.log("START");
 `;
 
-export async function translateToJavascript(document: vscode.TextDocument): Promise<string> {
+export async function translateToJavascript(
+  document: vscode.TextDocument, appendToPrelude: string = ''): Promise<string> {
   const codegen = new JSCodegen();
   const stack = [document];
   const seen = new Set([document.uri.toString()]);
@@ -118,7 +119,7 @@ export async function translateToJavascript(document: vscode.TextDocument): Prom
     }
   }
   const mainKey = JSON.stringify(document.uri.toString());
-  return JS_PRELUDE + codegen.out + `getModule(${mainKey});`;
+  return JS_PRELUDE + appendToPrelude + codegen.out + `getModule(${mainKey});`;
 }
 
 export class JSCodegen implements ast.NodeVisitor<void> {
@@ -233,6 +234,9 @@ export class JSCodegen implements ast.NodeVisitor<void> {
   }
   visitTypeAssertion(n: ast.TypeAssertion): void {
     n.value.accept(this);
+  }
+  visitNativeExpression(n: ast.NativeExpression): void {
+    this.out += `(${n.source.value})`;
   }
   visitEmptyStatement(n: ast.EmptyStatement): void { }
   visitExpressionStatement(n: ast.ExpressionStatement): void {

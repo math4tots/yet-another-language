@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as yal from '../lang/yal';
-import { getSelectionOrAllText, writeToNewEditor } from './utils';
+import { writeToNewEditor } from './utils';
 
 export async function runCommand() {
   const editor = vscode.window.activeTextEditor;
@@ -8,7 +8,9 @@ export async function runCommand() {
     return;
   }
   const printValues: string[] = [];
-  const translation = await yal.translateToJavascript(editor.document);
+  const translation = await yal.translateToJavascript(editor.document, `
+  printHandler = x => this.printValues.push(x);
+  `);
   Function(`"use strict"; ${translation}`).bind({ printValues })();
   if (printValues.length > 0) {
     await writeToNewEditor(emit => {
