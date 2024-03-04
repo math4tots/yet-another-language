@@ -33,6 +33,7 @@ export interface ExpressionVisitor<R> {
   visitLogicalOr(n: LogicalOr): R;
   visitConditional(n: Conditional): R;
   visitTypeAssertion(n: TypeAssertion): R;
+  visitNativeExpression(n: NativeExpression): R;
   visitNativeFunction(n: NativeFunction): R;
 }
 
@@ -266,6 +267,16 @@ export class TypeAssertion implements Expression {
     this.type = type;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitTypeAssertion(this); }
+}
+
+export class NativeExpression implements Expression {
+  readonly location: Location;
+  readonly source: StringLiteral;
+  constructor(location: Location, source: StringLiteral) {
+    this.location = location;
+    this.source = source;
+  }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativeExpression(this); }
 }
 
 export class NativeFunction implements Expression {

@@ -697,6 +697,9 @@ export class Annotator implements
     const type = this.solveType(n.type);
     return value.type.isAssignableTo(type) ? value : { type };
   }
+  visitNativeExpression(n: ast.NativeExpression): ValueInfo {
+    return { type: AnyType };
+  }
   visitNativeFunction(n: ast.NativeFunction): ValueInfo {
     const parameterTypes = n.parameters.map(p => p.type ? this.solveType(p.type) : AnyType);
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;

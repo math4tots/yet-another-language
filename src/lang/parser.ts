@@ -295,6 +295,15 @@ export function parse(uri: Uri, source: string): ast.File {
     }
     if (consume('native')) {
       const start = peek.range.start;
+      if (at('STRING')) {
+        // native expression
+        const stringToken = expect('STRING');
+        const end = stringToken.range.end;
+        const source = new ast.StringLiteral(
+          { uri, range: stringToken.range }, stringToken.value as string);
+        return new ast.NativeExpression({ uri, range: { start, end } }, source);
+      }
+      // native pure function
       const parameters = parseParameters();
       const returnType = consume(':') ? parseTypeExpression() : null;
       const attributes: ast.IdentifierNode[] = [];

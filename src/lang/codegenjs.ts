@@ -247,6 +247,9 @@ export class JSCodegen implements ast.NodeVisitor<void> {
   visitTypeAssertion(n: ast.TypeAssertion): void {
     n.value.accept(this);
   }
+  visitNativeExpression(n: ast.NativeExpression): void {
+    this.out += `${n.source.value}`;
+  }
   visitNativeFunction(n: ast.NativeFunction): void {
     const params = n.parameters.map(p => p.identifier.name).join(',');
     this.out += `new YALFunction((${params}) => convertNativeValue(${n.body.value}), '(native)')`;

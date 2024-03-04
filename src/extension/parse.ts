@@ -147,9 +147,13 @@ class Printer implements yal.ast.NodeVisitor<void> {
     n.value.accept(this);
     this.depth--;
   }
+  visitNativeExpression(n: yal.ast.NativeExpression): void {
+    this.indent();
+    this.out += `NATIVE EXPRESSION ${JSON.stringify(n.source.value)}`;
+  }
   visitNativeFunction(n: yal.ast.NativeFunction): void {
     this.indent();
-    this.out += `NATIVE FUNCTION ${n.parameters.map(p => p.identifier.name).join(', ')}`;
+    this.out += `NATIVE PURE FUNCTION ${n.parameters.map(p => p.identifier.name).join(', ')}`;
     this.depth++;
     this.indent();
     this.out += `${n.body.value}`;
