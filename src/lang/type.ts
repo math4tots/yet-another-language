@@ -5,7 +5,7 @@ export type Value =
   null | boolean | number | string |
   Value[] |
   Type |
-  Method | // Single methods when passed around like values are functions
+  MethodBody |
   Instance |
   ModuleInstance
   ;
@@ -20,11 +20,11 @@ export function reprValue(value: Value): string {
     case 'boolean':
     case 'number': return '' + v;
     case 'string': return JSON.stringify(v);
+    case 'function': return `<function ${v.name}>`;
     case 'object':
       if (v === null) return 'nil';
       if (Array.isArray(v)) return `[${v.map(e => reprValue(e)).join(', ')}]`;
       if (v instanceof Type) return v.repr();
-      if (v instanceof Method) return `<function ${v.identifier.name}>`;
       if (v instanceof Instance) return v.toString();
       if (v instanceof ModuleInstance) return v.toString();
   }
@@ -197,9 +197,7 @@ export class FunctionType extends Type {
     const key =
       Array.from(parameterTypes).concat([returnType]).map(t => t.identifier.name).join(',');
     const type = functionTypeMap.get(key);
-    if (type) {
-      return type;
-    }
+    if (type) return type;
     const identifier: Identifier = { location: null, name: `Function[${key}]` };
     const functionType = new FunctionType(identifier, Array.from(parameterTypes), returnType);
     functionTypeMap.set(key, functionType);

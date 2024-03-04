@@ -51,14 +51,15 @@ BASE_SCOPE['String'] =
 function newBuiltin(name: string, ptypes: Type[], rtype: Type, body?: MethodBody): Variable {
   const identifier: ast.Identifier = { location: null, name };
   const type = FunctionType.of(ptypes, rtype);
-  return { identifier, type, value: new Method(identifier, type, body || null) };
+  if (body) body = Object.defineProperty(body, 'name', { value: name });
+  return { identifier, type, value: body };
 }
 
 function addBuiltin(name: string, ptypes: Type[], rtype: Type, body?: MethodBody) {
   BASE_SCOPE[name] = newBuiltin(name, ptypes, rtype, body);
 }
 
-addBuiltin('print', [AnyType], NilType);
+addBuiltin('print', [AnyType], NilType, (recv, args) => undefined);
 addBuiltin('str', [AnyType], StringType, (_, args) => strValue(args[0]));
 addBuiltin('repr', [AnyType], StringType, (_, args) => reprValue(args[0]));
 
@@ -641,7 +642,7 @@ export class Annotator implements
     }
     this.references.push({ identifier: n.identifier, variable: method });
     const args = this.checkArgs(n.location, method.type.parameterTypes, n.args);
-    return { type: method.type.returnType, value: this.applyPure(method, owner, args) };
+    return { type: method.type.returnType, value: this.applyPure(method?.body, owner, args) };
   }
   visitNew(n: ast.New): ValueInfo {
     const type = this.solveType(n.type);
@@ -715,10 +716,7 @@ export class Annotator implements
       });
     }
     const func = maybeFunc;
-    const value = new Method(
-      new ast.IdentifierNode(n.location, '(native)'),
-      type,
-      func ? (recv, args) => func.apply(null, args) : null);
+    const value = func ? (recv: Value, args: Value[]) => func.apply(null, args) : undefined;
     return { type, value };
   }
 
