@@ -295,13 +295,16 @@ export function parse(uri: Uri, source: string): ast.File {
     }
     if (consume('native')) {
       const start = peek.range.start;
-      const paren = consume('(');
+      const parameters = parseParameters();
+      const returnType = consume(':') ? parseTypeExpression() : null;
+      const attributes: ast.IdentifierNode[] = [];
+      while (!atFirstTokenOfNewLine() && at('IDENTIFIER')) attributes.push(parseIdentifier());
       const stringToken = expect('STRING');
-      let end = stringToken.range.end;
-      if (paren) end = expect(')').range.end;
-      const stringLiteral = new ast.StringLiteral(
+      const end = stringToken.range.end;
+      const body = new ast.StringLiteral(
         { uri, range: stringToken.range }, stringToken.value as string);
-      return new ast.NativeExpression({ uri, range: { start, end } }, stringLiteral);
+      return new ast.NativeFunction(
+        { uri, range: { start, end } }, parameters, returnType, attributes, body);
     }
     const unopMethod = UnopMethodMap.get(peek.type);
     if (unopMethod) {

@@ -33,7 +33,7 @@ export interface ExpressionVisitor<R> {
   visitLogicalOr(n: LogicalOr): R;
   visitConditional(n: Conditional): R;
   visitTypeAssertion(n: TypeAssertion): R;
-  visitNativeExpression(n: NativeExpression): R;
+  visitNativeFunction(n: NativeFunction): R;
 }
 
 export interface StatementVisitor<R> {
@@ -268,14 +268,25 @@ export class TypeAssertion implements Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitTypeAssertion(this); }
 }
 
-export class NativeExpression implements Expression {
+export class NativeFunction implements Expression {
   readonly location: Location;
-  readonly source: StringLiteral;
-  constructor(location: Location, source: StringLiteral) {
+  readonly parameters: Declaration[];
+  readonly returnType: TypeExpression | null;
+  readonly attributes: IdentifierNode[];
+  readonly body: StringLiteral;
+  constructor(location: Location,
+    parameters: Declaration[],
+    returnType: TypeExpression | null,
+    attributes: IdentifierNode[],
+    body: StringLiteral) {
     this.location = location;
-    this.source = source;
+    this.parameters = parameters;
+    this.returnType = returnType;
+    this.attributes = attributes;
+    this.body = body;
   }
-  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativeExpression(this); }
+  isPure(): boolean { return this.attributes.some(a => a.name === 'pure'); }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativeFunction(this); }
 }
 
 export class EmptyStatement implements Statement {

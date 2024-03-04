@@ -697,8 +697,21 @@ export class Annotator implements
     const type = this.solveType(n.type);
     return value.type.isAssignableTo(type) ? value : { type };
   }
-  visitNativeExpression(n: ast.NativeExpression): ValueInfo {
-    return { type: AnyType };
+  visitNativeFunction(n: ast.NativeFunction): ValueInfo {
+    const parameterTypes = n.parameters.map(p => p.type ? this.solveType(p.type) : AnyType);
+    const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
+    const type = FunctionType.of(parameterTypes, returnType);
+    const isPure = n.attributes.some(a => a.name === 'pure');
+    let value: Method | undefined;
+    if (isPure) {
+      const parameterNames = n.parameters.map(p => p.identifier.name);
+      const func = Function(...parameterNames, `return (${n.body.value})`);
+      value = new Method(
+        new ast.IdentifierNode(n.location, '(native)'),
+        type,
+        (recv, args) => func.apply(null, args));
+    }
+    return { type, value };
   }
 
   visitEmptyStatement(n: ast.EmptyStatement): RunStatus { return Continues; }

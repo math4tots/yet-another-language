@@ -29,6 +29,7 @@ class YALNumber {
   YAL__mul__(rhs) { return new YALNumber(this.value * rhs.value); }
   YAL__div__(rhs) { return new YALNumber(this.value / rhs.value); }
   YAL__mod__(rhs) { return new YALNumber(this.value % rhs.value); }
+  YAL__pow__(rhs) { return new YALNumber(this.value ** rhs.value); }
   YAL__lt__(rhs) { return (this.value < rhs.value) ? YALtrue : YALfalse; }
   YAL__gt__(rhs) { return (this.value > rhs.value) ? YALtrue : YALfalse; }
   YAL__le__(rhs) { return (this.value <= rhs.value) ? YALtrue : YALfalse; }
@@ -88,6 +89,17 @@ function getModule(key) {
   const m = thunk();
   moduleMap[key] = m;
   return m;
+}
+function convertNativeValue(v) {
+  switch (typeof v) {
+    case 'boolean': return v ? YALtrue : YALfalse;
+    case 'number': return new YALNumber(v);
+    case 'string': return new YALString(v);
+    case 'object':
+      if (v === null) return YALnil;
+      if (Array.isArray(v)) return new YALList(v);
+  }
+  return v;
 }
 `;
 
@@ -235,8 +247,9 @@ export class JSCodegen implements ast.NodeVisitor<void> {
   visitTypeAssertion(n: ast.TypeAssertion): void {
     n.value.accept(this);
   }
-  visitNativeExpression(n: ast.NativeExpression): void {
-    this.out += `(${n.source.value})`;
+  visitNativeFunction(n: ast.NativeFunction): void {
+    const params = n.parameters.map(p => p.identifier.name).join(',');
+    this.out += `new YALFunction((${params}) => convertNativeValue(${n.body.value}), '(native)')`;
   }
   visitEmptyStatement(n: ast.EmptyStatement): void { }
   visitExpressionStatement(n: ast.ExpressionStatement): void {
