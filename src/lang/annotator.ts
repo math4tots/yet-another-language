@@ -468,12 +468,13 @@ export class Annotator implements
     return { type: StringType, value: n.value };
   }
   visitIdentifierNode(n: ast.IdentifierNode): ValueInfo {
+    const scope = this.scope;
     this.completionPoints.push({
       range: n.location.range,
       getCompletions: () => {
         const completions: Completion[] = [];
-        for (const key in this.scope) {
-          const variable = this.scope[key];
+        for (const key in scope) {
+          const variable = scope[key];
           if (!(variable.value instanceof Type)) {
             completions.push({
               name: key,
