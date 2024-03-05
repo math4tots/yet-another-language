@@ -10,7 +10,6 @@ import {
   reprValue, strValue, MethodBody, Instance, InterfaceType, ModuleType, ModuleInstance,
 } from "./type";
 import { parse } from "./parser";
-import { newFunction } from "./function";
 
 export type AnnotationError = ast.ParseError;
 export type ValueInfo = { type: Type, value?: Value; };
@@ -722,7 +721,7 @@ export class Annotator implements
     const parameterNames = n.parameters.map(p => p.identifier.name);
     let maybeFunc: Function | undefined;
     try {
-      maybeFunc = newFunction(parameterNames, `return (${n.body.value})`);
+      maybeFunc = Function(...parameterNames, `return (${n.body.value})`);
     } catch (e) {
       this.errors.push({
         location: n.location,
