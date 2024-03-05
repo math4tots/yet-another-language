@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import { parse } from './parser';
 
 
-export const JS_PRELUDE = `
+export const JS_PRELUDE = `"use strict";
 class YALNil {
   isTrue() { return false; }
   toString() { return 'nil'; }
@@ -262,10 +262,12 @@ export class JSCodegen implements ast.NodeVisitor<void> {
     this.out += `${n.source.value}`;
   }
   visitNativePureFunction(n: ast.NativePureFunction): void {
-    const passign = n.parameters.map(
-      (p, i) => `const ${p.identifier.name} = $args[${i}].toJS();`).join('');
-    const body = n.body.value;
-    this.out += `new YALFunction((...$args) => {${passign}return fromJS(${body})}, '(native)')`;
+    const params = n.parameters.map(p => p.identifier.name).join(',');
+    const body = n.getBodyFor('js');
+    if (!body) {
+      console.log(`ERROR: pure function js body is not defined`);
+    }
+    this.out += `new YALFunction((${params}) => (${body}), '(native)')`;
   }
   visitEmptyStatement(n: ast.EmptyStatement): void { }
   visitExpressionStatement(n: ast.ExpressionStatement): void {

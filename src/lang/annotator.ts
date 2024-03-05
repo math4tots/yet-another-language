@@ -719,14 +719,17 @@ export class Annotator implements
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const type = FunctionType.of(parameterTypes, returnType);
     const parameterNames = n.parameters.map(p => p.identifier.name);
+    const body = n.getBodyFor('vscode');
     let maybeFunc: Function | undefined;
-    try {
-      maybeFunc = Function(...parameterNames, `return (${n.body.value})`);
-    } catch (e) {
-      this.errors.push({
-        location: n.location,
-        message: `Could not make pure function: ${e}`,
-      });
+    if (body) {
+      try {
+        maybeFunc = Function(...parameterNames, `return (${body})`);
+      } catch (e) {
+        this.errors.push({
+          location: n.location,
+          message: `Could not make pure function: ${e}`,
+        });
+      }
     }
     const func = maybeFunc;
     const value = new Method(

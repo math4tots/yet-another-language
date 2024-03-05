@@ -241,8 +241,8 @@ export class Method {
     this.comment = comment;
   }
 
-  call(thisArg: Value, ...args: Value[]): (Value | undefined) {
-    return this.body ? this.body(thisArg, args) : undefined;
+  call(...args: Value[]): (Value | undefined) {
+    return this.body ? this.body(null, args) : undefined;
   }
 }
 

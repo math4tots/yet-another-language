@@ -295,17 +295,23 @@ export class NativePureFunction implements Expression {
   readonly location: Location;
   readonly parameters: Declaration[];
   readonly returnType: TypeExpression | null;
-  readonly body: StringLiteral;
+  readonly body: [IdentifierNode, StringLiteral][];
   constructor(location: Location,
     parameters: Declaration[],
     returnType: TypeExpression | null,
-    body: StringLiteral) {
+    body: [IdentifierNode, StringLiteral][]) {
     this.location = location;
     this.parameters = parameters;
     this.returnType = returnType;
     this.body = body;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativePureFunction(this); }
+  getBodyFor(usage: string): string | undefined {
+    for (const [identifier, implementation] of this.body) {
+      if (identifier.name === usage) return implementation.value;
+    }
+    return undefined;
+  }
 }
 
 export class EmptyStatement implements Statement {
