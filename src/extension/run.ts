@@ -11,7 +11,13 @@ export async function runCommand() {
   const translation = await yal.translateToJavascript(editor.document, `
   printHandler = x => this.printValues.push(x);
   `);
-  Function(`"use strict"; ${translation}`).bind({ printValues })();
+  try {
+    Function(`"use strict"; ${translation}`).bind({ printValues })();
+  } catch (e) {
+    if (e instanceof Error) {
+      printValues.push((('' + (e as Error).stack) || (e as Error).message));
+    }
+  }
   if (printValues.length > 0) {
     await writeToNewEditor(emit => {
       for (const value of printValues) emit(`${value}\n`);

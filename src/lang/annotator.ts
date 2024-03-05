@@ -10,6 +10,7 @@ import {
   reprValue, strValue, MethodBody, Instance, InterfaceType, ModuleType, ModuleInstance,
 } from "./type";
 import { parse } from "./parser";
+import { newFunction } from "./function";
 
 export type AnnotationError = ast.ParseError;
 export type ValueInfo = { type: Type, value?: Value; };
@@ -51,15 +52,14 @@ BASE_SCOPE['String'] =
 function newBuiltin(name: string, ptypes: Type[], rtype: Type, body?: MethodBody): Variable {
   const identifier: ast.Identifier = { location: null, name };
   const type = FunctionType.of(ptypes, rtype);
-  if (body) body = Object.defineProperty(body, 'name', { value: name });
-  return { identifier, type, value: body };
+  return { identifier, type, value: new Method(identifier, type, body || null) };
 }
 
 function addBuiltin(name: string, ptypes: Type[], rtype: Type, body?: MethodBody) {
   BASE_SCOPE[name] = newBuiltin(name, ptypes, rtype, body);
 }
 
-addBuiltin('print', [AnyType], NilType, (recv, args) => undefined);
+addBuiltin('print', [AnyType], NilType);
 addBuiltin('str', [AnyType], StringType, (_, args) => strValue(args[0]));
 addBuiltin('repr', [AnyType], StringType, (_, args) => reprValue(args[0]));
 
@@ -579,13 +579,21 @@ export class Annotator implements
     return ret;
   }
   private applyPure(
+    location: ast.Location,
     method: Value | undefined, owner: ValueInfo, args: ValueInfo[]): Value | undefined {
     if (owner.value !== undefined && method instanceof Method && method?.body &&
       args.length === method.type.parameterTypes.length &&
       args.every((arg, i) =>
         arg.value !== undefined &&
         arg.type.isAssignableTo(method.type.parameterTypes[i]))) {
-      return method.body(owner.value, args.map(arg => arg.value as Value));
+      try {
+        return method.body(owner.value, args.map(arg => arg.value as Value));
+      } catch (e) {
+        this.errors.push({
+          location,
+          message: `Pure function failed: ${e}`
+        });
+      }
     }
     return undefined;
   }
@@ -599,7 +607,10 @@ export class Annotator implements
         // print value
         this.printInstances.push({ range: n.location.range, value: args[0].value });
       }
-      return { type: owner.type.returnType, value: this.applyPure(method, owner, args) };
+      return {
+        type: owner.type.returnType,
+        value: this.applyPure(n.location, method, owner, args),
+      };
     }
     this.completionPoints.push({
       range: n.identifier.location.range,
@@ -642,7 +653,10 @@ export class Annotator implements
     }
     this.references.push({ identifier: n.identifier, variable: method });
     const args = this.checkArgs(n.location, method.type.parameterTypes, n.args);
-    return { type: method.type.returnType, value: this.applyPure(method?.body, owner, args) };
+    return {
+      type: method.type.returnType,
+      value: this.applyPure(n.location, method, owner, args),
+    };
   }
   visitNew(n: ast.New): ValueInfo {
     const type = this.solveType(n.type);
@@ -708,7 +722,7 @@ export class Annotator implements
     const parameterNames = n.parameters.map(p => p.identifier.name);
     let maybeFunc: Function | undefined;
     try {
-      maybeFunc = Function(...parameterNames, `return (${n.body.value})`);
+      maybeFunc = newFunction(parameterNames, `return (${n.body.value})`);
     } catch (e) {
       this.errors.push({
         location: n.location,
@@ -716,7 +730,10 @@ export class Annotator implements
       });
     }
     const func = maybeFunc;
-    const value = func ? (recv: Value, args: Value[]) => func.apply(null, args) : undefined;
+    const value = new Method(
+      new ast.IdentifierNode(n.location, '(native)'),
+      type,
+      func ? (recv, args) => func.apply(null, args) : null);
     return { type, value };
   }
 
