@@ -8,6 +8,7 @@ import { newHoverProvider } from './extension/hoverprovider';
 import { newCompletionProvider } from './extension/completionprovider';
 import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 import { translateToJSCommand } from './extension/translate-to-js';
+import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -59,6 +60,10 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerCompletionItemProvider(
     { language: 'yal' },
     newCompletionProvider(registry), '.'));
+  sub(vscode.languages.registerSignatureHelpProvider(
+    { language: 'yal' },
+    newSignatureHelpProvider(registry), '('));
   sub(vscode.languages.registerInlayHintsProvider(
-    { language: 'yal' }, newInlayHintsProvider(registry)));
+    { language: 'yal' },
+    newInlayHintsProvider(registry)));
 }

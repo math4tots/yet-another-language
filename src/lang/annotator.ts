@@ -79,6 +79,13 @@ export interface PrintInstance {
   readonly value: Value;
 }
 
+export interface CallInstance {
+  readonly range: Range; // range of entire call
+  readonly args: Range[]; // range of individual arguments
+  readonly type: FunctionType;
+  readonly value?: Method;
+}
+
 function getCommentFromSeq(stmts: ast.Statement[]): ast.StringLiteral | undefined {
   return (stmts.length > 0 &&
     stmts[0] instanceof ast.ExpressionStatement &&
@@ -110,6 +117,7 @@ export class Annotator implements
   readonly references: Reference[] = [];
   readonly completionPoints: CompletionPoint[] = [];
   readonly printInstances: PrintInstance[] = [];
+  readonly callInstances: CallInstance[] = [];
   private scope: Scope = Object.create(BASE_SCOPE);
   private hint: Type = AnyType;
   private currentReturnType: Type | null = null;
@@ -597,6 +605,20 @@ export class Annotator implements
     }
     return undefined;
   }
+  private addCallInstance(
+    location: ast.Location,
+    args: ast.Expression[],
+    type: Type,
+    method: Value | undefined) {
+    if (type instanceof FunctionType) {
+      this.callInstances.push({
+        range: location.range,
+        args: args.map(arg => arg.location.range),
+        type,
+        value: method instanceof Method ? method : undefined,
+      });
+    }
+  }
   visitMethodCall(n: ast.MethodCall): ValueInfo {
     const owner = this.solve(n.owner);
     if (owner.type instanceof FunctionType && n.identifier.name === '__call__') {
@@ -607,6 +629,7 @@ export class Annotator implements
         // print value
         this.printInstances.push({ range: n.location.range, value: args[0].value });
       }
+      this.addCallInstance(n.location, n.args, owner.type, owner.value);
       return {
         type: owner.type.returnType,
         value: this.applyPure(n.location, method, owner, args),
@@ -653,6 +676,7 @@ export class Annotator implements
     }
     this.references.push({ identifier: n.identifier, variable: method });
     const args = this.checkArgs(n.location, method.type.parameterTypes, n.args);
+    this.addCallInstance(n.location, n.args, method.type, method);
     return {
       type: method.type.returnType,
       value: this.applyPure(n.location, method, owner, args),
