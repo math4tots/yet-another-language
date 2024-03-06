@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as yal from './lang/yal';
 import { tokenizeCommand } from './extension/tokenize';
 import { parseCommand } from './extension/parse';
 import { runCommand } from './extension/run';
@@ -12,6 +13,15 @@ import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
+  const extensionURI = context.extensionUri;
+  yal.LIBRARY_URIS.push(vscode.Uri.from({
+    authority: extensionURI.authority,
+    fragment: extensionURI.fragment,
+    path: extensionURI.path + '/yallib',
+    query: extensionURI.query,
+    scheme: extensionURI.scheme,
+  }));
+
   const sub = (item: vscode.Disposable) => context.subscriptions.push(item);
   const registry = new Registry();
 
@@ -19,12 +29,6 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.activeTextEditor.document.languageId === 'yal') {
     registry.startUpdate(vscode.window.activeTextEditor.document);
   }
-
-  // sub(vscode.workspace.onDidOpenTextDocument(async document => {
-  //   if (document.languageId === 'yal') {
-  //     registry.startUpdate(document);
-  //   }
-  // }));
 
   sub(vscode.workspace.onDidSaveTextDocument(async document => {
     if (document.languageId === 'yal') {

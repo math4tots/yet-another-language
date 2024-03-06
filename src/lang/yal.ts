@@ -17,3 +17,4 @@ export {
   reprValue, strValue,
 } from './type';
 export { JSCodegen, JS_PRELUDE, translateToJavascript } from './codegenjs';
+export { LIBRARY_URIS } from './paths';

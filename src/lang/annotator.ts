@@ -10,6 +10,7 @@ import {
   reprValue, strValue, MethodBody, Instance, InterfaceType, ModuleType, ModuleInstance,
 } from "./type";
 import { parse } from "./parser";
+import { LIBRARY_URIS } from "./paths";
 
 export type AnnotationError = ast.ParseError;
 export type ValueInfo = { type: Type, value?: Value; };
@@ -196,11 +197,12 @@ export class Annotator implements
             }
             // direct method (for functions)
             if (variable.type instanceof FunctionType &&
-              statement.value instanceof ast.FunctionDisplay) {
+              (statement.value instanceof ast.FunctionDisplay ||
+                statement.value instanceof ast.NativePureFunction)) {
               this.moduleType.addMethod(new Method(
                 variable.identifier,
                 variable.type,
-                null,
+                variable.value instanceof Method ? variable.value.body : null,
                 variable.comment || null
               ));
             }
@@ -218,7 +220,8 @@ export class Annotator implements
     }
   }
 
-  private async getImportVariable(uri: vscode.Uri): Promise<ExplicitVariable> {
+  private async getImportVariable(
+    uri: vscode.Uri, importLocation: ast.Location): Promise<ExplicitVariable> {
     const key = uri.toString();
     const cached = this.importCache.get(key);
     const document = await this.openDocument(uri);
@@ -243,26 +246,62 @@ export class Annotator implements
     const text = document.getText();
     const fileNode = parse(uri, text);
     await annotator.annotateFile(fileNode);
+    if (annotator.errors.length > 0) {
+      this.errors.push({
+        location: importLocation,
+        message: `import has errors`,
+      });
+    }
     return annotator.moduleVariable;
   }
 
   private async resolveImport(n: ast.Import) {
-    const rawPath = n.path.value;
-    if (!rawPath.startsWith('./')) {
+    let rawPath = n.path.value;
+    if (!rawPath.endsWith('.yal')) {
+      rawPath = rawPath + '.yal';
+    }
+    if (rawPath.startsWith('/')) {
+      // absolute path. Not yet supported
       this.errors.push({
         location: n.path.location,
-        message: `Import paths must start with './'`,
+        message: `Absolute improt paths not yet supported`,
       });
       return Continues;
     }
-    const importURI = vscode.Uri.from({
-      authority: this.uri.authority,
-      fragment: this.uri.fragment,
-      path: getParentPath(this.uri.path) + rawPath.substring(1),
-      query: this.uri.query,
-      scheme: this.uri.scheme,
-    });
-    const moduleVariable = await this.getImportVariable(importURI);
+    let importURI: vscode.Uri | undefined = undefined;
+    if (rawPath.startsWith('./')) {
+      // relative path
+      importURI = vscode.Uri.from({
+        authority: this.uri.authority,
+        fragment: this.uri.fragment,
+        path: getParentPath(this.uri.path) + rawPath.substring(1),
+        query: this.uri.query,
+        scheme: this.uri.scheme,
+      });
+    } else {
+      // library path
+      for (const libraryURI of LIBRARY_URIS) {
+        importURI = vscode.Uri.from({
+          authority: libraryURI.authority,
+          fragment: libraryURI.fragment,
+          path: libraryURI.path + '/' + rawPath,
+          query: libraryURI.query,
+          scheme: libraryURI.scheme,
+        });
+        try {
+          await vscode.workspace.fs.stat(importURI); // check if URI exists
+          break;
+        } catch (e) { }
+      }
+      if (importURI === undefined) {
+        this.errors.push({
+          location: n.location,
+          message: `Module ${JSON.stringify(n.path.value)} not found`,
+        });
+        return Continues;
+      }
+    }
+    const moduleVariable = await this.getImportVariable(importURI, n.location);
 
     // Add a reference for the path to the file
     this.references.push({

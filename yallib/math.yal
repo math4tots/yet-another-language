@@ -1,0 +1,19 @@
+
+
+const PI = 3.14159265358979323846
+const TAU "Two times PI" = 2 * PI
+
+const sin "sin function" = native(x: Number): Number {
+  js "new YALNumber(Math.sin(x))"
+  vscode "Math.sin(x)"
+}
+
+const cos = native(x: Number): Number {
+  js "new YALNumber(Math.cos(x))"
+  vscode "Math.cos(x)"
+}
+
+const tan = native(x: Number): Number {
+  js "new YALNumber(Math.tan(x))"
+  vscode "Math.tan(x)"
+}
