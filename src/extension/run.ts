@@ -12,6 +12,7 @@ export async function runCommand() {
   printHandler = x => this.printValues.push(x);
   `);
   try {
+    // TODO: set timeout
     Function(`"use strict"; ${translation}`).bind({ printValues })();
   } catch (e) {
     if (e instanceof Error) {

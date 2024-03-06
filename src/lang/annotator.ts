@@ -168,7 +168,7 @@ export class Annotator implements
           await this.resolveImport(statement);
         }
       }
-      this.declareClasses(file.statements);
+      this.declareClassesAndFunctions(file.statements);
       for (const statement of file.statements) {
         statement.accept(this);
         if (statement instanceof ast.ClassDefinition ||
@@ -836,7 +836,7 @@ export class Annotator implements
   visitBlock(n: ast.Block): RunStatus {
     let status: RunStatus = Continues;
     this.blockScoped(() => {
-      this.declareClasses(n.statements);
+      this.declareClassesAndFunctions(n.statements);
       for (const statement of n.statements) {
         const statementStatus = statement.accept(this);
         // TODO: consider detecting unreachable statements
@@ -904,6 +904,29 @@ export class Annotator implements
       });
     }
     return Jumps;
+  }
+  private declareClassesAndFunctions(statements: ast.Statement[]) {
+    this.declareClasses(statements);
+    this.forwardDeclareFunctions(statements);
+  }
+  private forwardDeclareFunctions(statements: ast.Statement[]) {
+    for (const statement of statements) {
+      if (statement instanceof ast.Declaration) {
+        if (statement.value instanceof ast.FunctionDisplay) {
+          const funcType = this.solveFunctionDisplayType(statement.value);
+          // this declaration should get replaced by the "real" function when
+          // we get there.
+          // However, note, when the function is used recursively, there's no
+          // mechanism currently in place that would allow
+          // computing values at IDE time.
+          this.scope[statement.identifier.name] = {
+            identifier: statement.identifier,
+            type: funcType,
+            comment: statement.comment || getCommentFromFunctionDisplay(statement.value),
+          };
+        }
+      }
+    }
   }
   private declareClasses(statements: ast.Statement[]) {
     for (const statement of statements) {
