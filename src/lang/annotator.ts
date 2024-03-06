@@ -128,6 +128,15 @@ export class Annotator implements
   private readonly version: number;
   private readonly moduleVariable: ExplicitVariable;
 
+  // a cache is required when type solving, because:
+  //   (1) we generate annotations while solving types, and
+  //   (2) sometimes we need to solve a type multiple times
+  //       when doing forward declarations (e.g. class methods)
+  //
+  // So without caching, we might see duplicate hover items.
+  //
+  private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
+
   constructor(
     uri: vscode.Uri, version: number, importCache: Map<string, Annotator> = new Map()) {
     this.uri = uri;
@@ -211,6 +220,7 @@ export class Annotator implements
         }
       }
     });
+    this.typeSolverCache.clear();
   }
 
   private async openDocument(uri: vscode.Uri): Promise<vscode.TextDocument | null> {
@@ -368,6 +378,13 @@ export class Annotator implements
   }
 
   private solveType(e: ast.TypeExpression): Type {
+    const cached = this.typeSolverCache.get(e);
+    if (cached) return cached;
+    const type = this._solveType(e);
+    this.typeSolverCache.set(e, type);
+    return type;
+  }
+  private _solveType(e: ast.TypeExpression): Type {
     if (e.args.length > 0) {
       if (!e.qualifier) {
         if (e.identifier.name === 'List') {
