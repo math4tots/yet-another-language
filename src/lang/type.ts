@@ -190,19 +190,58 @@ export class ListType extends Type {
   }
 }
 
-const functionTypeMap = new Map<string, FunctionType>();
+
+// We make the FunctionTypeCache a trie branching out with a WeakMap
+// because there will be many many user defined types that will need
+// to be thrown away. The WeakMaps should allow these ephemeral types
+// to be automatically collected.
+type FunctionTypeCache = {
+  type?: FunctionType;
+  map: WeakMap<Type, FunctionTypeCache>;
+};
+
+const functionTypeCache: FunctionTypeCache = { map: new WeakMap() };
+
+function functionTypeCacheGet(
+  parameterTypes: Type[], returnType: Type): FunctionType | undefined {
+  let cache: FunctionTypeCache | undefined = functionTypeCache;
+  for (const parameterType of parameterTypes) {
+    if (!(cache instanceof WeakMap)) return undefined;
+    cache = cache.map.get(parameterType);
+  }
+  if (!(cache instanceof WeakMap)) return undefined;
+  const type = cache.map.get(returnType)?.type;
+  return type || undefined;
+}
+
+function functionTypeCacheSet(
+  parameterTypes: Type[], returnType: Type, type: FunctionType) {
+  let cache = functionTypeCache;
+  for (const parameterType of parameterTypes) {
+    let nextCache = cache.map.get(parameterType);
+    if (!nextCache) {
+      nextCache = { map: new WeakMap() };
+      cache.map.set(parameterType, nextCache);
+    }
+    cache = nextCache;
+  }
+  let nextCache = cache.map.get(returnType);
+  if (!nextCache) {
+    nextCache = { map: new WeakMap() };
+    cache.map.set(returnType, nextCache);
+  }
+  cache = nextCache;
+  cache.type = type;
+}
 
 export class FunctionType extends Type {
-  static of(parameterTypes: Type[], returnType: Type) {
-    const key =
-      Array.from(parameterTypes).concat([returnType]).map(t => t.identifier.name).join(',');
-    const type = functionTypeMap.get(key);
-    if (type) {
-      return type;
-    }
-    const identifier: Identifier = { location: null, name: `Function[${key}]` };
+  static of(parameterTypes: Type[], returnType: Type): FunctionType {
+    const cachedType = functionTypeCacheGet(parameterTypes, returnType);
+    if (cachedType) return cachedType;
+    const typeArgs = Array.from(parameterTypes).concat([returnType]).join(',');
+    const identifier: Identifier = { location: null, name: `Function[${typeArgs}]` };
     const functionType = new FunctionType(identifier, Array.from(parameterTypes), returnType);
-    functionTypeMap.set(key, functionType);
+    functionTypeCacheSet(parameterTypes, returnType, functionType);
     return functionType;
   }
   readonly parameterTypes: Type[];

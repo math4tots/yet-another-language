@@ -8,8 +8,6 @@ class YALNil {
   isTrue() { return false; }
   toString() { return 'nil'; }
   toRepr() { return 'nil'; }
-  toJS() { return null; }
-  valueOf() { return null; }
 }
 class YALBool {
   constructor(value) {
@@ -18,7 +16,6 @@ class YALBool {
   isTrue() { return this.value; }
   toString() { return this.value ? 'true' : 'false'; }
   toRepr() { return this.value ? 'true' : 'false'; }
-  toJS() { return this.value; }
   valueOf() { return this.value }
 }
 class YALNumber {
@@ -27,8 +24,7 @@ class YALNumber {
   }
   isTrue() { return true; }
   toString() { return '' + this.value; }
-  toRepr() { return '' + this.value; }
-  toJS() { return this.value; }
+  toRepr() { return this.toString(); }
   valueOf() { return this.value }
   YAL__add__(rhs) { return new YALNumber(this.value + rhs.value); }
   YAL__sub__(rhs) { return new YALNumber(this.value - rhs.value); }
@@ -50,7 +46,6 @@ class YALString {
   isTrue() { return true; }
   toString() { return this.value; }
   toRepr() { return JSON.stringify(this.value); }
-  toJS() { return this.value; }
   valueOf() { return this.value; }
   YAL__add__(rhs) { return new YALString(this.value + rhs.value); }
   YALget_size() { return this.value.length; }
@@ -67,9 +62,8 @@ class YALList {
   }
   isTrue() { return true; }
   toString() { return '[' + this.value.map(v => v.toString()).join(',') + ']'; }
-  toRepr() { return '[' + this.value.map(v => v.toString()).join(',') + ']'; }
+  toRepr() { return this.toString(); }
   YALget_size() { return this.value.length; }
-  toJS() { return this.value.map(v => v.toJS()); }
 }
 class YALFunction {
   constructor(value, name) {
@@ -78,8 +72,7 @@ class YALFunction {
   }
   isTrue() { return true; }
   toString() { return '<function ' + this.name + '>'; }
-  toRepr() { return '<function ' + this.name + '>'; }
-  toJS() { return (...args) => this.value(...(args.map(arg => arg.toJS()))).toJS(); }
+  toRepr() { return this.toString(); }
   YAL__call__(...args) { return this.value(...args); }
 }
 let printHandler = x => console.log(x); // default print behavior, can be modified
@@ -99,18 +92,6 @@ function getModule(key) {
   const m = thunk();
   moduleMap[key] = m;
   return m;
-}
-function fromJS(v) {
-  switch (typeof v) {
-    case 'boolean': return v ? YALtrue : YALfalse;
-    case 'number': return new YALNumber(v);
-    case 'string': return new YALString(v);
-    case 'function': return new YALFunction(v);
-    case 'object':
-      if (v === null) return YALnil;
-      if (Array.isArray(v)) return new YALList(v);
-  }
-  return v;
 }
 `;
 

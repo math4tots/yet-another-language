@@ -159,6 +159,7 @@ export class Annotator implements
           await this.resolveImport(statement);
         }
       }
+      this.declareClasses(file.statements);
       for (const statement of file.statements) {
         statement.accept(this);
         if (statement instanceof ast.ClassDefinition ||
@@ -589,10 +590,15 @@ export class Annotator implements
       { type: listType, value: values } :
       { type: listType };
   }
-  visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
+  private solveFunctionDisplayType(n: ast.FunctionDisplay): FunctionType {
     const parameterTypes = n.parameters.map(p => p.type ? this.solveType(p.type) : AnyType);
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
-    const funcType = FunctionType.of(parameterTypes, returnType);
+    return FunctionType.of(parameterTypes, returnType);
+  }
+  visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
+    const funcType = this.solveFunctionDisplayType(n);
+    const parameterTypes = funcType.parameterTypes;
+    const returnType = funcType.returnType;
     this.functionScoped(returnType, () => {
       for (let i = 0; i < n.parameters.length; i++) {
         const identifier = n.parameters[i].identifier;
@@ -813,6 +819,7 @@ export class Annotator implements
   visitBlock(n: ast.Block): RunStatus {
     let status: RunStatus = Continues;
     this.blockScoped(() => {
+      this.declareClasses(n.statements);
       for (const statement of n.statements) {
         const statementStatus = statement.accept(this);
         // TODO: consider detecting unreachable statements
@@ -881,18 +888,104 @@ export class Annotator implements
     }
     return Jumps;
   }
-  visitClassDefinition(n: ast.ClassDefinition): RunStatus {
+  private declareClasses(statements: ast.Statement[]) {
+    for (const statement of statements) {
+      if (statement instanceof ast.ClassDefinition) {
+        this.forwardDeclareClass(statement);
+      }
+    }
+    for (const statement of statements) {
+      if (statement instanceof ast.ClassDefinition) {
+        this.declareClass(statement);
+      }
+    }
+  }
+  private forwardDeclareClass(n: ast.ClassDefinition) {
     const cls = new ClassType(n.identifier);
     const comment = (n.statements.length > 0 &&
       n.statements[0] instanceof ast.ExpressionStatement &&
       n.statements[0].expression instanceof ast.StringLiteral) ?
       n.statements[0].expression : undefined;
-    const variable = this.scope[cls.identifier.name] = {
+    this.scope[cls.identifier.name] = {
       identifier: n.identifier,
       type: AnyType,
       value: cls,
       comment,
     };
+  }
+  private declareClass(n: ast.ClassDefinition) {
+    const variable = this.scope[n.identifier.name];
+    const cls = variable.value;
+    if (!variable || !(cls instanceof ClassType)) {
+      // this should never happen
+      this.errors.push({
+        location: n.location,
+        message: `Forward declaration failed for class`,
+      });
+      return Continues;
+    }
+    for (const statement of n.statements) {
+      if (statement instanceof ast.Declaration) {
+        // forward declare methods
+        if (statement.value instanceof ast.FunctionDisplay) {
+          // normal method
+          const functionDisplay = statement.value;
+          const funcType = this.solveFunctionDisplayType(functionDisplay);
+          const method = new Method(statement.identifier, funcType, null,
+            getCommentFromFunctionDisplay(functionDisplay));
+          cls.addMethod(method);
+          this.variables.push(method);
+          this.references.push({ identifier: statement.identifier, variable: method });
+        } else if (statement.value === null) {
+          // field
+          const fieldType = (statement.type && this.solveType(statement.type)) || AnyType;
+          if (statement.value) {
+            this.solve(statement.value, fieldType, true);
+          }
+          const comment = statement.comment;
+          const field: Field = {
+            isMutable: statement.isMutable,
+            identifier: statement.identifier,
+            type: fieldType,
+          };
+          cls.addField(field);
+          this.variables.push(field);
+          this.references.push({ identifier: statement.identifier, variable: field });
+
+          // synthesized field methods
+          const getType = FunctionType.of([], fieldType);
+          const name = statement.identifier.name;
+          const getIdent = new ast.IdentifierNode(statement.identifier.location, `get_${name}`);
+          const getMethod = new Method(
+            getIdent, getType,
+            (recv) => (recv as Instance).getField(statement.identifier.name),
+            comment);
+          cls.addMethod(getMethod);
+          this.variables.push(getMethod);
+          this.references.push({ identifier: statement.identifier, variable: getMethod });
+          if (statement.isMutable) {
+            const setType = FunctionType.of([fieldType], NilType);
+            const setIdent = new ast.IdentifierNode(statement.identifier.location, `set_${name}`);
+            const setMethod = new Method(setIdent, setType, null);
+            cls.addMethod(setMethod);
+            this.variables.push(setMethod);
+            this.references.push({ identifier: statement.identifier, variable: setMethod });
+          }
+        }
+      }
+    }
+  }
+  visitClassDefinition(n: ast.ClassDefinition): RunStatus {
+    const variable = this.scope[n.identifier.name];
+    const cls = variable.value;
+    if (!variable || !(cls instanceof ClassType)) {
+      // this should never happen
+      this.errors.push({
+        location: n.location,
+        message: `Declaration failed for class`,
+      });
+      return Continues;
+    }
     this.variables.push(variable);
     this.references.push({ identifier: n.identifier, variable });
     this.classScoped(n.identifier.location, cls, () => {
@@ -903,54 +996,12 @@ export class Annotator implements
           }
         } else if (statement instanceof ast.Declaration) {
           if (statement.value instanceof ast.FunctionDisplay) {
-            // method
+            // method (everything but solving body handled in declareClass())
             const functionDisplay = statement.value;
-            const { type: funcType } = this.solve(functionDisplay);
-            if (!(funcType instanceof FunctionType)) {
-              continue;
-            }
-            const method = new Method(statement.identifier, funcType, null,
-              getCommentFromFunctionDisplay(functionDisplay));
-            cls.addMethod(method);
-            this.variables.push(method);
-            this.references.push({ identifier: statement.identifier, variable: method });
+            this.solve(functionDisplay);
             continue;
           } else if (statement.value === null) {
-            // field
-            const fieldType = (statement.type && this.solveType(statement.type)) || AnyType;
-            if (statement.value) {
-              this.solve(statement.value, fieldType, true);
-            }
-            const comment = statement.comment;
-            const field: Field = {
-              isMutable: statement.isMutable,
-              identifier: statement.identifier,
-              type: fieldType,
-            };
-            cls.addField(field);
-            this.variables.push(field);
-            this.references.push({ identifier: statement.identifier, variable: field });
-
-            // synthesized field methods
-            const getType = FunctionType.of([], fieldType);
-            const name = statement.identifier.name;
-            const getIdent = new ast.IdentifierNode(statement.identifier.location, `get_${name}`);
-            const getMethod = new Method(
-              getIdent, getType,
-              (recv) => (recv as Instance).getField(statement.identifier.name),
-              comment);
-            cls.addMethod(getMethod);
-            this.variables.push(getMethod);
-            this.references.push({ identifier: statement.identifier, variable: getMethod });
-            if (statement.isMutable) {
-              const setType = FunctionType.of([fieldType], NilType);
-              const setIdent = new ast.IdentifierNode(statement.identifier.location, `set_${name}`);
-              const setMethod = new Method(setIdent, setType, null);
-              cls.addMethod(setMethod);
-              this.variables.push(setMethod);
-              this.references.push({ identifier: statement.identifier, variable: setMethod });
-            }
-
+            // field (already handled in declareClass())
             continue;
           }
         }
