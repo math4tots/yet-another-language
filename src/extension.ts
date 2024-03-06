@@ -10,6 +10,7 @@ import { newCompletionProvider } from './extension/completionprovider';
 import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 import { translateToJSCommand } from './extension/translate-to-js';
 import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
+import { runHTMLCommand } from './extension/runhtml';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -51,6 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.commands.registerCommand(
     'yal.run',
     runCommand));
+  sub(vscode.commands.registerCommand(
+    'yal.runhtml',
+    runHTMLCommand));
   sub(vscode.commands.registerCommand(
     'yal.translateToJavascript',
     translateToJSCommand));

@@ -8,12 +8,12 @@ export async function runCommand() {
     return;
   }
   const printValues: string[] = [];
-  const translation = await yal.translateToJavascript(editor.document, `
-  printHandler = x => this.printValues.push(x);
-  `);
+  const translation = await yal.translateToJavascript(
+    editor.document, `printHandler = x => this.printValues.push(x);`);
+  const javascript = `"use strict";${translation}`;
   try {
     // TODO: set timeout
-    Function(`"use strict"; ${translation}`).bind({ printValues })();
+    Function(javascript).bind({ printValues })();
   } catch (e) {
     if (e instanceof Error) {
       printValues.push((('' + (e as Error).stack) || (e as Error).message));
