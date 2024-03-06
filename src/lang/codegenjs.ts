@@ -1,6 +1,7 @@
 import * as ast from './ast';
 import * as vscode from 'vscode';
 import { parse } from './parser';
+import { LIBRARY_URIS } from './paths';
 
 
 export const JS_PRELUDE = `"use strict";
@@ -106,14 +107,44 @@ export async function translateToJavascript(
     for (const statement of file.statements) {
       if (statement instanceof ast.Import) {
         const uri = doc.uri;
-        const path = statement.path.value;
-        const importURI = vscode.Uri.from({
-          authority: uri.authority,
-          fragment: uri.fragment,
-          path: getParentPath(uri.path) + path.substring(1),
-          query: uri.query,
-          scheme: uri.scheme,
-        });
+
+        let importURI: vscode.Uri | undefined = undefined;
+        let rawPath = statement.path.value;
+        if (!rawPath.endsWith('.yal')) {
+          rawPath = rawPath + '.yal';
+        }
+        if (rawPath.startsWith('/')) {
+          // absolute path. Not yet supported
+          continue;
+        }
+        if (rawPath.startsWith('./')) {
+          // relative path
+          importURI = vscode.Uri.from({
+            authority: uri.authority,
+            fragment: uri.fragment,
+            path: getParentPath(uri.path) + rawPath.substring(1),
+            query: uri.query,
+            scheme: uri.scheme,
+          });
+        } else {
+          // library path
+          for (const libraryURI of LIBRARY_URIS) {
+            importURI = vscode.Uri.from({
+              authority: libraryURI.authority,
+              fragment: libraryURI.fragment,
+              path: libraryURI.path + '/' + rawPath,
+              query: libraryURI.query,
+              scheme: libraryURI.scheme,
+            });
+            // try {
+            //   await vscode.workspace.fs.stat(importURI); // check if URI exists
+            //   break;
+            // } catch (e) { }
+          }
+          if (importURI === undefined) {
+            continue;
+          }
+        }
         const importKey = importURI.toString();
         if (seen.has(importKey)) continue;
         seen.add(importKey);
@@ -345,13 +376,43 @@ export class JSCodegen implements ast.NodeVisitor<void> {
   visitInterfaceDefinition(n: ast.InterfaceDefinition): void { }
   visitImport(n: ast.Import): void {
     const uri = n.location.uri;
-    const importURI = vscode.Uri.from({
-      authority: uri.authority,
-      fragment: uri.fragment,
-      path: getParentPath(uri.path) + n.path.value.substring(1),
-      query: uri.query,
-      scheme: uri.scheme,
-    });
+    let importURI: vscode.Uri | undefined = undefined;
+    let rawPath = n.path.value;
+    if (!rawPath.endsWith('.yal')) {
+      rawPath = rawPath + '.yal';
+    }
+    if (rawPath.startsWith('/')) {
+      // absolute path. Not yet supported
+      return;
+    }
+    if (rawPath.startsWith('./')) {
+      // relative path
+      importURI = vscode.Uri.from({
+        authority: uri.authority,
+        fragment: uri.fragment,
+        path: getParentPath(uri.path) + rawPath.substring(1),
+        query: uri.query,
+        scheme: uri.scheme,
+      });
+    } else {
+      // library path
+      for (const libraryURI of LIBRARY_URIS) {
+        importURI = vscode.Uri.from({
+          authority: libraryURI.authority,
+          fragment: libraryURI.fragment,
+          path: libraryURI.path + '/' + rawPath,
+          query: libraryURI.query,
+          scheme: libraryURI.scheme,
+        });
+        // try {
+        //   await vscode.workspace.fs.stat(importURI); // check if URI exists
+        //   break;
+        // } catch (e) { }
+      }
+      if (importURI === undefined) {
+        return;
+      }
+    }
     const key = JSON.stringify(importURI.toString());
     this.out += `const YAL${n.identifier.name}=getModule(${key});`;
   }

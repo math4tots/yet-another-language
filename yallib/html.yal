@@ -1,0 +1,56 @@
+
+
+class Element {
+  function get_innerHTML(): String {
+    return native "new YALString(this.value.innerHTML)" as String
+  }
+  function set_innerHTML(s: String): Nil {
+    native "this.value.innerHTML = YALs.value"
+  }
+  function get_id(): String {
+    return native "new YALString(this.value.id)" as String
+  }
+  function set_id(s: String): Nil {
+    native "this.value.id = YALs.value"
+  }
+  function get_tagName(): String {
+    return native "new YALString(this.value.tagName)" as String
+  }
+  function append(element: Element) {
+    native "this.value.append(element.value)"
+  }
+  function get_textContent(): String {
+    return native "new YALString(this.value.textContent)" as String
+  }
+  function set_textContent(s: String): Nil {
+    native "this.value.textContent = YALs.value"
+  }
+}
+
+const _createElementCore = native(tagName: String): Any {
+  js "createElement(tagName)"
+}
+
+function createElement(tagName: String): Element {
+  return _newElement(_createElementCore(tagName))
+}
+
+function _newElement(jsv: Any): Element {
+  const element = new Element()
+  native "YALelement.value = YALjsv"
+  return element
+}
+
+class Document {
+  function get_body(): Element {
+    return _newElement(native "document.body")
+  }
+
+  function getElementById(id: String): Element {
+    const element = new Element()
+    native "YALelement.value = document.getElementById(YALid.value)"
+    return element
+  }
+}
+
+const document = new Document()

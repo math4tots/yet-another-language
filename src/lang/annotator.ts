@@ -225,6 +225,7 @@ export class Annotator implements
 
   private async openDocument(uri: vscode.Uri): Promise<vscode.TextDocument | null> {
     try {
+      const stat = await vscode.workspace.fs.stat(uri); // check if document exists
       return await vscode.workspace.openTextDocument(uri);
     } catch (e) {
       return null;
@@ -243,6 +244,10 @@ export class Annotator implements
         uri,
         range: { start: { index: 0, line: 0, column: 0 }, end: { index: 0, line: 0, column: 0 } }
       };
+      this.errors.push({
+        location: importLocation,
+        message: `Resource ${uri.toString()} not found`,
+      });
       annotator.errors.push({
         location,
         message: `Resource ${uri.toString()} not found`,
@@ -312,7 +317,8 @@ export class Annotator implements
         return Continues;
       }
     }
-    const moduleVariable = await this.getImportVariable(importURI, n.location);
+    const moduleVariable = await this.getImportVariable(
+      importURI, n.path.location);
 
     // Add a reference for the path to the file
     this.references.push({
@@ -385,6 +391,7 @@ export class Annotator implements
     return type;
   }
   private _solveType(e: ast.TypeExpression): Type {
+    const scope = this.scope;
     if (e.args.length > 0) {
       if (!e.qualifier) {
         if (e.identifier.name === 'List') {
@@ -459,8 +466,8 @@ export class Annotator implements
       range: e.identifier.location.range,
       getCompletions: () => {
         const completions: Completion[] = [];
-        for (const key in this.scope) {
-          const variable = this.scope[key];
+        for (const key in scope) {
+          const variable = scope[key];
           if (variable.value instanceof Type || variable.value instanceof ModuleInstance) {
             completions.push({ name: key });
           }
@@ -550,6 +557,11 @@ export class Annotator implements
         completions.push({ name: 'nil' });
         completions.push({ name: 'true' });
         completions.push({ name: 'false' });
+        completions.push({ name: 'function' });
+        completions.push({ name: 'var' });
+        completions.push({ name: 'const' });
+        completions.push({ name: 'native' });
+        completions.push({ name: 'return' });
         return completions;
       },
     });
@@ -930,18 +942,20 @@ export class Annotator implements
   }
   private declareClasses(statements: ast.Statement[]) {
     for (const statement of statements) {
-      if (statement instanceof ast.ClassDefinition) {
+      if (statement instanceof ast.ClassDefinition ||
+        statement instanceof ast.InterfaceDefinition) {
         this.forwardDeclareClass(statement);
       }
     }
     for (const statement of statements) {
-      if (statement instanceof ast.ClassDefinition) {
+      if (statement instanceof ast.ClassDefinition ||
+        statement instanceof ast.InterfaceDefinition) {
         this.declareClass(statement);
       }
     }
   }
-  private forwardDeclareClass(n: ast.ClassDefinition) {
-    const cls = new ClassType(n.identifier);
+  private forwardDeclareInterface(n: ast.InterfaceDefinition) {
+    const cls = new InterfaceType(n.identifier);
     const comment = (n.statements.length > 0 &&
       n.statements[0] instanceof ast.ExpressionStatement &&
       n.statements[0].expression instanceof ast.StringLiteral) ?
@@ -953,10 +967,24 @@ export class Annotator implements
       comment,
     };
   }
-  private declareClass(n: ast.ClassDefinition) {
+  private forwardDeclareClass(n: ast.ClassDefinition | ast.InterfaceDefinition) {
+    const cls = n instanceof ast.ClassDefinition ?
+      new ClassType(n.identifier) : new InterfaceType(n.identifier);
+    const comment = (n.statements.length > 0 &&
+      n.statements[0] instanceof ast.ExpressionStatement &&
+      n.statements[0].expression instanceof ast.StringLiteral) ?
+      n.statements[0].expression : undefined;
+    this.scope[cls.identifier.name] = {
+      identifier: n.identifier,
+      type: AnyType,
+      value: cls,
+      comment,
+    };
+  }
+  private declareClass(n: ast.ClassDefinition | ast.InterfaceDefinition) {
     const variable = this.scope[n.identifier.name];
     const cls = variable.value;
-    if (!variable || !(cls instanceof ClassType)) {
+    if (!variable || !(cls instanceof ClassType || cls instanceof InterfaceType)) {
       // this should never happen
       this.errors.push({
         location: n.location,
@@ -988,7 +1016,9 @@ export class Annotator implements
             identifier: statement.identifier,
             type: fieldType,
           };
-          cls.addField(field);
+          if (cls instanceof ClassType) {
+            cls.addField(field);
+          }
           this.variables.push(field);
           this.references.push({ identifier: statement.identifier, variable: field });
 
@@ -1033,6 +1063,18 @@ export class Annotator implements
         if (statement instanceof ast.ExpressionStatement) {
           if (statement.expression instanceof ast.StringLiteral) {
             continue; // comments
+          } else if (statement.expression instanceof ast.IdentifierNode) {
+            // programmer is in the middle of typing something
+            this.completionPoints.push({
+              range: statement.location.range,
+              getCompletions() {
+                const completions: Completion[] = [];
+                completions.push({ name: 'function' });
+                completions.push({ name: 'var' });
+                completions.push({ name: 'const' });
+                return completions;
+              },
+            });
           }
         } else if (statement instanceof ast.Declaration) {
           if (statement.value instanceof ast.FunctionDisplay) {
@@ -1054,73 +1096,6 @@ export class Annotator implements
     return Continues;
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): RunStatus {
-    const iface = new InterfaceType(n.identifier);
-    const comment = (n.statements.length > 0 &&
-      n.statements[0] instanceof ast.ExpressionStatement &&
-      n.statements[0].expression instanceof ast.StringLiteral) ?
-      n.statements[0].expression : undefined;
-    const variable = this.scope[iface.identifier.name] = {
-      identifier: n.identifier,
-      type: AnyType,
-      value: iface,
-      comment,
-    };
-    this.variables.push(variable);
-    this.references.push({ identifier: n.identifier, variable });
-    this.interfaceScoped(() => {
-      for (const statement of n.statements) {
-        if (statement instanceof ast.ExpressionStatement) {
-          if (statement.expression instanceof ast.StringLiteral) {
-            continue; // comments
-          }
-        } else if (statement instanceof ast.Declaration) {
-          if (statement.value instanceof ast.FunctionDisplay) {
-            // interface method
-            if (statement.value.body.statements.some(s =>
-              !(s instanceof ast.ExpressionStatement &&
-                s.expression instanceof ast.StringLiteral))) {
-              this.errors.push({
-                location: statement.value.body.location,
-                message: `Interface methods cannot have bodies`,
-              });
-            }
-            const { type: funcType } = this.solve(statement.value);
-            if (!(funcType instanceof FunctionType)) {
-              continue;
-            }
-            const method = new Method(statement.identifier, funcType, null,
-              getCommentFromFunctionDisplay(statement.value));
-            iface.addMethod(method);
-            this.variables.push(method);
-            this.references.push({ identifier: statement.identifier, variable: method });
-            continue;
-          } else if (statement.value === null) {
-            // field
-            const ident = statement.identifier;
-            const type = statement.type ? this.solveType(statement.type) : AnyType;
-            const getIdent = new ast.IdentifierNode(ident.location, `get_${ident.name}`);
-            const getType = FunctionType.of([], type);
-            const getMethod = new Method(getIdent, getType, null);
-            iface.addMethod(getMethod);
-            this.variables.push(getMethod);
-            this.references.push({ identifier: ident, variable: getMethod });
-            if (statement.isMutable) {
-              const setIdent = new ast.IdentifierNode(ident.location, `set_${ident.name}`);
-              const setType = FunctionType.of([type], NilType);
-              const setMethod = new Method(setIdent, setType, null);
-              iface.addMethod(setMethod);
-              this.variables.push(setMethod);
-              this.references.push({ identifier: ident, variable: setMethod });
-            }
-            continue;
-          }
-        }
-        this.errors.push({
-          location: statement.location,
-          message: `Unsupported statement in interface body`,
-        });
-      }
-    });
     return Continues;
   }
   visitImport(n: ast.Import): RunStatus {
