@@ -535,7 +535,9 @@ export class Annotator implements
 
     const elementType =
       elements.length === 0 ?
-        AnyType :
+        (this.hint instanceof ListType) ?
+          this.hint.itemType :
+          AnyType :
         elements.map(e => e.type).reduce((lhs, rhs) => lhs.getCommonType(rhs));
     const listType = ListType.of(elementType);
 
