@@ -1,6 +1,6 @@
 import { Uri } from 'vscode';
 import * as ast from './ast';
-import { lex, Range, Token, TokenType } from './lexer';
+import { lex, Position, Range, Token, TokenType } from './lexer';
 
 const PrecList: TokenType[][] = [
   [],
@@ -273,8 +273,16 @@ export function parse(uri: Uri, source: string): ast.File {
     if (consume('new')) {
       const start = peek.range.start;
       const type = parseTypeExpression();
-      const args = parseArgs();
-      const end = tokens[i - 1].range.end;
+      // emit error if args is missing, but don't fail the parse.
+      // This allows autocomplete to happen for new expressions
+      if (!at('(')) {
+        errors.push({
+          location: { uri, range: tokens[i].range },
+          message: "Expected new expression arguments",
+        });
+      }
+      const [_, args, end] = at('(') ?
+        parseArgsWithParens() : [start, [], type.location.range.end];
       return new ast.New({ uri, range: { start, end } }, type, args);
     }
     if (consume('if')) {
@@ -349,6 +357,19 @@ export function parse(uri: Uri, source: string): ast.File {
     }
     expect(')');
     return args;
+  }
+
+  function parseArgsWithParens(): [Position, ast.Expression[], Position] {
+    const args: ast.Expression[] = [];
+    const start = expect('(').range.start;
+    while (!atEOF() && !at(')')) {
+      args.push(parseExpression());
+      if (!consume(',')) {
+        break;
+      }
+    }
+    const end = expect(')').range.end;
+    return [start, args, end];
   }
 
   function parseInfix(lhs: ast.Expression, startRange: Range): ast.Expression {

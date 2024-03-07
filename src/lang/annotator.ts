@@ -767,6 +767,8 @@ export class Annotator implements
       });
       return { type: AnyType };
     }
+    const method = type.getConstructorMethod();
+    this.addCallInstance(n.location, n.args, method.type, method);
     const fields = type.getFields();
     const fieldTypes = fields.map(field => field.type);
     const args = this.checkArgs(n.location, fieldTypes, n.args);
@@ -836,7 +838,9 @@ export class Annotator implements
     const value = new Method(
       new ast.IdentifierNode(n.location, '(native)'),
       type,
-      func ? (recv, args) => func.apply(null, args) : null);
+      func ? (recv, args) => func.apply(null, args) : null,
+      null,
+      parameterNames);
     return { type, value };
   }
 
@@ -954,19 +958,6 @@ export class Annotator implements
       }
     }
   }
-  private forwardDeclareInterface(n: ast.InterfaceDefinition) {
-    const cls = new InterfaceType(n.identifier);
-    const comment = (n.statements.length > 0 &&
-      n.statements[0] instanceof ast.ExpressionStatement &&
-      n.statements[0].expression instanceof ast.StringLiteral) ?
-      n.statements[0].expression : undefined;
-    this.scope[cls.identifier.name] = {
-      identifier: n.identifier,
-      type: AnyType,
-      value: cls,
-      comment,
-    };
-  }
   private forwardDeclareClass(n: ast.ClassDefinition | ast.InterfaceDefinition) {
     const cls = n instanceof ast.ClassDefinition ?
       new ClassType(n.identifier) : new InterfaceType(n.identifier);
@@ -1000,7 +991,8 @@ export class Annotator implements
           const functionDisplay = statement.value;
           const funcType = this.solveFunctionDisplayType(functionDisplay);
           const method = new Method(statement.identifier, funcType, null,
-            getCommentFromFunctionDisplay(functionDisplay));
+            getCommentFromFunctionDisplay(functionDisplay),
+            functionDisplay.parameters.map(p => p.identifier.name));
           cls.addMethod(method);
           this.variables.push(method);
           this.references.push({ identifier: statement.identifier, variable: method });
@@ -1036,7 +1028,7 @@ export class Annotator implements
           if (statement.isMutable) {
             const setType = FunctionType.of([fieldType], NilType);
             const setIdent = new ast.IdentifierNode(statement.identifier.location, `set_${name}`);
-            const setMethod = new Method(setIdent, setType, null);
+            const setMethod = new Method(setIdent, setType, null, null, ['value']);
             cls.addMethod(setMethod);
             this.variables.push(setMethod);
             this.references.push({ identifier: statement.identifier, variable: setMethod });

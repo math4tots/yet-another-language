@@ -26,7 +26,9 @@ export function newSignatureHelpProvider(registry: Registry): vscode.SignatureHe
 
       const method = ci.value;
       const type = ci.type;
-      const parameterLabels = type.parameterTypes.map((t, i) => `arg${i}: ${t}`);
+      const parameterLabels = type.parameterTypes.map(
+        (t, i) => (method && i < method.parameterNames.length) ?
+          `${method.parameterNames[i]}: ${t}` : `arg${i}: ${t}`);
       const returnType = type.returnType.toString();
 
       const help = new vscode.SignatureHelp();

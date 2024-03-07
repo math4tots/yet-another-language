@@ -118,6 +118,7 @@ export interface Field {
 export class ClassType extends Type {
   private readonly fieldMap = new Map<string, Field>();
   private readonly fields: Field[] = [];
+  private constructorMethod: Method | null = null;
   constructor(identifier: ExplicitIdentifier) {
     super(identifier);
   }
@@ -130,6 +131,16 @@ export class ClassType extends Type {
     return this.fieldMap.get(name) || null;
   }
   repr(): string { return `<class ${this.identifier.name}>`; }
+  getConstructorMethod(): Method {
+    const method = this.constructorMethod;
+    if (method) return method;
+    return this.constructorMethod = new Method(
+      this.identifier,
+      FunctionType.of(this.fields.map(f => f.type), this),
+      null,
+      null,
+      this.fields.map(f => f.identifier.name));
+  }
 }
 
 export class InterfaceType extends Type {
@@ -272,12 +283,16 @@ export class Method {
 
   readonly comment: StringLiteral | null;
 
+  readonly parameterNames: string[];
+
   constructor(identifier: Identifier, type: FunctionType, body: MethodBody | null,
-    comment: StringLiteral | null = null) {
+    comment: StringLiteral | null = null,
+    parameterNames: string[] = []) {
     this.identifier = identifier;
     this.type = type;
     this.body = body;
     this.comment = comment;
+    this.parameterNames = parameterNames;
   }
 
   call(...args: Value[]): (Value | undefined) {
