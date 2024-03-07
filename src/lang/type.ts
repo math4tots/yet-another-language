@@ -116,11 +116,16 @@ export interface Field {
 }
 
 export class ClassType extends Type {
+  readonly superClass: ClassType | null;
   private readonly fieldMap = new Map<string, Field>();
   private readonly fields: Field[] = [];
   private constructorMethod: Method | null = null;
-  constructor(identifier: ExplicitIdentifier) {
+  constructor(identifier: ExplicitIdentifier, superClass: ClassType | null = null) {
     super(identifier);
+    this.superClass = superClass;
+  }
+  getMethod(name: string): Method | null {
+    return super.getMethod(name) || this.superClass?.getMethod(name) || null;
   }
   addField(field: Field): void {
     this.fieldMap.set(field.identifier.name, field);
