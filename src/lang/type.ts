@@ -162,8 +162,37 @@ export class ClassType extends Type {
 
 export class InterfaceType extends Type {
   private readonly cacheMap = new Map<Type, boolean>();
-  constructor(identifier: ExplicitIdentifier) {
+  readonly superTypes: InterfaceType[];
+  constructor(identifier: ExplicitIdentifier, superTypes: InterfaceType[]) {
     super(identifier);
+    this.superTypes = superTypes;
+  }
+  getMethod(name: string): Method | null {
+    const method = super.getMethod(name);
+    if (method) return method;
+    for (const superType of this.superTypes) {
+      const inheritedMethod = superType.getMethod(name);
+      if (inheritedMethod) return inheritedMethod;
+    }
+    return null;
+  }
+  getAllMethods(): Method[] {
+    if (this.superTypes.length === 0) return this.getDeclaredMethods();
+    const seen = new Set<InterfaceType>([this]);
+    const stack: InterfaceType[] = [this];
+    const interfaces: InterfaceType[] = [];
+    let type: InterfaceType | undefined;
+    while (type = stack.pop()) {
+      const superTypes = type.superTypes;
+      for (const superType of superTypes) {
+        if (!seen.has(superType)) {
+          seen.add(superType);
+          stack.push(superType);
+        }
+      }
+      interfaces.push(type);
+    }
+    return interfaces.map(i => i.getDeclaredMethods()).flat();
   }
   repr(): string { return `<interface ${this.identifier.name}>`; }
   isImplementedBy(src: Type): boolean {

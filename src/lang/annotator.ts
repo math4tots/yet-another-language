@@ -551,6 +551,8 @@ export class Annotator implements
         completions.push({ name: 'const' });
         completions.push({ name: 'native' });
         completions.push({ name: 'return' });
+        completions.push({ name: 'interface' });
+        completions.push({ name: 'class' });
         return completions;
       },
     });
@@ -948,31 +950,44 @@ export class Annotator implements
     }
   }
   private forwardDeclareClass(n: ast.ClassDefinition | ast.InterfaceDefinition) {
+    if (n.extendsFragment) {
+      this.errors.push({
+        location: n.extendsFragment.location,
+        message: `Expected 'extends'`,
+      });
+      this.completionPoints.push({
+        range: n.extendsFragment.location.range,
+        getCompletions() {
+          return [{ name: 'extends' }];
+        },
+      });
+    }
     const superClass = (n instanceof ast.ClassDefinition && n.superClass) ?
       this.solveType(n.superClass) : null;
+    const superTypes = (n instanceof ast.InterfaceDefinition) ?
+      n.superTypes.map(t => this.solveType(t)) : [];
     if (n instanceof ast.ClassDefinition) {
-      if (n.extendsFragment) {
-        this.errors.push({
-          location: n.extendsFragment.location,
-          message: `Expected 'extends'`,
-        });
-        this.completionPoints.push({
-          range: n.extendsFragment.location.range,
-          getCompletions() {
-            return [{ name: 'extends' }];
-          },
-        });
-      }
       if (superClass !== null && !(superClass instanceof ClassType)) {
         this.errors.push({
           location: n.superClass!.location,
           message: `Base classes must be class types`
         });
       }
+    } else {
+      for (let i = 0; i < superTypes.length; i++) {
+        if (!(superTypes[i] instanceof InterfaceType)) {
+          this.errors.push({
+            location: n.superTypes[i].location,
+            message: `Base interfaces must be interface types`,
+          });
+        }
+      }
     }
     const cls = n instanceof ast.ClassDefinition ?
       new ClassType(n.identifier, superClass instanceof ClassType ? superClass : null) :
-      new InterfaceType(n.identifier);
+      new InterfaceType(
+        n.identifier,
+        superTypes.filter(t => t instanceof InterfaceType) as InterfaceType[]);
     const comment = (n.statements.length > 0 &&
       n.statements[0] instanceof ast.ExpressionStatement &&
       n.statements[0].expression instanceof ast.StringLiteral) ?

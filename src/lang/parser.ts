@@ -579,10 +579,24 @@ export function parse(uri: Uri, source: string): ast.File {
   function parseInterfaceDefinition(): ast.InterfaceDefinition {
     const startPos = expect('interface').range.start;
     const identifier = parseIdentifier();
-    const body = parseBlock();
+    const extendsFragment = at('IDENTIFIER') ? parseIdentifier() : null;
+    const superTypes: ast.TypeExpression[] = [];
+    if (consume('extends')) {
+      superTypes.push(parseTypeExpression());
+      while (consume(',')) {
+        superTypes.push(parseTypeExpression());
+      }
+    }
+    if (!at('{')) {
+      errors.push({
+        location: identifier.location,
+        message: `Interface body missing`,
+      });
+    }
+    const body = at('{') ? parseBlock() : new ast.Block(identifier.location, []);
     return new ast.InterfaceDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
-      identifier, body.statements);
+      identifier, extendsFragment, superTypes, body.statements);
   }
 
   function parseImport(): ast.Import {

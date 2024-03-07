@@ -426,10 +426,19 @@ export class ClassDefinition implements Statement {
 export class InterfaceDefinition implements Statement {
   readonly location: Location;
   readonly identifier: IdentifierNode;
+  readonly extendsFragment: IdentifierNode | null;
+  readonly superTypes: TypeExpression[];
   readonly statements: Statement[];
-  constructor(location: Location, identifier: IdentifierNode, statements: Statement[]) {
+  constructor(
+    location: Location,
+    identifier: IdentifierNode,
+    extendsFragment: IdentifierNode | null,
+    superTypes: TypeExpression[],
+    statements: Statement[]) {
     this.location = location;
     this.identifier = identifier;
+    this.extendsFragment = extendsFragment;
+    this.superTypes = superTypes;
     this.statements = statements;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitInterfaceDefinition(this); }
