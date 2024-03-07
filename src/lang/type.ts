@@ -47,7 +47,8 @@ export class Type {
   getMethod(name: string): Method | null {
     return this.methodMap.get(name) || null;
   }
-  getMethods(): Method[] { return this.methods; }
+  getDeclaredMethods(): Method[] { return this.methods; }
+  getAllMethods(): Method[] { return this.getDeclaredMethods(); }
   getCommonType(rhs: Type): Type {
     return this.isAssignableTo(rhs) ? rhs :
       rhs.isAssignableTo(this) ? this : AnyType;
@@ -75,6 +76,8 @@ export class Type {
     const target = targetType;
     if (target === AnyType) return true;
     if (this === target) return true;
+    if (this instanceof ClassType && target instanceof ClassType)
+      return this.inheritsFrom(target);
     if (target instanceof InterfaceType) return target.isImplementedBy(this);
     if (this instanceof ListType) {
       // TODO: Reconsider whether I want to allow Lists to be
@@ -124,8 +127,17 @@ export class ClassType extends Type {
     super(identifier);
     this.superClass = superClass;
   }
+  inheritsFrom(baseClass: ClassType): boolean {
+    let cls: ClassType | null = this;
+    while (cls && baseClass !== cls) cls = cls.superClass;
+    return cls === baseClass;
+  }
   getMethod(name: string): Method | null {
     return super.getMethod(name) || this.superClass?.getMethod(name) || null;
+  }
+  getAllMethods(): Method[] {
+    return Array.from(this.getDeclaredMethods()).concat(
+      ...(this.superClass?.getAllMethods() || []));
   }
   addField(field: Field): void {
     this.fieldMap.set(field.identifier.name, field);
@@ -160,7 +172,7 @@ export class InterfaceType extends Type {
     const cachedResult = this.cacheMap.get(type);
     if (cachedResult !== undefined) return cachedResult;
     let result = true;
-    for (const method of this.getMethods()) {
+    for (const method of this.getAllMethods()) {
       if (!type.implementsMethod(method.identifier.name, method.type)) {
         result = false;
         break;

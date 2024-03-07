@@ -122,7 +122,6 @@ export class Annotator implements
   private scope: Scope = Object.create(BASE_SCOPE);
   private hint: Type = AnyType;
   private currentReturnType: Type | null = null;
-  private insideInterface: boolean = false;
   private readonly importCache: Map<string, Annotator>;
   private readonly moduleType: ModuleType;
   private readonly version: number;
@@ -351,16 +350,6 @@ export class Annotator implements
       };
       return f();
     });
-  }
-
-  private interfaceScoped<R>(f: () => R): R {
-    const save = this.insideInterface;
-    this.insideInterface = true;
-    try {
-      return f();
-    } finally {
-      this.insideInterface = save;
-    }
   }
 
   private blockScoped<R>(f: () => R): R {
@@ -637,7 +626,7 @@ export class Annotator implements
         this.scope[identifier.name] = variable;
       }
       const status = n.body.accept(this);
-      if (!this.insideInterface && status !== Jumps && !NilType.isAssignableTo(returnType)) {
+      if (status !== Jumps && !NilType.isAssignableTo(returnType)) {
         this.errors.push({
           location: n.returnType?.location || n.body.location,
           message: `Function with non-nil return type must have explicit return`,
@@ -715,7 +704,7 @@ export class Annotator implements
       range: n.identifier.location.range,
       getCompletions(): Completion[] {
         const completions: Completion[] = [];
-        for (const method of owner.type.getMethods()) {
+        for (const method of owner.type.getAllMethods()) {
           const rawName = method.identifier.name;
           if (rawName.startsWith('set_')) {
             // skip setters
@@ -959,8 +948,31 @@ export class Annotator implements
     }
   }
   private forwardDeclareClass(n: ast.ClassDefinition | ast.InterfaceDefinition) {
+    const superClass = (n instanceof ast.ClassDefinition && n.superClass) ?
+      this.solveType(n.superClass) : null;
+    if (n instanceof ast.ClassDefinition) {
+      if (n.extendsFragment) {
+        this.errors.push({
+          location: n.extendsFragment.location,
+          message: `Expected 'extends'`,
+        });
+        this.completionPoints.push({
+          range: n.extendsFragment.location.range,
+          getCompletions() {
+            return [{ name: 'extends' }];
+          },
+        });
+      }
+      if (superClass !== null && !(superClass instanceof ClassType)) {
+        this.errors.push({
+          location: n.superClass!.location,
+          message: `Base classes must be class types`
+        });
+      }
+    }
     const cls = n instanceof ast.ClassDefinition ?
-      new ClassType(n.identifier) : new InterfaceType(n.identifier);
+      new ClassType(n.identifier, superClass instanceof ClassType ? superClass : null) :
+      new InterfaceType(n.identifier);
     const comment = (n.statements.length > 0 &&
       n.statements[0] instanceof ast.ExpressionStatement &&
       n.statements[0].expression instanceof ast.StringLiteral) ?

@@ -27,6 +27,9 @@ class Element {
   }
 }
 
+class CanvasElement extends Element {
+}
+
 const _createElementCore = native(tagName: String): Any {
   js "createElement(tagName)"
 }

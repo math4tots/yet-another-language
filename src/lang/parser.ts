@@ -562,10 +562,18 @@ export function parse(uri: Uri, source: string): ast.File {
   function parseClassDefinition(): ast.ClassDefinition {
     const startPos = expect('class').range.start;
     const identifier = parseIdentifier();
-    const body = parseBlock();
+    const extendsFragment = at('IDENTIFIER') ? parseIdentifier() : null;
+    const superClass = consume('extends') ? parseTypeExpression() : null;
+    if (!at('{')) {
+      errors.push({
+        location: identifier.location,
+        message: `Class body missing`,
+      });
+    }
+    const body = at('{') ? parseBlock() : new ast.Block(identifier.location, []);
     return new ast.ClassDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
-      identifier, body.statements);
+      identifier, extendsFragment, superClass, body.statements);
   }
 
   function parseInterfaceDefinition(): ast.InterfaceDefinition {

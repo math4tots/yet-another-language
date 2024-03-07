@@ -405,10 +405,19 @@ export class Return implements Statement {
 export class ClassDefinition implements Statement {
   readonly location: Location;
   readonly identifier: IdentifierNode;
+  readonly extendsFragment: IdentifierNode | null;
+  readonly superClass: TypeExpression | null;
   readonly statements: Statement[];
-  constructor(location: Location, identifier: IdentifierNode, statements: Statement[]) {
+  constructor(
+    location: Location,
+    identifier: IdentifierNode,
+    extendsFragment: IdentifierNode | null,
+    superClass: TypeExpression | null,
+    statements: Statement[]) {
     this.location = location;
     this.identifier = identifier;
+    this.extendsFragment = extendsFragment;
+    this.superClass = superClass;
     this.statements = statements;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitClassDefinition(this); }
