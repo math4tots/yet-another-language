@@ -1,4 +1,4 @@
-import { Uri } from 'vscode';
+import * as vscode from 'vscode';
 import * as ast from './ast';
 import { lex, Position, Range, Token, TokenType } from './lexer';
 
@@ -53,7 +53,7 @@ const UnopMethodMap: Map<TokenType, string> = new Map([
   ['+', '__pos__'],
 ]);
 
-export function parse(uri: Uri, source: string): ast.File {
+export function parse(uri: vscode.Uri, source: string): ast.File {
   class Exception { }
 
   const tokens = lex(source);
@@ -627,4 +627,26 @@ export function parse(uri: Uri, source: string): ast.File {
   return new ast.File(
     { uri, range: { start: tokens[0].range.start, end: tokens[tokens.length - 1].range.end } },
     globalStatements, errors);
+}
+
+type AstCacheEntry = {
+  version: number,
+  node: ast.File,
+};
+
+const astCache = new Map<string, AstCacheEntry>();
+
+export async function getAstForURI(uri: vscode.Uri): Promise<ast.File> {
+  return await getAstForDocument(await vscode.workspace.openTextDocument(uri));
+}
+
+export async function getAstForDocument(document: vscode.TextDocument): Promise<ast.File> {
+  const key = document.uri.toString();
+  const version = document.version;
+  const entry = astCache.get(key);
+  if (entry && entry.version === version) return entry.node;
+
+  const node = parse(document.uri, document.getText());
+  astCache.set(key, { version, node });
+  return node;
 }
