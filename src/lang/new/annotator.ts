@@ -166,10 +166,17 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
           continue;
         }
         if (this.stack.has(uri.toString())) {
-          this.error(location, `Recursive import (${uri.toString()})`);
+          this.error(location, `Recursive import`);
           continue;
         }
         const importModuleAnnotation = await getAnnotationForURI(uri, this.stack);
+        if (importModuleAnnotation.errors.length > 0) {
+          if (importModuleAnnotation.errors.some(e => e.message === 'Recursive import')) {
+            this.error(location, `Recursive import`);
+          } else {
+            this.error(location, `Module has errors`);
+          }
+        }
         const importModuleType = newModuleType(importModuleAnnotation);
         const importModuleVariable = getModuleVariableForModuleType(importModuleType);
         const aliasVariable: Variable = { identifier, type: importModuleType };
@@ -422,7 +429,6 @@ type AnnotationEntry = {
   readonly annotation: Annotation,
 };
 
-const annotationCache = new Map<string, AnnotationEntry>();
 const diagnostics = vscode.languages.createDiagnosticCollection('yal');
 
 export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<string>()): Promise<Annotation> {
@@ -443,9 +449,6 @@ export async function getAnnotationForDocument(
 ): Promise<Annotation> {
   const uri = document.uri;
   const key = uri.toString();
-  const version = document.version;
-  const entry = annotationCache.get(key);
-  if (entry && entry.version === version) return entry.annotation;
   const fileNode = await getAstForDocument(document);
   const annotation: Annotation = {
     uri,
@@ -463,7 +466,6 @@ export async function getAnnotationForDocument(
     range: toVSRange(e.location.range),
     severity: vscode.DiagnosticSeverity.Warning,
   })));
-  annotationCache.set(key, { version, annotation });
   return annotation;
 }
 
