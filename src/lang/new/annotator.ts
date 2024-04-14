@@ -60,15 +60,18 @@ export type AnnotationError = ast.ParseError;
 
 export type Annotation = {
   readonly uri: vscode.Uri;
+  readonly documentVersion: number;
   readonly errors: AnnotationError[];
   readonly variables: Variable[];
   readonly references: Reference[];
   readonly moduleVariables: Variable[];
+  readonly importMap: Map<string, Annotation>;
 };
 
 type AnnotatorParameters = {
-  readonly annotation: Annotation,
-  readonly stack: Set<string>, // for detecting recursion
+  readonly annotation: Annotation;
+  readonly stack: Set<string>; // for detecting recursion
+  readonly cached?: Annotation;
 };
 
 class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisitor<RunStatus> {
@@ -78,6 +81,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   private currentReturnType: Type | null = null;
   private hint: Type = AnyType;
   private scope: Scope = Object.create(BASE_SCOPE);
+  private readonly cached?: Annotation;
   private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
   private readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
   private readonly markedImports = new Set<ast.Import>();
@@ -85,6 +89,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   constructor(params: AnnotatorParameters) {
     this.annotation = params.annotation;
     this.stack = params.stack;
+    this.cached = params.cached;
   }
 
   private error(location: ast.Location, message: string) {
@@ -153,23 +158,33 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     this.annotation.references.push({ variable, range });
   }
 
-  async annotate(n: ast.File) {
+  async annotate(n: ast.File): Promise<{ useCached: boolean; }> {
     // resolve imports
     const srcURI = n.location.uri;
+    let canUseCached = n.documentVersion === this.cached?.documentVersion;
     for (const statement of n.statements) {
       if (statement instanceof ast.Import) {
         this.markedImports.add(statement);
         const { location, path, identifier } = statement;
         const { uri, error: errMsg } = await resolveURI(srcURI, path.value);
+        const uriString = uri.toString();
         if (errMsg) {
           this.error(location, errMsg);
           continue;
         }
-        if (this.stack.has(uri.toString())) {
+        if (this.stack.has(uriString)) {
           this.error(location, `Recursive import`);
           continue;
         }
-        const importModuleAnnotation = await getAnnotationForURI(uri, this.stack);
+
+        const cachedImportModuleAnnotation = this.cached?.importMap.get(uriString);
+        const importModuleAnnotation =
+          this.annotation.importMap.get(uriString) ||
+          await getAnnotationForURI(uri, this.stack);
+        this.annotation.importMap.set(uriString, importModuleAnnotation);
+        if (cachedImportModuleAnnotation !== importModuleAnnotation) {
+          canUseCached = false;
+        }
         if (importModuleAnnotation.errors.length > 0) {
           if (importModuleAnnotation.errors.some(e => e.message === 'Recursive import')) {
             this.error(location, `Recursive import`);
@@ -193,6 +208,10 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       }
     }
 
+    if (canUseCached) {
+      return { useCached: true };
+    }
+
     for (const statement of n.statements) {
       this.solveStmt(statement);
     }
@@ -201,6 +220,8 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     for (const key of Object.getOwnPropertyNames(this.scope)) {
       this.annotation.moduleVariables.push(this.scope[key]);
     }
+
+    return { useCached: false };
   }
 
   visitNilLiteral(n: ast.NilLiteral): ValueInfo {
@@ -443,23 +464,28 @@ function toVSRange(range: Range): vscode.Range {
   return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
 }
 
+const annotationCache = new Map<string, Annotation>();
+
 export async function getAnnotationForDocument(
   document: vscode.TextDocument,
   stack = new Set<string>()
 ): Promise<Annotation> {
   const uri = document.uri;
   const key = uri.toString();
+  const cached = annotationCache.get(key);
   const fileNode = await getAstForDocument(document);
   const annotation: Annotation = {
     uri,
+    documentVersion: document.version,
     errors: [...fileNode.errors],
     variables: [],
     references: [],
     moduleVariables: [],
+    importMap: new Map(),
   };
-  const annotator = new Annotator({ annotation, stack });
+  const annotator = new Annotator({ annotation, stack, cached });
   stack.add(key);
-  await annotator.annotate(fileNode);
+  const { useCached } = await annotator.annotate(fileNode);
   stack.delete(key);
   diagnostics.set(uri, annotation.errors.map(e => ({
     message: e.message,

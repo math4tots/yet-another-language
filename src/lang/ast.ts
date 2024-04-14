@@ -458,10 +458,12 @@ export class Import implements Statement {
 
 export class File {
   readonly location: Location;
+  readonly documentVersion: number;
   readonly statements: Statement[];
   readonly errors: ParseError[];
-  constructor(location: Location, statements: Statement[], errors: ParseError[]) {
+  constructor(location: Location, documentVersion: number, statements: Statement[], errors: ParseError[]) {
     this.location = location;
+    this.documentVersion = documentVersion;
     this.statements = statements;
     this.errors = errors;
   }

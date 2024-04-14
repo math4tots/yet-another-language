@@ -53,7 +53,7 @@ const UnopMethodMap: Map<TokenType, string> = new Map([
   ['+', '__pos__'],
 ]);
 
-export function parse(uri: vscode.Uri, source: string): ast.File {
+export function parse(uri: vscode.Uri, source: string, documentVersion: number = -1): ast.File {
   class Exception { }
 
   const tokens = lex(source);
@@ -626,6 +626,7 @@ export function parse(uri: vscode.Uri, source: string): ast.File {
   parseFile();
   return new ast.File(
     { uri, range: { start: tokens[0].range.start, end: tokens[tokens.length - 1].range.end } },
+    documentVersion,
     globalStatements, errors);
 }
 
@@ -646,7 +647,7 @@ export async function getAstForDocument(document: vscode.TextDocument): Promise<
   const entry = astCache.get(key);
   if (entry && entry.version === version) return entry.node;
 
-  const node = parse(document.uri, document.getText());
+  const node = parse(document.uri, document.getText(), document.version);
   astCache.set(key, { version, node });
   return node;
 }
