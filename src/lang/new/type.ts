@@ -14,8 +14,12 @@ type FunctionTypeData = {
 };
 
 type LambdaTypeData = {
-  readonly functionType: Type;
+  readonly parameters: Parameter[];
+  readonly functionType: FunctionType;
 };
+
+export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
+export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData; };
 
 export class Type {
   readonly identifier: Identifier;
@@ -91,6 +95,7 @@ export type Field = {
 };
 
 export type Parameter = {
+  readonly isMutable?: boolean;
   readonly identifier: Identifier;
   readonly type: Type;
 };
@@ -116,13 +121,13 @@ export function newClassType(identifier: Identifier) {
 }
 
 type Cache = {
-  type?: Type,
+  type?: FunctionType,
   map: WeakMap<Type, Cache>,
 };
 
 const cache: Cache = { map: new WeakMap() };
 
-export function newFunctionType(parameterTypes: Type[], returnType: Type): Type {
+export function newFunctionType(parameterTypes: Type[], returnType: Type): FunctionType {
   const types = [...parameterTypes, returnType];
   let c = cache;
   for (const type of types) {
@@ -146,15 +151,15 @@ export function newFunctionType(parameterTypes: Type[], returnType: Type): Type 
     returnType,
     asFunctionType: functionType,
   });
-  c.type = functionType;
-  return functionType;
+  c.type = functionType as FunctionType;
+  return functionType as FunctionType;
 }
 
-export function newLambdaType(parameters: Parameter[], returnType: Type): Type {
+export function newLambdaType(parameters: Parameter[], returnType: Type): LambdaType {
   const functionType = newFunctionType(parameters.map(p => p.type), returnType);
   const lambdaType = new Type({
     identifier: functionType.identifier,
-    lambdaTypeData: { functionType },
+    lambdaTypeData: { functionType, parameters: [...parameters] },
   });
   lambdaType.addMethod({
     identifier: { name: '__call__' },
@@ -162,5 +167,5 @@ export function newLambdaType(parameters: Parameter[], returnType: Type): Type {
     returnType: returnType,
     asFunctionType: functionType,
   });
-  return lambdaType;
+  return lambdaType as LambdaType;
 }

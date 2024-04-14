@@ -1,5 +1,19 @@
+import * as vscode from 'vscode';
 import * as ast from '../ast';
-import { AnyType, BoolType, NeverType, NilType, NumberType, Parameter, StringType, Type, newFunctionType, newLambdaType } from './type';
+import { Range } from '../lexer';
+import {
+  AnyType,
+  BoolType,
+  LambdaType,
+  NeverType,
+  NilType,
+  NumberType,
+  Parameter,
+  StringType,
+  Type,
+  newLambdaType,
+} from './type';
+import { getAstForDocument } from '../parser';
 
 
 export type ValueInfo = { type: Type; };
@@ -14,6 +28,11 @@ export type Variable = {
   readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly comment?: ast.StringLiteral;
+};
+
+export type Reference = {
+  readonly range: Range;
+  readonly variable: Variable;
 };
 
 export type Scope = { [key: string]: Variable; };
@@ -35,6 +54,7 @@ export type AnnotationError = ast.ParseError;
 export type Annotation = {
   readonly errors: AnnotationError[];
   readonly variables: Variable[];
+  readonly references: Reference[];
 };
 
 type AnnotatorParameters = {
@@ -44,9 +64,11 @@ type AnnotatorParameters = {
 class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisitor<RunStatus> {
   readonly annotation: Annotation;
 
+  private currentReturnType: Type | null = null;
   private hint: Type = AnyType;
   private scope: Scope = Object.create(BASE_SCOPE);
   private typeSolverCache = new Map<ast.TypeExpression, Type>();
+  private lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
 
   constructor(params: AnnotatorParameters) {
     this.annotation = params.annotation;
@@ -109,6 +131,17 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return s.accept(this);
   }
 
+  private declareVariable(variable: Variable) {
+    this.annotation.variables.push(variable);
+    this.scope[variable.identifier.name] = variable;
+  }
+
+  async annotate(n: ast.File) {
+    for (const statement of n.statements) {
+      this.solveStmt(statement);
+    }
+  }
+
   visitNilLiteral(n: ast.NilLiteral): ValueInfo {
     return { type: NilType };
   }
@@ -166,13 +199,45 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     }
     return { type: itemType.list() };
   }
-  visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
+  private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
+    const cached = this.lambdaTypeCache.get(n);
+    if (cached) return cached;
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const parameters: Parameter[] = n.parameters.map(p => ({
+      isMutable: p.isMutable,
       identifier: p.identifier,
       type: (p.type ? this.solveType(p.type) : null) || AnyType,
     }));
-    return { type: newLambdaType(parameters, returnType) };
+    const lambdaType = newLambdaType(parameters, returnType);
+    this.lambdaTypeCache.set(n, lambdaType);
+    return lambdaType;
+  }
+  visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
+    const lambdaType = this.solveFunctionDisplayType(n);
+    const parameters = lambdaType.lambdaTypeData.parameters;
+    const returnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
+    const outerReturnType = this.currentReturnType;
+    try {
+      this.currentReturnType = returnType;
+      for (const parameter of parameters) {
+        const variable: Variable = {
+          isMutable: parameter.isMutable,
+          identifier: parameter.identifier,
+          type: parameter.type,
+        };
+        this.declareVariable(variable);
+      }
+      const result = this.solveStmt(n.body);
+      if (result !== Jumps && !NilType.isAssignableTo(returnType)) {
+        this.annotation.errors.push({
+          message: `This function cannot return nil, and this function might not return`,
+          location: n.location,
+        });
+      }
+    } finally {
+      this.currentReturnType = outerReturnType;
+    }
+    return { type: lambdaType };
   }
   visitMethodCall(n: ast.MethodCall): ValueInfo {
     const owner = this.solveExpr(n.owner);
@@ -287,7 +352,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     }
     const type = explicitType || valueInfo?.type || AnyType;
     const variable: Variable = { isMutable: n.isMutable, identifier: n.identifier, type };
-    this.annotation.variables.push(variable);
+    this.declareVariable(variable);
     return Continues;
   }
   visitIf(n: ast.If): RunStatus {
@@ -313,4 +378,20 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   visitImport(n: ast.Import): RunStatus {
     return MaybeJumps;
   }
+}
+
+export async function getAnnotationForURI(uri: vscode.Uri): Promise<Annotation> {
+  return await getAnnotationForDocument(await vscode.workspace.openTextDocument(uri));
+}
+
+export async function getAnnotationForDocument(document: vscode.TextDocument): Promise<Annotation> {
+  const fileNode = await getAstForDocument(document);
+  const annotation: Annotation = {
+    errors: [...fileNode.errors],
+    variables: [],
+    references: [],
+  };
+  const annotator = new Annotator({ annotation });
+  await annotator.annotate(fileNode);
+  return annotation;
 }
