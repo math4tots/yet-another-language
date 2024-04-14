@@ -504,11 +504,6 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
 }
 
-type AnnotationEntry = {
-  readonly version: number,
-  readonly annotation: Annotation,
-};
-
 const diagnostics = vscode.languages.createDiagnosticCollection('yal');
 
 export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<string>()): Promise<Annotation> {
