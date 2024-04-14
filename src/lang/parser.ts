@@ -630,8 +630,8 @@ export function parse(uri: vscode.Uri, source: string): ast.File {
 }
 
 type AstCacheEntry = {
-  version: number,
-  node: ast.File,
+  readonly version: number,
+  readonly node: ast.File,
 };
 
 const astCache = new Map<string, AstCacheEntry>();

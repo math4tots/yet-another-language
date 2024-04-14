@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as ast from '../ast';
-import { Range } from '../lexer';
+import { Position, Range } from '../lexer';
 import {
   AnyType,
   BoolType,
@@ -381,11 +381,31 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
 }
 
+type AnnotationEntry = {
+  readonly version: number,
+  readonly annotation: Annotation,
+};
+
+const annotationCache = new Map<string, AnnotationEntry>();
+const diagnostics = vscode.languages.createDiagnosticCollection('yal');
+
 export async function getAnnotationForURI(uri: vscode.Uri): Promise<Annotation> {
   return await getAnnotationForDocument(await vscode.workspace.openTextDocument(uri));
 }
 
+function toVSPosition(p: Position): vscode.Position {
+  return new vscode.Position(p.line, p.column);
+}
+
+function toVSRange(range: Range): vscode.Range {
+  return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
+}
+
 export async function getAnnotationForDocument(document: vscode.TextDocument): Promise<Annotation> {
+  const key = document.uri.toString();
+  const version = document.version;
+  const entry = annotationCache.get(key);
+  if (entry && entry.version === version) return entry.annotation;
   const fileNode = await getAstForDocument(document);
   const annotation: Annotation = {
     errors: [...fileNode.errors],
@@ -394,5 +414,12 @@ export async function getAnnotationForDocument(document: vscode.TextDocument): P
   };
   const annotator = new Annotator({ annotation });
   await annotator.annotate(fileNode);
+  console.log(`annotation.errors.length = ${annotation.errors.length}`);
+  diagnostics.set(document.uri, annotation.errors.map(e => ({
+    message: e.message,
+    range: toVSRange(e.location.range),
+    severity: vscode.DiagnosticSeverity.Warning,
+  })));
+  annotationCache.set(key, { version, annotation });
   return annotation;
 }

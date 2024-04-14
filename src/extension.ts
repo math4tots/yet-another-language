@@ -12,6 +12,7 @@ import { translateToJSCommand } from './extension/translate-to-js';
 import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { runHTMLCommand } from './extension/runhtml';
 import { newNewDefinitionProvider } from './extension/new/definitionprovider';
+import { getAnnotationForDocument } from './lang/new/annotator';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -25,22 +26,25 @@ export function activate(context: vscode.ExtensionContext) {
   }));
 
   const sub = (item: vscode.Disposable) => context.subscriptions.push(item);
-  const registry = new Registry();
+  // const registry = new Registry();
 
   if (vscode.window.activeTextEditor &&
     vscode.window.activeTextEditor.document.languageId === 'yal') {
-    registry.startUpdate(vscode.window.activeTextEditor.document);
+    // registry.startUpdate(vscode.window.activeTextEditor.document);
+    getAnnotationForDocument(vscode.window.activeTextEditor.document);
   }
 
   sub(vscode.workspace.onDidSaveTextDocument(async document => {
     if (document.languageId === 'yal') {
-      registry.startUpdate(document);
+      // registry.startUpdate(document);
+      getAnnotationForDocument(document);
     }
   }));
 
   sub(vscode.window.onDidChangeActiveTextEditor(async editor => {
     if (editor?.document.languageId === 'yal') {
-      registry.startUpdate(editor.document);
+      // registry.startUpdate(editor.document);
+      getAnnotationForDocument(editor.document);
     }
   }));
 

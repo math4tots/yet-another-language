@@ -19,5 +19,7 @@ const tan = native(x: Number): Number {
 }
 
 const hello = 3
+const foo = "some foo value"
 const world = hello
+const asdf = world
 
