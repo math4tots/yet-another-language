@@ -645,6 +645,7 @@ export async function getAstForDocument(document: vscode.TextDocument): Promise<
   const key = document.uri.toString();
   const version = document.version;
   const entry = astCache.get(key);
+  // console.log(`DEBUG getAstForDocument ${key} ${entry && entry.version === version ? '(cached)' : ''}`);
   if (entry && entry.version === version) return entry.node;
 
   const node = parse(document.uri, document.getText(), document.version);

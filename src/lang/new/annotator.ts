@@ -158,7 +158,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     this.annotation.references.push({ variable, range });
   }
 
-  async annotate(n: ast.File): Promise<{ useCached: boolean; }> {
+  async handle(n: ast.File): Promise<{ useCached: boolean; }> {
     // resolve imports
     const srcURI = n.location.uri;
     let canUseCached = n.documentVersion === this.cached?.documentVersion;
@@ -485,13 +485,18 @@ export async function getAnnotationForDocument(
   };
   const annotator = new Annotator({ annotation, stack, cached });
   stack.add(key);
-  const { useCached } = await annotator.annotate(fileNode);
+  const { useCached } = await annotator.handle(fileNode);
   stack.delete(key);
+  // console.log(`DEBUG getAnnotationForDocument ${key} ${useCached ? '(cached)' : ''}`);
+  if (cached && useCached) {
+    return cached;
+  }
   diagnostics.set(uri, annotation.errors.map(e => ({
     message: e.message,
     range: toVSRange(e.location.range),
     severity: vscode.DiagnosticSeverity.Warning,
   })));
+  annotationCache.set(key, annotation);
   return annotation;
 }
 
