@@ -5,6 +5,7 @@ import {
   AnyType,
   BoolType,
   LambdaType,
+  ModuleType,
   NeverType,
   NilType,
   NumberType,
@@ -12,8 +13,10 @@ import {
   StringType,
   Type,
   newLambdaType,
+  newModuleType,
 } from './type';
 import { getAstForDocument } from '../parser';
+import { resolveURI } from '../paths';
 
 
 export type ValueInfo = { type: Type; };
@@ -28,6 +31,10 @@ export type Variable = {
   readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly comment?: ast.StringLiteral;
+};
+
+export type ModuleVariable = Variable & {
+  readonly type: ModuleType;
 };
 
 export type Reference = {
@@ -52,26 +59,36 @@ BASE_SCOPE['String'] =
 export type AnnotationError = ast.ParseError;
 
 export type Annotation = {
+  readonly uri: vscode.Uri;
   readonly errors: AnnotationError[];
   readonly variables: Variable[];
   readonly references: Reference[];
+  readonly moduleVariables: Variable[];
 };
 
 type AnnotatorParameters = {
   readonly annotation: Annotation,
+  readonly stack: Set<string>, // for detecting recursion
 };
 
 class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisitor<RunStatus> {
   readonly annotation: Annotation;
+  private readonly stack: Set<string>; // for detecting recursion
 
   private currentReturnType: Type | null = null;
   private hint: Type = AnyType;
   private scope: Scope = Object.create(BASE_SCOPE);
-  private typeSolverCache = new Map<ast.TypeExpression, Type>();
-  private lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
+  private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
+  private readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
+  private readonly markedImports = new Set<ast.Import>();
 
   constructor(params: AnnotatorParameters) {
     this.annotation = params.annotation;
+    this.stack = params.stack;
+  }
+
+  private error(location: ast.Location, message: string) {
+    this.annotation.errors.push({ location, message });
   }
 
   private scoped<R>(f: () => R): R {
@@ -98,10 +115,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         return this.solveType(e.args[0]).list();
       }
     }
-    this.annotation.errors.push({
-      message: `Could not resolve type`,
-      location: e.location,
-    });
+    this.error(e.location, `Could not resolve type`);
     return AnyType;
   }
 
@@ -118,10 +132,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     this.hint = hint;
     const info = e.accept(this);
     if (required && !info.type.isAssignableTo(hint)) {
-      this.annotation.errors.push({
-        message: `Expected expression of type ${hint} but got expression of type ${info.type}`,
-        location: e.location,
-      });
+      this.error(e.location, `Expected expression of type ${hint} but got expression of type ${info.type}`);
     }
     this.hint = oldHint;
     return info;
@@ -134,11 +145,54 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   private declareVariable(variable: Variable) {
     this.annotation.variables.push(variable);
     this.scope[variable.identifier.name] = variable;
+    const range = variable.identifier.location?.range;
+    if (range) this.markReference(variable, range);
+  }
+
+  private markReference(variable: Variable, range: Range) {
+    this.annotation.references.push({ variable, range });
   }
 
   async annotate(n: ast.File) {
+    // resolve imports
+    const srcURI = n.location.uri;
+    for (const statement of n.statements) {
+      if (statement instanceof ast.Import) {
+        this.markedImports.add(statement);
+        const { location, path, identifier } = statement;
+        const { uri, error: errMsg } = await resolveURI(srcURI, path.value);
+        if (errMsg) {
+          this.error(location, errMsg);
+          continue;
+        }
+        if (this.stack.has(uri.toString())) {
+          this.error(location, `Recursive import (${uri.toString()})`);
+          continue;
+        }
+        const importModuleAnnotation = await getAnnotationForURI(uri, this.stack);
+        const importModuleType = newModuleType(importModuleAnnotation);
+        const importModuleVariable = getModuleVariableForModuleType(importModuleType);
+        const aliasVariable: Variable = { identifier, type: importModuleType };
+        this.declareVariable(aliasVariable);
+        this.markReference(aliasVariable, identifier.location.range);
+        this.markReference(importModuleVariable, path.location.range);
+      } else if (statement instanceof ast.ExpressionStatement &&
+        statement.expression instanceof ast.StringLiteral) {
+        // String literals at the top may be ignored
+      } else {
+        // However, if we see any other kind of statement, we don't process any
+        // further imports.
+        break;
+      }
+    }
+
     for (const statement of n.statements) {
       this.solveStmt(statement);
+    }
+
+    // We collect module variables to determine which ones should
+    for (const key of Object.getOwnPropertyNames(this.scope)) {
+      this.annotation.moduleVariables.push(this.scope[key]);
     }
   }
 
@@ -157,30 +211,23 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   visitIdentifierNode(n: ast.IdentifierNode): ValueInfo {
     const variable = this.scope[n.name];
     if (!variable) {
-      this.annotation.errors.push({
-        message: `Variable ${JSON.stringify(n.name)} not found`,
-        location: n.location,
-      });
+      this.error(n.location, `Variable ${JSON.stringify(n.name)} not found`);
       return { type: AnyType };
     }
-    this.annotation.references.push({ range: n.location.range, variable });
+    this.markReference(variable, n.location.range);
     return { type: variable.type };
   }
   visitAssignment(n: ast.Assignment): ValueInfo {
     const variable = this.scope[n.identifier.name];
     if (!variable) {
-      this.annotation.errors.push({
-        message: `Variable ${JSON.stringify(n.identifier.name)} not found`,
-        location: n.location,
-      });
+      this.error(n.location, `Variable ${JSON.stringify(n.identifier.name)} not found`);
       return { type: AnyType };
     }
     const rhs = this.solveExpr(n.value);
     if (!rhs.type.isAssignableTo(variable.type)) {
-      this.annotation.errors.push({
-        message: `Value of type ${rhs.type} is not assignable to variable of type ${variable.type}`,
-        location: n.identifier.location,
-      });
+      this.error(
+        n.identifier.location,
+        `Value of type ${rhs.type} is not assignable to variable of type ${variable.type}`);
     }
     return { type: variable.type };
   }
@@ -230,10 +277,8 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       }
       const result = this.solveStmt(n.body);
       if (result !== Jumps && !NilType.isAssignableTo(returnType)) {
-        this.annotation.errors.push({
-          message: `This function cannot return nil, and this function might not return`,
-          location: n.location,
-        });
+        this.error(
+          n.location, `This function cannot return nil, and this function might not return`);
       }
     } finally {
       this.currentReturnType = outerReturnType;
@@ -244,17 +289,14 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     const owner = this.solveExpr(n.owner);
     const method = owner.type.getMethod(n.identifier.name);
     if (!method) {
-      this.annotation.errors.push({
-        message: `Method ${n.identifier.name} not found on type ${owner.type}`,
-        location: n.location,
-      });
+      for (const arg of n.args) this.solveExpr(arg);
+      this.error(n.location, `Method ${n.identifier.name} not found on type ${owner.type}`);
       return { type: AnyType };
     }
+    this.markReference(method.sourceVariable, n.identifier.location.range);
     if (method.parameters.length !== n.args.length) {
-      this.annotation.errors.push({
-        message: `Expected ${method.parameters.length} args but got ${n.args.length}`,
-        location: n.location,
-      });
+      for (const arg of n.args) this.solveExpr(arg);
+      this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
       return { type: method.returnType };
     }
     for (let i = 0; i < method.parameters.length; i++) {
@@ -266,17 +308,13 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     const type = this.solveType(n.type);
     const fields = type.fields;
     if (!fields) {
-      this.annotation.errors.push({
-        message: `${type} is not new-constructible`,
-        location: n.location,
-      });
+      for (const arg of n.args) this.solveExpr(arg);
+      this.error(n.location, `${type} is not new-constructible`);
       return { type: AnyType };
     }
     if (fields.length !== n.args.length) {
-      this.annotation.errors.push({
-        message: `${type} requires ${fields.length} args but got ${n.args.length}`,
-        location: n.location,
-      });
+      for (const arg of n.args) this.solveExpr(arg);
+      this.error(n.location, `${type} requires ${fields.length} args but got ${n.args.length}`);
       return { type };
     }
     for (let i = 0; i < fields.length; i++) {
@@ -310,17 +348,11 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { type };
   }
   visitNativeExpression(n: ast.NativeExpression): ValueInfo {
-    this.annotation.errors.push({
-      message: `TODO: Annotator NativeExpression`,
-      location: n.location,
-    });
+    this.error(n.location, `TODO: Annotator NativeExpression`);
     return { type: AnyType };
   }
   visitNativePureFunction(n: ast.NativePureFunction): ValueInfo {
-    this.annotation.errors.push({
-      message: `TODO: Annotator NativePureFunction`,
-      location: n.location,
-    });
+    this.error(n.location, `TODO: Annotator NativePureFunction`);
     return { type: AnyType };
   }
   visitEmptyStatement(n: ast.EmptyStatement): RunStatus {
@@ -344,11 +376,12 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   visitDeclaration(n: ast.Declaration): RunStatus {
     const explicitType = n.type ? this.solveType(n.type) : null;
     const valueInfo = n.value ? this.solveExpr(n.value, explicitType || AnyType) : null;
+    if (n.isMutable && !explicitType) {
+      this.error(n.location, `Mutable variables must have its type explicitly specified`);
+      return Continues;
+    }
     if (!explicitType && !valueInfo) {
-      this.annotation.errors.push({
-        message: `At least one of value or type of the variable must be specified`,
-        location: n.location,
-      });
+      this.error(n.location, `At least one of value or type of the variable must be specified`);
       return Continues;
     }
     const type = explicitType || valueInfo?.type || AnyType;
@@ -377,6 +410,9 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return Continues;
   }
   visitImport(n: ast.Import): RunStatus {
+    if (!this.markedImports.has(n)) {
+      this.error(n.location, `Import statement is not allowed here`);
+    }
     return MaybeJumps;
   }
 }
@@ -389,8 +425,8 @@ type AnnotationEntry = {
 const annotationCache = new Map<string, AnnotationEntry>();
 const diagnostics = vscode.languages.createDiagnosticCollection('yal');
 
-export async function getAnnotationForURI(uri: vscode.Uri): Promise<Annotation> {
-  return await getAnnotationForDocument(await vscode.workspace.openTextDocument(uri));
+export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<string>()): Promise<Annotation> {
+  return await getAnnotationForDocument(await vscode.workspace.openTextDocument(uri), stack);
 }
 
 function toVSPosition(p: Position): vscode.Position {
@@ -401,25 +437,42 @@ function toVSRange(range: Range): vscode.Range {
   return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
 }
 
-export async function getAnnotationForDocument(document: vscode.TextDocument): Promise<Annotation> {
-  const key = document.uri.toString();
+export async function getAnnotationForDocument(
+  document: vscode.TextDocument,
+  stack = new Set<string>()
+): Promise<Annotation> {
+  const uri = document.uri;
+  const key = uri.toString();
   const version = document.version;
   const entry = annotationCache.get(key);
   if (entry && entry.version === version) return entry.annotation;
   const fileNode = await getAstForDocument(document);
   const annotation: Annotation = {
+    uri,
     errors: [...fileNode.errors],
     variables: [],
     references: [],
+    moduleVariables: [],
   };
-  const annotator = new Annotator({ annotation });
+  const annotator = new Annotator({ annotation, stack });
+  stack.add(key);
   await annotator.annotate(fileNode);
-  console.log(`annotation.errors.length = ${annotation.errors.length}`);
-  diagnostics.set(document.uri, annotation.errors.map(e => ({
+  stack.delete(key);
+  diagnostics.set(uri, annotation.errors.map(e => ({
     message: e.message,
     range: toVSRange(e.location.range),
     severity: vscode.DiagnosticSeverity.Warning,
   })));
   annotationCache.set(key, { version, annotation });
   return annotation;
+}
+
+const moduleVariableMap = new WeakMap<ModuleType, ModuleVariable>();
+
+function getModuleVariableForModuleType(moduleType: ModuleType): ModuleVariable {
+  const cached = moduleVariableMap.get(moduleType);
+  if (cached) return cached;
+  const variable: ModuleVariable = { identifier: moduleType.identifier, type: moduleType };
+  moduleVariableMap.set(moduleType, variable);
+  return variable;
 }

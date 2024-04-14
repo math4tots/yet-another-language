@@ -1,4 +1,5 @@
-import { Identifier } from "../ast";
+import { Identifier, IdentifierNode } from "../ast";
+import type { Annotation, Variable } from "./annotator";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
@@ -6,6 +7,7 @@ type TypeConstructorParameters = {
   readonly hasFields?: boolean;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
+  readonly moduleTypeData?: ModuleTypeData;
 };
 
 type FunctionTypeData = {
@@ -16,10 +18,16 @@ type FunctionTypeData = {
 type LambdaTypeData = {
   readonly parameters: Parameter[];
   readonly functionType: FunctionType;
+  readonly returnType: Type;
+};
+
+type ModuleTypeData = {
+  readonly annotation: Annotation;
 };
 
 export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
 export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData; };
+export type ModuleType = Type & { readonly moduleTypeData: ModuleTypeData; };
 
 export class Type {
   readonly identifier: Identifier;
@@ -28,6 +36,7 @@ export class Type {
   readonly fields?: Field[];
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
+  readonly moduleTypeData?: ModuleTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method>();
 
@@ -46,11 +55,16 @@ export class Type {
     if (params.lambdaTypeData) {
       this.lambdaTypeData = params.lambdaTypeData;
     }
+    if (params.moduleTypeData) {
+      this.moduleTypeData = params.moduleTypeData;
+    }
   }
 
   private getProxyType(): Type {
     return this.lambdaTypeData?.functionType || this;
   }
+
+  isFunctionType(): boolean { return !!this.getProxyType().functionTypeData; }
 
   isAssignableTo(givenTarget: Type): boolean {
     const source = this.getProxyType();
@@ -82,7 +96,8 @@ export class Type {
   get methods(): Method[] { return [...this._methods]; }
   getMethod(key: string): Method | null { return this._methodMap.get(key) || null; }
 
-  addMethod(method: Method) {
+  addMethod(params: NewMethodParameters) {
+    const method = newMethod(params);
     this._methods.push(method);
     this._methodMap.set(method.identifier.name, method);
   }
@@ -104,7 +119,23 @@ export type Method = {
   readonly identifier: Identifier;
   readonly parameters: Parameter[];
   readonly returnType: Type;
-  readonly asFunctionType: Type;
+
+  /**
+   * Type of this method, if this method were a function.
+   * This can be reconstructed from `parameters` and `returnType`,
+   * but is provided here so that it doesn't always have to be reconstructed
+   */
+  readonly functionType: FunctionType;
+
+  /**
+   * The "source" variable associated with this method.
+   * 
+   * This is the Variable that this method "comes from".
+   * 
+   * In some cases, a single "Variable" can be associated with multiple
+   * methods (e.g. with set_* and get_* style Methods).
+   */
+  readonly sourceVariable: Variable;
 };
 
 export const AnyType = new Type({ identifier: { name: 'Any' } });
@@ -144,28 +175,113 @@ export function newFunctionType(parameterTypes: Type[], returnType: Type): Funct
   if (cached) return cached;
   const name = `Function[${types.map(t => t.toString()).join(',')}]`;
   const functionTypeData: FunctionTypeData = { parameterTypes: [...parameterTypes], returnType };
-  const functionType = new Type({ identifier: { name }, functionTypeData });
+  const functionType = new Type({ identifier: { name }, functionTypeData }) as FunctionType;
   functionType.addMethod({
     identifier: { name: '__call__' },
     parameters: parameterTypes.map((ptype, i) => ({ identifier: { name: `arg${i}` }, type: ptype })),
     returnType,
-    asFunctionType: functionType,
+    functionType,
   });
-  c.type = functionType as FunctionType;
-  return functionType as FunctionType;
+  c.type = functionType;
+  return functionType;
 }
 
 export function newLambdaType(parameters: Parameter[], returnType: Type): LambdaType {
   const functionType = newFunctionType(parameters.map(p => p.type), returnType);
   const lambdaType = new Type({
     identifier: functionType.identifier,
-    lambdaTypeData: { functionType, parameters: [...parameters] },
+    lambdaTypeData: { functionType, parameters: [...parameters], returnType },
   });
   lambdaType.addMethod({
     identifier: { name: '__call__' },
     parameters: [...parameters],
     returnType: returnType,
-    asFunctionType: functionType,
+    functionType,
   });
   return lambdaType as LambdaType;
+}
+
+const moduleTypeCache = new WeakMap<Annotation, ModuleType>();
+
+export function newModuleType(annotation: Annotation): ModuleType {
+  const cached = moduleTypeCache.get(annotation);
+  if (cached) return cached;
+  const identifier: Identifier = {
+    name: '(module)',
+    location: {
+      uri: annotation.uri, range: {
+        start: { line: 0, column: 0, index: 0 },
+        end: { line: 0, column: 0, index: 0 }
+      },
+    },
+  };
+  const moduleType = new Type({ identifier, moduleTypeData: { annotation } }) as ModuleType;
+  for (const variable of annotation.moduleVariables) {
+    moduleType.addMethod({
+      identifier: { name: `get_${variable.identifier.name}` },
+      parameters: [],
+      returnType: variable.type,
+      sourceVariable: variable,
+    });
+    if (variable.isMutable) {
+      moduleType.addMethod({
+        identifier: { name: `set_${variable.identifier.name}` },
+        parameters: [{ identifier: variable.identifier, type: variable.type }],
+        returnType: NilType,
+        sourceVariable: variable,
+      });
+    } else {
+      const lambdaTypeData = variable.type.lambdaTypeData;
+      if (lambdaTypeData) {
+        const { parameters, returnType } = lambdaTypeData;
+        moduleType.addMethod({
+          identifier: variable.identifier,
+          parameters: [...parameters],
+          returnType,
+          functionType: lambdaTypeData.functionType,
+          sourceVariable: variable,
+        });
+      }
+    }
+  }
+  return moduleType;
+}
+
+interface NewMethodParameters {
+  readonly identifier: Identifier;
+  readonly parameters: Parameter[];
+  readonly returnType: Type;
+
+  /**
+   * Type of this method, if this method were a function.
+   * This can be reconstructed from `parameters` and `returnType`,
+   * but is provided here so that it doesn't always have to be reconstructed
+   */
+  readonly functionType?: FunctionType;
+
+  /**
+   * The "source" variable associated with this method.
+   * 
+   * This is the Variable that this method "comes from".
+   * 
+   * In some cases, a single "Variable" can be associated with multiple
+   * methods (e.g. with set_* and get_* style Methods).
+   */
+  readonly sourceVariable?: Variable;
+};
+
+function newMethod(params: NewMethodParameters): Method {
+  const functionType: FunctionType =
+    params.functionType || newFunctionType(params.parameters.map(p => p.type), params.returnType);
+  const sourceVariable: Variable = params.sourceVariable || {
+    identifier: params.identifier,
+    type: functionType,
+  };
+  return {
+    identifier: params.identifier,
+    parameters: params.parameters,
+    returnType: params.returnType,
+    functionType,
+    sourceVariable,
+  };
 }
