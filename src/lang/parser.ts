@@ -555,7 +555,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       { uri, range: { start: startPos, end: body.location.range.end } };
     return new ast.Declaration(
       location,
-      true, identifier, null, null,
+      false, identifier, null, null,
       new ast.FunctionDisplay(location, parameters, returnType, body));
   }
 

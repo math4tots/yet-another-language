@@ -13,6 +13,8 @@ import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { runHTMLCommand } from './extension/runhtml';
 import { newNewDefinitionProvider } from './extension/new/definitionprovider';
 import { getAnnotationForDocument } from './lang/new/annotator';
+import { newNewHoverProvider } from './extension/new/hoverprovider';
+import { newNewCompletionProvider } from './extension/new/completionprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -67,6 +69,12 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerDefinitionProvider(
     { language: 'yal' },
     newNewDefinitionProvider()));
+  sub(vscode.languages.registerHoverProvider(
+    { language: 'yal' },
+    newNewHoverProvider()));
+  sub(vscode.languages.registerCompletionItemProvider(
+    { language: 'yal' },
+    newNewCompletionProvider(), '.'));
 
   // sub(vscode.languages.registerDefinitionProvider(
   //   { language: 'yal' },

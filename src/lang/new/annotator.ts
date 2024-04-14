@@ -58,12 +58,23 @@ BASE_SCOPE['String'] =
 
 export type AnnotationError = ast.ParseError;
 
+export interface Completion {
+  readonly name: string;
+  readonly detail?: string;
+}
+
+export interface CompletionPoint {
+  readonly range: Range;
+  getCompletions(): Completion[];
+}
+
 export type Annotation = {
   readonly uri: vscode.Uri;
   readonly documentVersion: number;
   readonly errors: AnnotationError[];
   readonly variables: Variable[];
   readonly references: Reference[];
+  readonly completionPoints: CompletionPoint[];
   readonly moduleVariables: Variable[];
   readonly importMap: Map<string, Annotation>;
 };
@@ -196,7 +207,6 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         const importModuleVariable = getModuleVariableForModuleType(importModuleType);
         const aliasVariable: Variable = { identifier, type: importModuleType };
         this.declareVariable(aliasVariable);
-        this.markReference(aliasVariable, identifier.location.range);
         this.markReference(importModuleVariable, path.location.range);
       } else if (statement instanceof ast.ExpressionStatement &&
         statement.expression instanceof ast.StringLiteral) {
@@ -237,6 +247,28 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { type: StringType };
   }
   visitIdentifierNode(n: ast.IdentifierNode): ValueInfo {
+    const scope = this.scope;
+    this.annotation.completionPoints.push({
+      range: n.location.range,
+      getCompletions: () => {
+        const completions: Completion[] = [];
+        for (const key in scope) {
+          completions.push({ name: key });
+        }
+        // additionally, provide provide completions for constants and keywords
+        completions.push({ name: 'nil' });
+        completions.push({ name: 'true' });
+        completions.push({ name: 'false' });
+        completions.push({ name: 'function' });
+        completions.push({ name: 'var' });
+        completions.push({ name: 'const' });
+        completions.push({ name: 'native' });
+        completions.push({ name: 'return' });
+        completions.push({ name: 'interface' });
+        completions.push({ name: 'class' });
+        return completions;
+      },
+    });
     const variable = this.scope[n.name];
     if (!variable) {
       this.error(n.location, `Variable ${JSON.stringify(n.name)} not found`);
@@ -315,6 +347,33 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
   visitMethodCall(n: ast.MethodCall): ValueInfo {
     const owner = this.solveExpr(n.owner);
+    this.annotation.completionPoints.push({
+      range: n.identifier.location.range,
+      getCompletions(): Completion[] {
+        const completions: Completion[] = [];
+        for (const method of owner.type.methods) {
+          const rawName = method.identifier.name;
+          if (rawName.startsWith('set_')) {
+            // skip setters
+          } else if (rawName.startsWith('get_')) {
+            // field or property
+            const name = rawName.substring('get_'.length);
+            completions.push({
+              name,
+              detail: '(property)',
+            });
+          } else {
+            // normal methods
+            const name = rawName;
+            completions.push({
+              name,
+              detail: '(method)',
+            });
+          }
+        }
+        return completions;
+      },
+    });
     const method = owner.type.getMethod(n.identifier.name);
     if (!method) {
       for (const arg of n.args) this.solveExpr(arg);
@@ -480,6 +539,7 @@ export async function getAnnotationForDocument(
     errors: [...fileNode.errors],
     variables: [],
     references: [],
+    completionPoints: [],
     moduleVariables: [],
     importMap: new Map(),
   };
