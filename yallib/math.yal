@@ -17,3 +17,7 @@ const tan = native(x: Number): Number {
   js "new YALNumber(Math.tan(x))"
   vscode "Math.tan(x)"
 }
+
+const hello = 3
+const world = hello
+

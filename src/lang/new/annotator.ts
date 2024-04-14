@@ -163,6 +163,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       });
       return { type: AnyType };
     }
+    this.annotation.references.push({ range: n.location.range, variable });
     return { type: variable.type };
   }
   visitAssignment(n: ast.Assignment): ValueInfo {

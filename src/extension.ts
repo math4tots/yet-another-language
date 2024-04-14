@@ -11,6 +11,7 @@ import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 import { translateToJSCommand } from './extension/translate-to-js';
 import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { runHTMLCommand } from './extension/runhtml';
+import { newNewDefinitionProvider } from './extension/new/definitionprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -61,17 +62,21 @@ export function activate(context: vscode.ExtensionContext) {
 
   sub(vscode.languages.registerDefinitionProvider(
     { language: 'yal' },
-    newDefinitionProvider(registry)));
-  sub(vscode.languages.registerHoverProvider(
-    { language: 'yal' },
-    newHoverProvider(registry)));
-  sub(vscode.languages.registerCompletionItemProvider(
-    { language: 'yal' },
-    newCompletionProvider(registry), '.'));
-  sub(vscode.languages.registerSignatureHelpProvider(
-    { language: 'yal' },
-    newSignatureHelpProvider(registry), '('));
-  sub(vscode.languages.registerInlayHintsProvider(
-    { language: 'yal' },
-    newInlayHintsProvider(registry)));
+    newNewDefinitionProvider()));
+
+  // sub(vscode.languages.registerDefinitionProvider(
+  //   { language: 'yal' },
+  //   newDefinitionProvider(registry)));
+  // sub(vscode.languages.registerHoverProvider(
+  //   { language: 'yal' },
+  //   newHoverProvider(registry)));
+  // sub(vscode.languages.registerCompletionItemProvider(
+  //   { language: 'yal' },
+  //   newCompletionProvider(registry), '.'));
+  // sub(vscode.languages.registerSignatureHelpProvider(
+  //   { language: 'yal' },
+  //   newSignatureHelpProvider(registry), '('));
+  // sub(vscode.languages.registerInlayHintsProvider(
+  //   { language: 'yal' },
+  //   newInlayHintsProvider(registry)));
 }
