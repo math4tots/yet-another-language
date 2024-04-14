@@ -7,7 +7,7 @@ export type Location = {
 };
 
 export interface Identifier {
-  readonly location: Location | null;
+  readonly location?: Location | null;
   readonly name: string;
 };
 
