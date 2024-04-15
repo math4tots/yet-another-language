@@ -672,6 +672,11 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       this.error(n.location, `${type} is not new-constructible`);
       return { type: AnyType };
     }
+    this.annotation.callInstances.push({
+      range: n.location.range,
+      args: n.args.map(arg => arg.location.range),
+      parameters: fields,
+    });
     if (fields.length !== n.args.length) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `${type} requires ${fields.length} args but got ${n.args.length}`);
