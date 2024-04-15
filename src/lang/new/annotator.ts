@@ -4,7 +4,9 @@ import { Position, Range } from '../lexer';
 import {
   AnyType,
   BoolType,
+  ClassTypeType,
   LambdaType,
+  Method,
   ModuleType,
   NeverType,
   NilType,
@@ -12,6 +14,7 @@ import {
   Parameter,
   StringType,
   Type,
+  newClassTypeType,
   newLambdaType,
   newModuleType,
 } from './type';
@@ -35,6 +38,10 @@ export type Variable = {
 
 export type ModuleVariable = Variable & {
   readonly type: ModuleType;
+};
+
+export type ClassVariable = Variable & {
+  readonly type: ClassTypeType;
 };
 
 export type Reference = {
@@ -68,6 +75,22 @@ export interface CompletionPoint {
   getCompletions(): Completion[];
 }
 
+function getCommentFromSeq(stmts: ast.Statement[]): ast.StringLiteral | undefined {
+  return (stmts.length > 0 &&
+    stmts[0] instanceof ast.ExpressionStatement &&
+    stmts[0].expression instanceof ast.StringLiteral) ? stmts[0].expression : undefined;
+}
+
+function getCommentFromFunctionDisplay(fd: ast.Node | null): ast.StringLiteral | undefined {
+  return fd instanceof ast.FunctionDisplay ?
+    getCommentFromSeq(fd.body.statements) : undefined;
+}
+
+function getCommentFromClassDefinition(cd: ast.Node | null): ast.StringLiteral | undefined {
+  return cd instanceof ast.ClassDefinition ?
+    getCommentFromSeq(cd.statements) : undefined;
+}
+
 export type Annotation = {
   readonly uri: vscode.Uri;
   readonly documentVersion: number;
@@ -75,7 +98,7 @@ export type Annotation = {
   readonly variables: Variable[];
   readonly references: Reference[];
   readonly completionPoints: CompletionPoint[];
-  readonly moduleVariables: Variable[];
+  readonly moduleVariableMap: Map<string, Variable>;
   readonly importMap: Map<string, Annotation>;
 };
 
@@ -96,6 +119,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
   private readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
   private readonly markedImports = new Set<ast.Import>();
+  private readonly classMap = new Map<ast.ClassDefinition, ClassVariable>();
 
   constructor(params: AnnotatorParameters) {
     this.annotation = params.annotation;
@@ -118,6 +142,34 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
 
   private _solveType(e: ast.TypeExpression): Type {
+    // class from an imported module
+    if (e.qualifier) {
+      const parent = this.scope[e.qualifier.name];
+      if (!parent) {
+        this.error(e.qualifier.location, `${e.qualifier.name} not found`);
+        return AnyType;
+      }
+      this.markReference(parent, e.qualifier.location.range);
+      const moduleTypeData = parent.type.moduleTypeData;
+      if (!moduleTypeData) {
+        this.error(e.qualifier.location, `${e.qualifier.name} is not a module`);
+        return AnyType;
+      }
+      const variable = moduleTypeData.annotation.moduleVariableMap.get(e.identifier.name);
+      if (!variable) {
+        this.error(e.identifier.location, `Type ${e.identifier.name} not found in module`);
+        return AnyType;
+      }
+      this.markReference(variable, e.identifier.location.range);
+      const classType = variable.type.classTypeTypeData?.classType;
+      if (!classType) {
+        this.error(e.identifier.location, `${e.identifier.name} is not a class`);
+        return AnyType;
+      }
+      return classType;
+    }
+
+    // builtin types
     if (!e.qualifier) {
       if (e.args.length === 0) {
         switch (e.identifier.name) {
@@ -131,8 +183,20 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         return this.solveType(e.args[0]).list();
       }
     }
-    this.error(e.location, `Could not resolve type`);
-    return AnyType;
+
+    // locally declared class
+    const variable = this.scope[e.identifier.name];
+    if (!variable) {
+      this.error(e.identifier.location, `Type ${e.identifier.name} not found`);
+      return AnyType;
+    }
+    this.markReference(variable, e.identifier.location.range);
+    const classType = variable.type.classTypeTypeData?.classType;
+    if (!classType) {
+      this.error(e.identifier.location, `${e.identifier.name} is not a class`);
+      return AnyType;
+    }
+    return classType;
   }
 
   private solveType(e: ast.TypeExpression): Type {
@@ -222,16 +286,61 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       return { useCached: true };
     }
 
+    this.forwardDeclare(n.statements);
     for (const statement of n.statements) {
       this.solveStmt(statement);
     }
 
     // We collect module variables to determine which ones should
     for (const key of Object.getOwnPropertyNames(this.scope)) {
-      this.annotation.moduleVariables.push(this.scope[key]);
+      this.annotation.moduleVariableMap.set(key, this.scope[key]);
     }
 
     return { useCached: false };
+  }
+
+  private forwardDeclare(statements: ast.Statement[]) {
+    // forward declare classes
+    for (const classdef of statements) {
+      if (classdef instanceof ast.ClassDefinition) {
+        const variable: ClassVariable = {
+          identifier: classdef.identifier,
+          type: newClassTypeType(classdef.identifier),
+          comment: getCommentFromClassDefinition(classdef),
+        };
+        this.classMap.set(classdef, variable);
+        this.declareVariable(variable);
+      }
+    }
+
+    // forward declare methods
+    for (const classdef of statements) {
+      if (classdef instanceof ast.ClassDefinition) {
+        const classTypeType = this.classMap.get(classdef);
+        if (!classTypeType) throw new Error(`FUBAR ${classTypeType}`);
+        const classType = classTypeType.type.classTypeTypeData.classType;
+        for (const declaration of classdef.statements) {
+          if (declaration instanceof ast.Declaration) {
+            const funcdisp = declaration.value;
+            if (funcdisp instanceof ast.FunctionDisplay) {
+              const funcdispType = this.solveFunctionDisplayType(funcdisp);
+              const variable: Variable = {
+                identifier: declaration.identifier,
+                type: funcdispType,
+                comment: getCommentFromFunctionDisplay(funcdisp),
+              };
+              classType.addMethod({
+                identifier: declaration.identifier,
+                parameters: funcdispType.lambdaTypeData.parameters,
+                returnType: funcdispType.lambdaTypeData.returnType,
+                functionType: funcdispType.lambdaTypeData.functionType,
+                sourceVariable: variable,
+              });
+            }
+          }
+        }
+      }
+    }
   }
 
   visitNilLiteral(n: ast.NilLiteral): ValueInfo {
@@ -322,27 +431,29 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
     const lambdaType = this.solveFunctionDisplayType(n);
-    const parameters = lambdaType.lambdaTypeData.parameters;
-    const returnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
-    const outerReturnType = this.currentReturnType;
-    try {
-      this.currentReturnType = returnType;
-      for (const parameter of parameters) {
-        const variable: Variable = {
-          isMutable: parameter.isMutable,
-          identifier: parameter.identifier,
-          type: parameter.type,
-        };
-        this.declareVariable(variable);
+    this.scoped(() => {
+      const parameters = lambdaType.lambdaTypeData.parameters;
+      const returnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
+      const outerReturnType = this.currentReturnType;
+      try {
+        this.currentReturnType = returnType;
+        for (const parameter of parameters) {
+          const variable: Variable = {
+            isMutable: parameter.isMutable,
+            identifier: parameter.identifier,
+            type: parameter.type,
+          };
+          this.declareVariable(variable);
+        }
+        const result = this.solveStmt(n.body);
+        if (result !== Jumps && !NilType.isAssignableTo(returnType)) {
+          this.error(
+            n.location, `This function cannot return nil and this function might not return`);
+        }
+      } finally {
+        this.currentReturnType = outerReturnType;
       }
-      const result = this.solveStmt(n.body);
-      if (result !== Jumps && !NilType.isAssignableTo(returnType)) {
-        this.error(
-          n.location, `This function cannot return nil, and this function might not return`);
-      }
-    } finally {
-      this.currentReturnType = outerReturnType;
-    }
+    });
     return { type: lambdaType };
   }
   visitMethodCall(n: ast.MethodCall): ValueInfo {
@@ -393,7 +504,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
   visitNew(n: ast.New): ValueInfo {
     const type = this.solveType(n.type);
-    const fields = type.fields;
+    const fields = type.classTypeData?.fields;
     if (!fields) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `${type} is not new-constructible`);
@@ -451,6 +562,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
   visitBlock(n: ast.Block): RunStatus {
     return this.scoped(() => {
+      this.forwardDeclare(n.statements);
       let status: RunStatus = Continues;
       for (const stmt of n.statements) {
         const stat = this.solveStmt(stmt);
@@ -472,7 +584,13 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       return Continues;
     }
     const type = explicitType || valueInfo?.type || AnyType;
-    const variable: Variable = { isMutable: n.isMutable, identifier: n.identifier, type };
+    const variable: Variable = {
+      isMutable: n.isMutable,
+      identifier: n.identifier,
+      type,
+      comment: n.comment ||
+        (n.value instanceof ast.FunctionDisplay ? getCommentFromFunctionDisplay(n.value) : undefined),
+    };
     this.declareVariable(variable);
     return Continues;
   }
@@ -535,7 +653,7 @@ export async function getAnnotationForDocument(
     variables: [],
     references: [],
     completionPoints: [],
-    moduleVariables: [],
+    moduleVariableMap: new Map(),
     importMap: new Map(),
   };
   const annotator = new Annotator({ annotation, stack, cached });
