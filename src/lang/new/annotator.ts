@@ -6,7 +6,6 @@ import {
   BoolType,
   ClassTypeType,
   LambdaType,
-  Method,
   ModuleType,
   NeverType,
   NilType,
@@ -15,6 +14,7 @@ import {
   StringType,
   Type,
   newClassTypeType,
+  newFunctionType,
   newLambdaType,
   newModuleType,
 } from './type';
@@ -54,6 +54,8 @@ export type Scope = { [key: string]: Variable; };
 const BASE_SCOPE: Scope = Object.create(null);
 BASE_SCOPE['Any'] =
   { identifier: AnyType.identifier, type: AnyType };
+BASE_SCOPE['Never'] =
+  { identifier: NeverType.identifier, type: NeverType };
 BASE_SCOPE['Nil'] =
   { identifier: NilType.identifier, type: AnyType };
 BASE_SCOPE['Bool'] =
@@ -170,18 +172,24 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     }
 
     // builtin types
-    if (!e.qualifier) {
-      if (e.args.length === 0) {
-        switch (e.identifier.name) {
-          case 'Nil': return NilType;
-          case 'Bool': return BoolType;
-          case 'Number': return NumberType;
-          case 'String': return StringType;
-        }
+    if (e.args.length === 0) {
+      switch (e.identifier.name) {
+        case 'Any': return AnyType;
+        case 'Never': return NeverType;
+        case 'Nil': return NilType;
+        case 'Bool': return BoolType;
+        case 'Number': return NumberType;
+        case 'String': return StringType;
       }
-      if (e.args.length === 1 && e.identifier.name === 'List') {
-        return this.solveType(e.args[0]).list();
-      }
+    }
+    if (e.args.length === 1 && e.identifier.name === 'List') {
+      return this.solveType(e.args[0]).list();
+    }
+    if (e.args.length > 0 && e.identifier.name === 'Function') {
+      const argTypes = e.args.map(arg => this.solveType(arg));
+      const parameterTypes = argTypes.slice(0, argTypes.length - 1);
+      const returnType = argTypes[argTypes.length - 1];
+      return newFunctionType(parameterTypes, returnType);
     }
 
     // locally declared class
