@@ -392,7 +392,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     for (const declaration of bodyStatements) {
       if (declaration instanceof ast.Declaration) {
         const value = declaration.value;
-        if (value instanceof ast.FunctionDisplay) {
+        if (!declaration.isMutable && value instanceof ast.FunctionDisplay) {
           const funcdisp = value;
           const funcdispType = this.solveFunctionDisplayType(funcdisp);
           const variable: Variable = {
@@ -410,6 +410,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
           });
         } else if (declaration.type) {
           const variable: Variable = {
+            isMutable: declaration.isMutable,
             identifier: declaration.identifier,
             type: this.solveType(declaration.type),
             comment: declaration.comment || undefined,
@@ -739,10 +740,6 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   visitDeclaration(n: ast.Declaration): RunStatus {
     const explicitType = n.type ? this.solveType(n.type) : null;
     const valueInfo = n.value ? this.solveExpr(n.value, explicitType || AnyType) : null;
-    if (n.isMutable && !explicitType) {
-      this.error(n.location, `Mutable variables must have its type explicitly specified`);
-      return Continues;
-    }
     if (!explicitType && !valueInfo) {
       this.error(n.location, `At least one of value or type of the variable must be specified`);
       return Continues;
@@ -768,6 +765,8 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         Continues;
   }
   visitWhile(n: ast.While): RunStatus {
+    this.solveExpr(n.condition);
+    this.solveStmt(n.body);
     return MaybeJumps;
   }
   visitReturn(n: ast.Return): RunStatus {
@@ -775,14 +774,56 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     if (returnType) {
       this.solveExpr(n.value, returnType);
     } else {
+      this.solveExpr(n.value);
       this.error(n.location, `return cannot appear outside a function`);
     }
     return Jumps;
   }
   visitClassDefinition(n: ast.ClassDefinition): RunStatus {
+    // a lot is already handled by `forwardDeclare`
+    const classTypeType = this.classMap.get(n);
+    if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
+    const classType = classTypeType.type.classTypeTypeData.classType;
+    this.scoped(() => {
+      const thisVariable: Variable = {
+        identifier: { name: 'this', location: n.identifier.location },
+        type: classType,
+      };
+      this.scope['this'] = thisVariable;
+      for (const statement of n.statements) {
+        if (statement instanceof ast.ExpressionStatement) {
+          if (statement.expression instanceof ast.StringLiteral) {
+            // comments
+            continue;
+          }
+        } else if (statement instanceof ast.Declaration) {
+          if (!statement.isMutable && statement.value instanceof ast.FunctionDisplay) {
+            // methods
+            this.solveExpr(statement.value);
+          } else if (statement.type) {
+            // fields
+          }
+          continue;
+        }
+        this.error(statement.location, `Unexpected statement in class body`);
+      }
+    });
     return Continues;
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): RunStatus {
+    // almost everything for interfaces is handled in `forwardDeclare`
+    for (const statement of n.statements) {
+      if (statement instanceof ast.ExpressionStatement) {
+        if (statement.expression instanceof ast.StringLiteral) {
+          // comments
+          continue;
+        }
+      } else if (statement instanceof ast.Declaration) {
+        // methods and properties
+        continue;
+      }
+      this.error(statement.location, `Unexpected statement in interface body`);
+    }
     return Continues;
   }
   visitImport(n: ast.Import): RunStatus {

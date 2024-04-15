@@ -1,6 +1,6 @@
 
 export interface Value {
-  // returns ture if nil, otherwise returns false
+  // returns true if nil, otherwise returns false
   isNil(): boolean;
 
   // Test if this value is truthy (all values are truthy except nil and false)
@@ -163,3 +163,42 @@ export class FunctionValue implements Value {
 
   YAL__call__(...values: Value[]): Value { return this.value(values); }
 }
+
+export class ClassValue implements Value {
+  readonly name: string;
+  readonly proto: Value = Object.create(INSTANCE_BASE_PROTOTYPE);
+  readonly fields: string[] = [];
+  constructor(name: string) {
+    this.name = name;
+    Object.defineProperty(this.proto, 'yalClass', {
+      value: this,
+      writable: false,
+      enumerable: false,
+    });
+  }
+  isNil(): boolean { return false; }
+  test(): boolean { return true; }
+  equals(rhs: Value): boolean { return this === rhs; }
+  toString(): string { return this.toRepr(); }
+  toRepr(): string { return `<class ${this.name}>`; }
+}
+
+export type InstanceValue = Value & {
+  readonly yalClass: ClassValue;
+  readonly [key: string]: any;
+};
+
+const INSTANCE_BASE_PROTOTYPE: InstanceValue = Object.assign(Object.create(null), {
+  isNil(): boolean { return false; },
+  test(): boolean { return true; },
+  equals(rhs: Value): boolean { return (rhs as any).yalClass === (this as any).yalClass; },
+  toString(): string { return this.toRepr(); },
+  toRepr(): string { return `<${(this as any).yalClass.name} instance>`; },
+});
+Object.defineProperties(INSTANCE_BASE_PROTOTYPE, {
+  isNil: { enumerable: false },
+  test: { enumerable: false },
+  equals: { enumerable: false },
+  toString: { enumerable: false },
+  toRepr: { enumerable: false },
+});
