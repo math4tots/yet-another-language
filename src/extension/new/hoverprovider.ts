@@ -35,8 +35,8 @@ export function newNewHoverProvider(): vscode.HoverProvider {
           const storageClass = reference.variable.isMutable ? 'var' : 'const';
           const codeBlock =
             `${storageClass} ${variableName}` +
-            (type === AnyType ? '' : `: ${type}`) + '';
-          // (reference.variable.value ? ` = ${yal.reprValue(reference.variable.value)}` : '');
+            (type === AnyType ? '' : `: ${type}`) +
+            (reference.variable.value ? ` = ${reference.variable.value.toRepr()}` : '');
           definitionInfo.appendCodeblock(codeBlock);
 
           if (variable.comment) {

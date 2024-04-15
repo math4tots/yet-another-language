@@ -45,6 +45,7 @@ type ClassTypeTypeData = {
   readonly classType: ClassType;
 };
 
+export type ListType = Type & { readonly listItemType: Type; };
 export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
 export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData; };
 export type ModuleType = Type & { readonly moduleTypeData: ModuleTypeData; };
@@ -55,7 +56,7 @@ export type InterfaceTypeType = Type & { readonly interfaceTypeTypeData: Interfa
 
 export class Type {
   readonly identifier: Identifier;
-  private _list?: Type;
+  private _list?: ListType;
   readonly listItemType?: Type;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
@@ -143,7 +144,8 @@ export class Type {
     const listType = new Type({
       identifier: { name: `List[${this.identifier.name}]` },
       listItemType: this,
-    });
+    }) as ListType;
+    addListMethods(listType);
     this._list = listType;
     return listType;
   }
@@ -366,4 +368,34 @@ export function newInterfaceTypeType(identifier: Identifier): InterfaceTypeType 
     interfaceTypeTypeData: { interfaceType },
   }) as InterfaceTypeType;
   return interfaceTypeType;
+}
+
+////////////////////////
+// BUILTIN TYPE METHODS
+////////////////////////
+
+NumberType.addMethod({
+  identifier: { name: '__add__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: NumberType,
+});
+
+StringType.addMethod({
+  identifier: { name: 'get_size' },
+  parameters: [],
+  returnType: NumberType,
+});
+
+function addListMethods(listType: ListType) {
+  const itemType = listType.listItemType;
+  listType.addMethod({
+    identifier: { name: 'get_size' },
+    parameters: [],
+    returnType: NumberType,
+  });
+  listType.addMethod({
+    identifier: { name: 'get' },
+    parameters: [{ identifier: { name: 'index' }, type: NumberType }],
+    returnType: itemType,
+  });
 }

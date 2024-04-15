@@ -24,9 +24,10 @@ import {
 } from './type';
 import { getAstForDocument } from '../parser';
 import { resolveURI } from '../paths';
+import { BoolValue, ListValue, NilValue, NumberValue, StringValue, Value } from './value';
 
 
-export type ValueInfo = { type: Type; };
+export type ValueInfo = { readonly type: Type; readonly value?: Value; };
 
 export const Continues = Symbol('Continues');
 export const Jumps = Symbol('Jumps'); // return, throw, break, continue, etc
@@ -38,6 +39,7 @@ export type Variable = {
   readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly comment?: ast.StringLiteral;
+  readonly value?: Value;
 };
 
 export type ModuleVariable = Variable & {
@@ -450,16 +452,16 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
 
   visitNilLiteral(n: ast.NilLiteral): ValueInfo {
-    return { type: NilType };
+    return { type: NilType, value: NilValue.INSTANCE };
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): ValueInfo {
-    return { type: BoolType };
+    return { type: BoolType, value: BoolValue.of(n.value) };
   }
   visitNumberLiteral(n: ast.NumberLiteral): ValueInfo {
-    return { type: NumberType };
+    return { type: NumberType, value: NumberValue.of(n.value) };
   }
   visitStringLiteral(n: ast.StringLiteral): ValueInfo {
-    return { type: StringType };
+    return { type: StringType, value: StringValue.of(n.value) };
   }
   visitIdentifierNode(n: ast.IdentifierNode): ValueInfo {
     const scope = this.scope;
@@ -490,7 +492,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       return { type: AnyType };
     }
     this.markReference(variable, n.location.range);
-    return { type: variable.type };
+    return { type: variable.type, value: variable.value };
   }
   visitAssignment(n: ast.Assignment): ValueInfo {
     const variable = this.scope[n.identifier.name];
@@ -516,11 +518,17 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     }
     if (n.values.length === 0) return { type: AnyType };
     let itemType: Type = NeverType;
+    let values: Value[] | undefined = [];
     for (const element of n.values) {
       const elementInfo = this.solveExpr(element, itemType, false);
       itemType = itemType.getCommonType(elementInfo.type);
+      if (elementInfo.value) {
+        values?.push(elementInfo.value);
+      } else {
+        values = undefined;
+      }
     }
-    return { type: itemType.list() };
+    return { type: itemType.list(), value: values ? ListValue.of(values) : undefined };
   }
   private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
     const cached = this.lambdaTypeCache.get(n);
@@ -603,10 +611,22 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
       return { type: method.returnType };
     }
+    const argValues: Value[] = [];
     for (let i = 0; i < method.parameters.length; i++) {
-      this.solveExpr(n.args[i], method.parameters[i].type);
+      const info = this.solveExpr(n.args[i], method.parameters[i].type);
+      if (info.value) argValues.push(info.value);
     }
-    return { type: method.returnType };
+    let staticValue: Value | undefined;
+    const methodKey = `YAL${n.identifier.name}`;
+    if (owner.value && argValues.length === method.parameters.length && (owner.value as any)[methodKey]) {
+      try {
+        staticValue = (owner.value as any)[methodKey](...argValues);
+      } catch (e) {
+        // if there's an error, just default to undefined
+        this.error(n.location, `eval error: ${e}`);
+      }
+    }
+    return { type: method.returnType, value: staticValue };
   }
   visitNew(n: ast.New): ValueInfo {
     const type = this.solveType(n.type);
@@ -641,10 +661,13 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { type: BoolType };
   }
   visitConditional(n: ast.Conditional): ValueInfo {
-    this.solveExpr(n.condition);
+    const condition = this.solveExpr(n.condition);
     const lhs = this.solveExpr(n.lhs);
     const rhs = this.solveExpr(n.rhs);
-    return { type: lhs.type.getCommonType(rhs.type) };
+    const value = condition.value ?
+      condition.value.test() ? lhs.value : rhs.value :
+      undefined;
+    return { type: lhs.type.getCommonType(rhs.type), value };
   }
   visitTypeAssertion(n: ast.TypeAssertion): ValueInfo {
     this.solveExpr(n.value);
@@ -696,6 +719,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       type,
       comment: n.comment ||
         (n.value instanceof ast.FunctionDisplay ? getCommentFromFunctionDisplay(n.value) : undefined),
+      value: n.isMutable ? undefined : valueInfo?.value,
     };
     this.declareVariable(variable);
     return Continues;
