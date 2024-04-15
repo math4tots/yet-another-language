@@ -15,6 +15,7 @@ import { newNewDefinitionProvider } from './extension/new/definitionprovider';
 import { getAnnotationForDocument } from './lang/new/annotator';
 import { newNewHoverProvider } from './extension/new/hoverprovider';
 import { newNewCompletionProvider } from './extension/new/completionprovider';
+import { newNewInlayHintsProvider } from './extension/new/inlayhintsprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -75,6 +76,9 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerCompletionItemProvider(
     { language: 'yal' },
     newNewCompletionProvider(), '.'));
+  sub(vscode.languages.registerInlayHintsProvider(
+    { language: 'yal' },
+    newNewInlayHintsProvider()));
 
   // sub(vscode.languages.registerDefinitionProvider(
   //   { language: 'yal' },

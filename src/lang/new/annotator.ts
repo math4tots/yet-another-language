@@ -24,7 +24,7 @@ import {
 } from './type';
 import { getAstForDocument } from '../parser';
 import { resolveURI } from '../paths';
-import { BoolValue, ListValue, NilValue, NumberValue, StringValue, Value } from './value';
+import { BoolValue, FunctionValue, ListValue, NilValue, NumberValue, StringValue, Value } from './value';
 
 
 export type ValueInfo = { readonly type: Type; readonly value?: Value; };
@@ -59,6 +59,11 @@ export type Reference = {
   readonly variable: Variable;
 };
 
+export interface PrintInstance {
+  readonly range: Range;
+  readonly value: Value;
+}
+
 export type Scope = { [key: string]: Variable; };
 
 const BASE_SCOPE: Scope = Object.create(null);
@@ -74,6 +79,15 @@ BASE_SCOPE['Number'] =
   { identifier: NumberType.identifier, type: AnyType };
 BASE_SCOPE['String'] =
   { identifier: StringType.identifier, type: AnyType };
+
+const printFunctionValue = new FunctionValue(function print(args) { return NilValue.INSTANCE; });
+
+// Dummy 'print' function
+BASE_SCOPE['print'] = {
+  identifier: { name: 'print' },
+  type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
+  value: printFunctionValue,
+};
 
 export type AnnotationError = ast.ParseError;
 
@@ -115,6 +129,7 @@ export type Annotation = {
   readonly variables: Variable[];
   readonly references: Reference[];
   readonly completionPoints: CompletionPoint[];
+  readonly printInstances: PrintInstance[];
   readonly moduleVariableMap: Map<string, Variable>;
   readonly importMap: Map<string, Annotation>;
 };
@@ -625,6 +640,12 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         // if there's an error, just default to undefined
         this.error(n.location, `eval error: ${e}`);
       }
+      if (owner.value === printFunctionValue && argValues.length === 1) {
+        this.annotation.printInstances.push({
+          range: n.location.range,
+          value: argValues[0],
+        });
+      }
     }
     return { type: method.returnType, value: staticValue };
   }
@@ -789,6 +810,7 @@ export async function getAnnotationForDocument(
     variables: [],
     references: [],
     completionPoints: [],
+    printInstances: [],
     moduleVariableMap: new Map(),
     importMap: new Map(),
   };
