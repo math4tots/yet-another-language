@@ -10,6 +10,8 @@ type TypeConstructorParameters = {
   readonly moduleTypeData?: ModuleTypeData;
   readonly classTypeData?: ClassTypeData;
   readonly classTypeTypeData?: ClassTypeTypeData;
+  readonly interfaceTypeData?: InterfaceTypeData;
+  readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
 };
 
 type FunctionTypeData = {
@@ -27,6 +29,12 @@ type ModuleTypeData = {
   readonly annotation: Annotation;
 };
 
+type InterfaceTypeData = {};
+
+type InterfaceTypeTypeData = {
+  readonly interfaceType: InterfaceType;
+};
+
 type ClassTypeData = {
   readonly fields: Field[];
 };
@@ -40,6 +48,8 @@ export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData;
 export type ModuleType = Type & { readonly moduleTypeData: ModuleTypeData; };
 export type ClassType = Type & { readonly classTypeData: ClassTypeData; };
 export type ClassTypeType = Type & { readonly classTypeTypeData: ClassTypeTypeData; };
+export type InterfaceType = Type & { readonly interfaceTypeData: InterfaceTypeData; };
+export type InterfaceTypeType = Type & { readonly interfaceTypeTypeData: InterfaceTypeTypeData; };
 
 export class Type {
   readonly identifier: Identifier;
@@ -50,6 +60,8 @@ export class Type {
   readonly moduleTypeData?: ModuleTypeData;
   readonly classTypeData?: ClassTypeData;
   readonly classTypeTypeData?: ClassTypeTypeData;
+  readonly interfaceTypeData?: InterfaceTypeData;
+  readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method>();
 
@@ -73,6 +85,12 @@ export class Type {
     }
     if (params.classTypeTypeData) {
       this.classTypeTypeData = params.classTypeTypeData;
+    }
+    if (params.interfaceTypeData) {
+      this.interfaceTypeData = params.interfaceTypeData;
+    }
+    if (params.interfaceTypeTypeData) {
+      this.interfaceTypeTypeData = params.interfaceTypeTypeData;
     }
   }
 
@@ -308,4 +326,13 @@ export function newClassTypeType(identifier: Identifier): ClassTypeType {
     classTypeTypeData: { classType },
   }) as ClassTypeType;
   return classTypeType;
+}
+
+export function newInterfaceTypeType(identifier: Identifier): InterfaceTypeType {
+  const interfaceType = new Type({ identifier, interfaceTypeData: {} }) as InterfaceType;
+  const interfaceTypeType = new Type({
+    identifier: { location: identifier.location, name: `(interface ${identifier.name})` },
+    interfaceTypeTypeData: { interfaceType },
+  }) as InterfaceTypeType;
+  return interfaceTypeType;
 }

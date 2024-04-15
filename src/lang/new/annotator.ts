@@ -4,7 +4,10 @@ import { Position, Range } from '../lexer';
 import {
   AnyType,
   BoolType,
+  ClassType,
   ClassTypeType,
+  InterfaceType,
+  InterfaceTypeType,
   LambdaType,
   ModuleType,
   NeverType,
@@ -15,6 +18,7 @@ import {
   Type,
   newClassTypeType,
   newFunctionType,
+  newInterfaceTypeType,
   newLambdaType,
   newModuleType,
 } from './type';
@@ -42,6 +46,10 @@ export type ModuleVariable = Variable & {
 
 export type ClassVariable = Variable & {
   readonly type: ClassTypeType;
+};
+
+export type InterfaceVariable = Variable & {
+  readonly type: InterfaceTypeType;
 };
 
 export type Reference = {
@@ -93,6 +101,11 @@ function getCommentFromClassDefinition(cd: ast.Node | null): ast.StringLiteral |
     getCommentFromSeq(cd.statements) : undefined;
 }
 
+function getCommentFromInterfaceDefinition(cd: ast.Node | null): ast.StringLiteral | undefined {
+  return cd instanceof ast.InterfaceDefinition ?
+    getCommentFromSeq(cd.statements) : undefined;
+}
+
 export type Annotation = {
   readonly uri: vscode.Uri;
   readonly documentVersion: number;
@@ -122,6 +135,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   private readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
   private readonly markedImports = new Set<ast.Import>();
   private readonly classMap = new Map<ast.ClassDefinition, ClassVariable>();
+  private readonly interfaceMap = new Map<ast.InterfaceDefinition, InterfaceVariable>();
 
   constructor(params: AnnotatorParameters) {
     this.annotation = params.annotation;
@@ -144,7 +158,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
 
   private _solveType(e: ast.TypeExpression): Type {
-    // class from an imported module
+    // class or interface from an imported module
     if (e.qualifier) {
       const parent = this.scope[e.qualifier.name];
       if (!parent) {
@@ -163,13 +177,40 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         return AnyType;
       }
       this.markReference(variable, e.identifier.location.range);
-      const classType = variable.type.classTypeTypeData?.classType;
-      if (!classType) {
-        this.error(e.identifier.location, `${e.identifier.name} is not a class`);
+      const type = variable.type.classTypeTypeData?.classType ||
+        variable.type.interfaceTypeTypeData?.interfaceType;
+      if (!type) {
+        this.error(e.identifier.location, `${e.identifier.name} is not a class or interface`);
         return AnyType;
       }
-      return classType;
+      return type;
     }
+
+    // autocomplete for typenames without a qualifier
+    const scopeAtLocation = this.scope;
+    this.annotation.completionPoints.push({
+      range: e.identifier.location.range,
+      getCompletions: () => {
+        const completions: Completion[] = [];
+        for (const key in scopeAtLocation) {
+          const variable = scopeAtLocation[key];
+          const type = variable.type;
+          if (type.classTypeTypeData || type.interfaceTypeTypeData || type.moduleTypeData) {
+            completions.push({ name: key });
+          }
+        }
+        // Provide completions for builtin generic types
+        completions.push({ name: 'Any' });
+        completions.push({ name: 'Never' });
+        completions.push({ name: 'Nil' });
+        completions.push({ name: 'Bool' });
+        completions.push({ name: 'Number' });
+        completions.push({ name: 'String' });
+        completions.push({ name: 'List' });
+        completions.push({ name: 'Function' });
+        return completions;
+      },
+    });
 
     // builtin types
     if (e.args.length === 0) {
@@ -192,19 +233,20 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       return newFunctionType(parameterTypes, returnType);
     }
 
-    // locally declared class
+    // locally declared class or interface
     const variable = this.scope[e.identifier.name];
     if (!variable) {
       this.error(e.identifier.location, `Type ${e.identifier.name} not found`);
       return AnyType;
     }
     this.markReference(variable, e.identifier.location.range);
-    const classType = variable.type.classTypeTypeData?.classType;
-    if (!classType) {
-      this.error(e.identifier.location, `${e.identifier.name} is not a class`);
+    const type = variable.type.classTypeTypeData?.classType ||
+      variable.type.interfaceTypeTypeData?.interfaceType;
+    if (!type) {
+      this.error(e.identifier.location, `${e.identifier.name} is not a class or interface`);
       return AnyType;
     }
-    return classType;
+    return type;
   }
 
   private solveType(e: ast.TypeExpression): Type {
@@ -307,46 +349,63 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { useCached: false };
   }
 
+  private addMethodDeclarations(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
+    for (const declaration of bodyStatements) {
+      if (declaration instanceof ast.Declaration) {
+        const funcdisp = declaration.value;
+        if (funcdisp instanceof ast.FunctionDisplay) {
+          const funcdispType = this.solveFunctionDisplayType(funcdisp);
+          const variable: Variable = {
+            identifier: declaration.identifier,
+            type: funcdispType,
+            comment: getCommentFromFunctionDisplay(funcdisp),
+          };
+          type.addMethod({
+            identifier: declaration.identifier,
+            parameters: funcdispType.lambdaTypeData.parameters,
+            returnType: funcdispType.lambdaTypeData.returnType,
+            functionType: funcdispType.lambdaTypeData.functionType,
+            sourceVariable: variable,
+          });
+        }
+      }
+    }
+  }
+
   private forwardDeclare(statements: ast.Statement[]) {
     // forward declare classes
-    for (const classdef of statements) {
-      if (classdef instanceof ast.ClassDefinition) {
+    for (const defn of statements) {
+      if (defn instanceof ast.ClassDefinition) {
         const variable: ClassVariable = {
-          identifier: classdef.identifier,
-          type: newClassTypeType(classdef.identifier),
-          comment: getCommentFromClassDefinition(classdef),
+          identifier: defn.identifier,
+          type: newClassTypeType(defn.identifier),
+          comment: getCommentFromClassDefinition(defn),
         };
-        this.classMap.set(classdef, variable);
+        this.classMap.set(defn, variable);
+        this.declareVariable(variable);
+      } else if (defn instanceof ast.InterfaceDefinition) {
+        const variable: InterfaceVariable = {
+          identifier: defn.identifier,
+          type: newInterfaceTypeType(defn.identifier),
+          comment: getCommentFromInterfaceDefinition(defn),
+        };
+        this.interfaceMap.set(defn, variable);
         this.declareVariable(variable);
       }
     }
 
     // forward declare methods
-    for (const classdef of statements) {
-      if (classdef instanceof ast.ClassDefinition) {
-        const classTypeType = this.classMap.get(classdef);
-        if (!classTypeType) throw new Error(`FUBAR ${classTypeType}`);
+    for (const defn of statements) {
+      if (defn instanceof ast.ClassDefinition) {
+        const classTypeType = this.classMap.get(defn);
+        if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
         const classType = classTypeType.type.classTypeTypeData.classType;
-        for (const declaration of classdef.statements) {
-          if (declaration instanceof ast.Declaration) {
-            const funcdisp = declaration.value;
-            if (funcdisp instanceof ast.FunctionDisplay) {
-              const funcdispType = this.solveFunctionDisplayType(funcdisp);
-              const variable: Variable = {
-                identifier: declaration.identifier,
-                type: funcdispType,
-                comment: getCommentFromFunctionDisplay(funcdisp),
-              };
-              classType.addMethod({
-                identifier: declaration.identifier,
-                parameters: funcdispType.lambdaTypeData.parameters,
-                returnType: funcdispType.lambdaTypeData.returnType,
-                functionType: funcdispType.lambdaTypeData.functionType,
-                sourceVariable: variable,
-              });
-            }
-          }
-        }
+        this.addMethodDeclarations(classType, defn.statements);
+      } else if (defn instanceof ast.InterfaceDefinition) {
+        const interfaceTypeType = this.interfaceMap.get(defn);
+        if (!interfaceTypeType) throw new Error(`FUBAR interface ${interfaceTypeType}`);
+        const interfaceType = interfaceTypeType.type.interfaceTypeTypeData.interfaceType;
+        this.addMethodDeclarations(interfaceType, defn.statements);
       }
     }
   }
@@ -614,6 +673,12 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return MaybeJumps;
   }
   visitReturn(n: ast.Return): RunStatus {
+    const returnType = this.currentReturnType;
+    if (returnType) {
+      this.solveExpr(n.value, returnType);
+    } else {
+      this.error(n.location, `return cannot appear outside a function`);
+    }
     return Jumps;
   }
   visitClassDefinition(n: ast.ClassDefinition): RunStatus {
