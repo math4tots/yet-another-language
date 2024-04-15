@@ -83,6 +83,11 @@ export class NumberValue implements Value {
     if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
     return NumberValue.of(this.value + rhs.value);
   }
+
+  YAL__lt__(rhs: Value): BoolValue {
+    if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
+    return BoolValue.of(this.value < rhs.value);
+  }
 }
 
 export class StringValue implements Value {
@@ -116,6 +121,7 @@ export class ListValue implements Value {
   }
 
   static of(values: Value[]) { return new ListValue([...values]); }
+  static using(values: Value[]) { return new ListValue(values); }
 
   readonly value: Value[];
   private constructor(value: Value[]) { this.value = value; }
@@ -153,15 +159,15 @@ export class FunctionValue implements Value {
     throw new YALError(`Expected FunctionValue but got ${value.constructor.name}`);
   }
 
-  readonly value: (args: Value[]) => Value;
-  constructor(value: (args: Value[]) => Value) { this.value = value; }
+  readonly value: (...args: Value[]) => Value;
+  constructor(value: (...args: Value[]) => Value) { this.value = value; }
   isNil(): boolean { return false; }
   test(): boolean { return true; }
   equals(rhs: Value): boolean { return this === rhs; }
   toString(): string { return this.toRepr(); }
   toRepr(): string { return `<function ${this.value.name}>`; }
 
-  YAL__call__(...values: Value[]): Value { return this.value(values); }
+  YAL__call__(...values: Value[]): Value { return this.value(...values); }
 }
 
 export class ClassValue implements Value {
@@ -181,11 +187,36 @@ export class ClassValue implements Value {
   equals(rhs: Value): boolean { return this === rhs; }
   toString(): string { return this.toRepr(); }
   toRepr(): string { return `<class ${this.name}>`; }
+  newInstance(...args: Value[]): InstanceValue {
+    if (args.length !== this.fields.length) {
+      throw new YALError(`new ${this.name} requires ${this.fields.length} args but got ${args.length}`);
+    }
+    const instance: InstanceValue = Object.create(this.proto);
+    for (let i = 0; i < args.length; i++) {
+      instance[`FIELD${this.fields[i]}`] = args[i];
+    }
+    return instance;
+  }
+  addField(field: string, isMutable: boolean) {
+    this.fields.push(field);
+    Object.defineProperty(this.proto, `YALget_${field}`, {
+      value: Function(`"use strict"; return this.FIELD${field}`),
+      writable: false,
+      enumerable: false,
+    });
+    if (isMutable) {
+      Object.defineProperty(this.proto, `YALset_${field}`, {
+        value: Function("value", `"use strict"; return this.FIELD${field} = value`),
+        writable: false,
+        enumerable: false,
+      });
+    }
+  }
 }
 
 export type InstanceValue = Value & {
   readonly yalClass: ClassValue;
-  readonly [key: string]: any;
+  [key: string]: any;
 };
 
 const INSTANCE_BASE_PROTOTYPE: InstanceValue = Object.assign(Object.create(null), {
@@ -202,3 +233,7 @@ Object.defineProperties(INSTANCE_BASE_PROTOTYPE, {
   toString: { enumerable: false },
   toRepr: { enumerable: false },
 });
+
+export const NIL = NilValue.INSTANCE;
+export const TRUE = BoolValue.TRUE;
+export const FALSE = BoolValue.FALSE;

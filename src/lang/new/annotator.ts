@@ -25,7 +25,20 @@ import {
 } from './type';
 import { getAstForDocument } from '../parser';
 import { resolveURI } from '../paths';
-import { BoolValue, FunctionValue, ListValue, NilValue, NumberValue, StringValue, Value } from './value';
+import {
+  NIL,
+  BoolValue,
+  ClassValue,
+  FunctionValue,
+  ListValue,
+  NilValue,
+  NumberValue,
+  StringValue,
+  Value,
+  TRUE,
+  FALSE,
+} from './value';
+import { newPureFunctionValue } from './pure';
 
 
 export type ValueInfo = { readonly type: Type; readonly value?: Value; };
@@ -87,7 +100,7 @@ BASE_SCOPE['Number'] =
 BASE_SCOPE['String'] =
   { identifier: StringType.identifier, type: AnyType };
 
-const printFunctionValue = new FunctionValue(function print(args) { return NilValue.INSTANCE; });
+const printFunctionValue = new FunctionValue(function print(x) { return NIL; });
 
 // Dummy 'print' function
 BASE_SCOPE['print'] = {
@@ -388,11 +401,14 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { useCached: false };
   }
 
-  private addMethodDeclarations(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
+  private addMethodsAndFields(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
+    const fields = type.classTypeData?.fields;
+    const classValue = type.classTypeData?.classValue;
     for (const declaration of bodyStatements) {
       if (declaration instanceof ast.Declaration) {
         const value = declaration.value;
         if (!declaration.isMutable && value instanceof ast.FunctionDisplay) {
+          // normal method definition
           const funcdisp = value;
           const funcdispType = this.solveFunctionDisplayType(funcdisp);
           const variable: Variable = {
@@ -409,12 +425,15 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
             sourceVariable: variable,
           });
         } else if (declaration.type) {
+          // field/property
           const variable: Variable = {
             isMutable: declaration.isMutable,
             identifier: declaration.identifier,
             type: this.solveType(declaration.type),
             comment: declaration.comment || undefined,
           };
+          fields?.push(variable);
+          classValue?.addField(declaration.identifier.name, declaration.isMutable);
           this.declareVariable(variable, false);
           type.addMethod({
             identifier: { name: `get_${declaration.identifier.name}` },
@@ -441,10 +460,12 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     // forward declare classes
     for (const defn of statements) {
       if (defn instanceof ast.ClassDefinition) {
+        const classValue = new ClassValue(defn.identifier.name);
         const variable: ClassVariable = {
           identifier: defn.identifier,
-          type: newClassTypeType(defn.identifier),
+          type: newClassTypeType(defn.identifier, classValue),
           comment: getCommentFromClassDefinition(defn),
+          value: classValue,
         };
         this.classMap.set(defn, variable);
         this.declareVariable(variable);
@@ -465,12 +486,12 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         const classTypeType = this.classMap.get(defn);
         if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
         const classType = classTypeType.type.classTypeTypeData.classType;
-        this.addMethodDeclarations(classType, defn.statements);
+        this.addMethodsAndFields(classType, defn.statements);
       } else if (defn instanceof ast.InterfaceDefinition) {
         const interfaceTypeType = this.interfaceMap.get(defn);
         if (!interfaceTypeType) throw new Error(`FUBAR interface ${interfaceTypeType}`);
         const interfaceType = interfaceTypeType.type.interfaceTypeTypeData.interfaceType;
-        this.addMethodDeclarations(interfaceType, defn.statements);
+        this.addMethodsAndFields(interfaceType, defn.statements);
       }
     }
   }
@@ -519,20 +540,25 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { type: variable.type, value: variable.value };
   }
   visitAssignment(n: ast.Assignment): ValueInfo {
+    const rhs = this.solveExpr(n.value);
     const variable = this.scope[n.identifier.name];
     if (!variable) {
       this.error(n.location, `Variable ${JSON.stringify(n.identifier.name)} not found`);
       return { type: AnyType };
     }
-    const rhs = this.solveExpr(n.value);
+    if (!variable.isMutable) {
+      this.error(n.location, `Variable ${n.identifier.name} is not mutable`);
+      return { type: variable.type };
+    }
     if (!rhs.type.isAssignableTo(variable.type)) {
       this.error(
         n.identifier.location,
         `Value of type ${rhs.type} is not assignable to variable of type ${variable.type}`);
     }
-    return { type: variable.type };
+    return { type: variable.type, value: rhs.value };
   }
   visitListDisplay(n: ast.ListDisplay): ValueInfo {
+    const startErrorCount = this.annotation.errors.length;
     const givenItemType = this.hint.listItemType;
     if (givenItemType) {
       for (const element of n.values) {
@@ -552,7 +578,11 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         values = undefined;
       }
     }
-    return { type: itemType.list(), value: values ? ListValue.of(values) : undefined };
+    return {
+      type: itemType.list(),
+      value: (startErrorCount === this.annotation.errors.length && values) ?
+        ListValue.of(values) : undefined
+    };
   }
   private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
     const cached = this.lambdaTypeCache.get(n);
@@ -568,6 +598,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return lambdaType;
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): ValueInfo {
+    const startErrorCount = this.annotation.errors.length;
     const lambdaType = this.solveFunctionDisplayType(n);
     this.scoped(() => {
       const parameters = lambdaType.lambdaTypeData.parameters;
@@ -592,10 +623,18 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         this.currentReturnType = outerReturnType;
       }
     });
-    return { type: lambdaType };
+    return {
+      type: lambdaType,
+
+      // Only bother with even trying to create a pure function if processing the
+      // entire function display produced no errors
+      value: startErrorCount === this.annotation.errors.length ?
+        newPureFunctionValue(n, this.scope) : undefined
+    };
   }
 
   visitMethodCall(n: ast.MethodCall): ValueInfo {
+    const startErrorCount = this.annotation.errors.length;
     const owner = this.solveExpr(n.owner);
     this.annotation.completionPoints.push({
       range: n.identifier.location.range,
@@ -646,20 +685,24 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       const info = this.solveExpr(n.args[i], method.parameters[i].type);
       if (info.value) argValues.push(info.value);
     }
+
+    // If we did not encounter any errors, as a bonus, try computing the static value
     let staticValue: Value | undefined;
-    const methodKey = `YAL${n.identifier.name}`;
-    if (owner.value && argValues.length === method.parameters.length && (owner.value as any)[methodKey]) {
-      try {
-        staticValue = (owner.value as any)[methodKey](...argValues);
-      } catch (e) {
-        // if there's an error, just default to undefined
-        this.error(n.location, `eval error: ${e}`);
-      }
-      if (owner.value === printFunctionValue && argValues.length === 1) {
-        this.annotation.printInstances.push({
-          range: n.location.range,
-          value: argValues[0],
-        });
+    if (this.annotation.errors.length === startErrorCount) {
+      const methodKey = `YAL${n.identifier.name}`;
+      if (owner.value && argValues.length === method.parameters.length && (owner.value as any)[methodKey]) {
+        try {
+          staticValue = (owner.value as any)[methodKey](...argValues);
+        } catch (e) {
+          // if there's an error, just default to undefined
+          this.error(n.location, `eval error: ${e}`);
+        }
+        if (owner.value === printFunctionValue && argValues.length === 1) {
+          this.annotation.printInstances.push({
+            range: n.location.range,
+            value: argValues[0],
+          });
+        }
       }
     }
     return { type: method.returnType, value: staticValue };
@@ -688,18 +731,18 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { type };
   }
   visitLogicalNot(n: ast.LogicalNot): ValueInfo {
-    this.solveExpr(n.value);
-    return { type: BoolType };
+    const { value } = this.solveExpr(n.value);
+    return { type: BoolType, value: value ? value.test() ? TRUE : FALSE : undefined };
   }
   visitLogicalAnd(n: ast.LogicalAnd): ValueInfo {
-    this.solveExpr(n.lhs);
-    this.solveExpr(n.rhs);
-    return { type: BoolType };
+    const { value: lhs } = this.solveExpr(n.lhs);
+    const { value: rhs } = this.solveExpr(n.rhs);
+    return { type: BoolType, value: (lhs && rhs) ? (lhs.test() && rhs.test() ? TRUE : FALSE) : undefined };
   }
   visitLogicalOr(n: ast.LogicalOr): ValueInfo {
-    this.solveExpr(n.lhs);
-    this.solveExpr(n.rhs);
-    return { type: BoolType };
+    const { value: lhs } = this.solveExpr(n.lhs);
+    const { value: rhs } = this.solveExpr(n.rhs);
+    return { type: BoolType, value: (lhs && rhs) ? (lhs.test() || rhs.test() ? TRUE : FALSE) : undefined };
   }
   visitConditional(n: ast.Conditional): ValueInfo {
     const condition = this.solveExpr(n.condition);

@@ -1,5 +1,6 @@
-import { Identifier, IdentifierNode, StringLiteral } from "../ast";
+import { Identifier } from "../ast";
 import type { Annotation, Variable } from "./annotator";
+import type { ClassValue } from "./value";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
@@ -39,6 +40,7 @@ type InterfaceTypeTypeData = {
 
 type ClassTypeData = {
   readonly fields: Field[];
+  readonly classValue: ClassValue;
 };
 
 type ClassTypeTypeData = {
@@ -352,8 +354,11 @@ function newMethod(params: NewMethodParameters): Method {
   };
 }
 
-export function newClassTypeType(identifier: Identifier): ClassTypeType {
-  const classType = new Type({ identifier, classTypeData: { fields: [] } }) as ClassType;
+export function newClassTypeType(identifier: Identifier, classValue: ClassValue): ClassTypeType {
+  const classType = new Type({
+    identifier,
+    classTypeData: { fields: [], classValue },
+  }) as ClassType;
   const classTypeType = new Type({
     identifier: { location: identifier.location, name: `(class ${identifier.name})` },
     classTypeTypeData: { classType },
@@ -378,6 +383,18 @@ NumberType.addMethod({
   identifier: { name: '__add__' },
   parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
   returnType: NumberType,
+});
+
+NumberType.addMethod({
+  identifier: { name: '__lt__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: BoolType,
+});
+
+StringType.addMethod({
+  identifier: { name: '__add__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
+  returnType: StringType,
 });
 
 StringType.addMethod({

@@ -418,6 +418,22 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, []);
     }
     const precedence = PrecMap.get(tokenType);
+    if (precedence && consume('and')) {
+      const rhs = parsePrec(precedence + 1);
+      const location = {
+        uri,
+        range: { start: startRange.start, end: rhs.location.range.end },
+      };
+      return new ast.LogicalAnd(location, lhs, rhs);
+    }
+    if (precedence && consume('or')) {
+      const rhs = parsePrec(precedence + 1);
+      const location = {
+        uri,
+        range: { start: startRange.start, end: rhs.location.range.end },
+      };
+      return new ast.LogicalOr(location, lhs, rhs);
+    }
     const methodName = BinopMethodMap.get(tokenType);
     if (precedence && methodName) {
       const rightAssociative = methodName === '__pow__';
