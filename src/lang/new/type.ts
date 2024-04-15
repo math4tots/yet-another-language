@@ -29,7 +29,9 @@ type ModuleTypeData = {
   readonly annotation: Annotation;
 };
 
-type InterfaceTypeData = {};
+type InterfaceTypeData = {
+  readonly cache: WeakMap<Type, boolean>;
+};
 
 type InterfaceTypeTypeData = {
   readonly interfaceType: InterfaceType;
@@ -104,6 +106,25 @@ export class Type {
     const source = this.getProxyType();
     const target = givenTarget.getProxyType();
     if (source === target || target === AnyType || source === NeverType) return true;
+    if (target.interfaceTypeData) {
+      // if the target is an interface, we need to check if source implements all the methods
+      // required by the interface
+      const cached = target.interfaceTypeData.cache.get(source);
+      if (typeof cached === 'boolean') return cached;
+
+      // To prevent infinite recursion, optimistically assume
+      // it *is* assignable while we try to test
+      // TODO: consider the consequences
+      target.interfaceTypeData.cache.set(source, true);
+
+      for (const method of target.methods) {
+        if (!source.implementsMethod(method)) {
+          target.interfaceTypeData.cache.set(source, false);
+          return false;
+        }
+      }
+      return true;
+    }
     return false;
   }
 
@@ -134,6 +155,16 @@ export class Type {
     const method = newMethod(params);
     this._methods.push(method);
     this._methodMap.set(method.identifier.name, method);
+  }
+
+  implementsMethod(targetMethod: Method): boolean {
+    const method = this.getMethod(targetMethod.identifier.name);
+    if (!method) return false;
+    if (method.parameters.length !== targetMethod.parameters.length) return false;
+    for (let i = 0; i < method.parameters.length; i++) {
+      if (!targetMethod.parameters[i].type.isAssignableTo(method.parameters[i].type)) return false;
+    }
+    return method.returnType.isAssignableTo(targetMethod.returnType);
   }
 }
 
@@ -329,7 +360,7 @@ export function newClassTypeType(identifier: Identifier): ClassTypeType {
 }
 
 export function newInterfaceTypeType(identifier: Identifier): InterfaceTypeType {
-  const interfaceType = new Type({ identifier, interfaceTypeData: {} }) as InterfaceType;
+  const interfaceType = new Type({ identifier, interfaceTypeData: { cache: new WeakMap() } }) as InterfaceType;
   const interfaceTypeType = new Type({
     identifier: { location: identifier.location, name: `(interface ${identifier.name})` },
     interfaceTypeTypeData: { interfaceType },

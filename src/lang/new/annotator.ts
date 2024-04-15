@@ -171,11 +171,23 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         this.error(e.qualifier.location, `${e.qualifier.name} is not a module`);
         return AnyType;
       }
+
+      // completion based on member of module
+      this.annotation.completionPoints.push({
+        range: e.identifier.location.range,
+        getCompletions() {
+          return Array.from(moduleTypeData.annotation.moduleVariableMap.values())
+            .filter(v => v.type.classTypeTypeData || v.type.interfaceTypeTypeData)
+            .map(v => ({ name: v.identifier.name }));
+        },
+      });
+
       const variable = moduleTypeData.annotation.moduleVariableMap.get(e.identifier.name);
       if (!variable) {
         this.error(e.identifier.location, `Type ${e.identifier.name} not found in module`);
         return AnyType;
       }
+
       this.markReference(variable, e.identifier.location.range);
       const type = variable.type.classTypeTypeData?.classType ||
         variable.type.interfaceTypeTypeData?.interfaceType;
@@ -272,9 +284,11 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return s.accept(this);
   }
 
-  private declareVariable(variable: Variable) {
+  private declareVariable(variable: Variable, addToScope = true) {
     this.annotation.variables.push(variable);
-    this.scope[variable.identifier.name] = variable;
+    if (addToScope) {
+      this.scope[variable.identifier.name] = variable;
+    }
     const range = variable.identifier.location?.range;
     if (range) this.markReference(variable, range);
   }
@@ -352,14 +366,16 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   private addMethodDeclarations(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
     for (const declaration of bodyStatements) {
       if (declaration instanceof ast.Declaration) {
-        const funcdisp = declaration.value;
-        if (funcdisp instanceof ast.FunctionDisplay) {
+        const value = declaration.value;
+        if (value instanceof ast.FunctionDisplay) {
+          const funcdisp = value;
           const funcdispType = this.solveFunctionDisplayType(funcdisp);
           const variable: Variable = {
             identifier: declaration.identifier,
             type: funcdispType,
-            comment: getCommentFromFunctionDisplay(funcdisp),
+            comment: declaration.comment || getCommentFromFunctionDisplay(funcdisp),
           };
+          this.declareVariable(variable, false);
           type.addMethod({
             identifier: declaration.identifier,
             parameters: funcdispType.lambdaTypeData.parameters,
@@ -367,6 +383,29 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
             functionType: funcdispType.lambdaTypeData.functionType,
             sourceVariable: variable,
           });
+        } else if (declaration.type) {
+          const variable: Variable = {
+            identifier: declaration.identifier,
+            type: this.solveType(declaration.type),
+            comment: declaration.comment || undefined,
+          };
+          this.declareVariable(variable, false);
+          type.addMethod({
+            identifier: { name: `get_${declaration.identifier.name}` },
+            parameters: [],
+            returnType: variable.type,
+            sourceVariable: variable,
+          });
+          if (declaration.isMutable) {
+            type.addMethod({
+              identifier: { name: `set_${declaration.identifier.name}` },
+              parameters: [{ identifier: { name: 'value' }, type: variable.type }],
+              returnType: variable.type,
+              sourceVariable: variable,
+            });
+          }
+        } else {
+          this.error(declaration.location, `Invalid class member declaration`);
         }
       }
     }
