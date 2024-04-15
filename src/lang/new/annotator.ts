@@ -6,6 +6,7 @@ import {
   BoolType,
   ClassType,
   ClassTypeType,
+  FunctionType,
   InterfaceType,
   InterfaceTypeType,
   LambdaType,
@@ -62,6 +63,12 @@ export type Reference = {
 export interface PrintInstance {
   readonly range: Range;
   readonly value: Value;
+}
+
+export interface CallInstance {
+  readonly range: Range; // range of entire call
+  readonly args: Range[]; // range of individual arguments
+  readonly parameters: Parameter[];
 }
 
 export type Scope = { [key: string]: Variable; };
@@ -130,6 +137,7 @@ export type Annotation = {
   readonly references: Reference[];
   readonly completionPoints: CompletionPoint[];
   readonly printInstances: PrintInstance[];
+  readonly callInstances: CallInstance[];
   readonly moduleVariableMap: Map<string, Variable>;
   readonly importMap: Map<string, Annotation>;
 };
@@ -585,6 +593,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     });
     return { type: lambdaType };
   }
+
   visitMethodCall(n: ast.MethodCall): ValueInfo {
     const owner = this.solveExpr(n.owner);
     this.annotation.completionPoints.push({
@@ -620,6 +629,11 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       this.error(n.location, `Method ${n.identifier.name} not found on type ${owner.type}`);
       return { type: AnyType };
     }
+    this.annotation.callInstances.push({
+      range: n.location.range,
+      args: n.args.map(arg => arg.location.range),
+      parameters: method.parameters,
+    });
     this.markReference(method.sourceVariable, n.identifier.location.range);
     if (method.parameters.length !== n.args.length) {
       for (const arg of n.args) this.solveExpr(arg);
@@ -811,6 +825,7 @@ export async function getAnnotationForDocument(
     references: [],
     completionPoints: [],
     printInstances: [],
+    callInstances: [],
     moduleVariableMap: new Map(),
     importMap: new Map(),
   };
