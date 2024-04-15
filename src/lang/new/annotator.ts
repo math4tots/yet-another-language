@@ -39,6 +39,7 @@ import {
   FALSE,
 } from './value';
 import { newPureFunctionValue } from './pure';
+import { newClosure } from './eval';
 
 
 export type ValueInfo = { readonly type: Type; readonly value?: Value; };
@@ -371,7 +372,11 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         }
         const importModuleType = newModuleType(importModuleAnnotation);
         const importModuleVariable = getModuleVariableForModuleType(importModuleType);
-        const aliasVariable: Variable = { identifier, type: importModuleType };
+        const aliasVariable: Variable = {
+          identifier,
+          type: importModuleType,
+          value: importModuleVariable.value,
+        };
         this.declareVariable(aliasVariable);
         this.markReference(importModuleVariable, path.location.range);
       } else if (statement instanceof ast.ExpressionStatement &&
@@ -759,12 +764,27 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return { type };
   }
   visitNativeExpression(n: ast.NativeExpression): ValueInfo {
-    this.error(n.location, `TODO: Annotator NativeExpression`);
     return { type: AnyType };
   }
   visitNativePureFunction(n: ast.NativePureFunction): ValueInfo {
-    this.error(n.location, `TODO: Annotator NativePureFunction`);
-    return { type: AnyType };
+    const parameters: Parameter[] = n.parameters.map(p => ({
+      identifier: p.identifier,
+      type: p.type ? this.solveType(p.type) : AnyType,
+    }));
+    const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
+    const lambdaType = newLambdaType(parameters, returnType);
+    let value: FunctionValue | undefined;
+    for (const [identifier, content] of n.body) {
+      if (identifier.name === 'js') {
+        value = new FunctionValue(newClosure(
+          'native',
+          n.parameters.map(p => p.identifier.name),
+          content.value
+          // `"use strict"; ${content.value}`
+        ) as any);
+      }
+    }
+    return { type: lambdaType, value };
   }
   visitEmptyStatement(n: ast.EmptyStatement): RunStatus {
     return Continues;
@@ -940,7 +960,38 @@ const moduleVariableMap = new WeakMap<ModuleType, ModuleVariable>();
 function getModuleVariableForModuleType(moduleType: ModuleType): ModuleVariable {
   const cached = moduleVariableMap.get(moduleType);
   if (cached) return cached;
-  const variable: ModuleVariable = { identifier: moduleType.identifier, type: moduleType };
+  const variable: ModuleVariable = {
+    identifier: moduleType.identifier,
+    type: moduleType,
+    value: new ModuleValue(moduleType.moduleTypeData.annotation),
+  };
   moduleVariableMap.set(moduleType, variable);
   return variable;
+}
+
+class ModuleValue implements Value {
+  readonly annotation: Annotation;
+  constructor(annotation: Annotation) {
+    this.annotation = annotation;
+    for (const variable of annotation.moduleVariableMap.values()) {
+      const value = variable.value;
+      Object.defineProperty(this, `YALget_${variable.identifier.name}`, {
+        value: () => value,
+        enumerable: false,
+        writable: false,
+      });
+      if (value instanceof FunctionValue) {
+        Object.defineProperty(this, `YAL${variable.identifier.name}`, {
+          value: (...args: Value[]) => value.value(...args),
+          enumerable: false,
+          writable: false,
+        });
+      }
+    }
+  }
+  isNil(): boolean { return false; }
+  test(): boolean { return true; }
+  equals(rhs: Value): boolean { return this === rhs; }
+  toString(): string { return this.toRepr(); }
+  toRepr(): string { return `<module>`; }
 }

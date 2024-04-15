@@ -49,6 +49,7 @@ export class BoolValue implements Value {
   equals(rhs: Value): boolean { return this === rhs || (rhs instanceof BoolValue && rhs.value === this.value); }
   toString(): string { return this.value ? 'true' : 'false'; }
   toRepr(): string { return this.value ? 'true' : 'false'; }
+  valueOf() { return this.value; }
 }
 
 export class NumberValue implements Value {
@@ -78,6 +79,7 @@ export class NumberValue implements Value {
   equals(rhs: Value): boolean { return this === rhs || (rhs instanceof NumberValue && rhs.value === this.value); }
   toString(): string { return '' + this.value; }
   toRepr(): string { return '' + this.value; }
+  valueOf() { return this.value; }
 
   YAL__add__(rhs: Value): NumberValue {
     if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
@@ -105,6 +107,7 @@ export class StringValue implements Value {
   equals(rhs: Value): boolean { return this === rhs || (rhs instanceof StringValue && rhs.value === this.value); }
   toString(): string { return this.value; }
   toRepr(): string { return JSON.stringify(this.value); }
+  valueOf() { return this.value; }
 
   YALget_size(): NumberValue { return NumberValue.of(this.value.length); }
 
