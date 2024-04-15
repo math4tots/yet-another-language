@@ -56,7 +56,7 @@
 				{
 					"comment": "Reserved keyword",
 					"name": "invalid.deprecated.yal",
-					"match": "\\b(assert|async|await|break|continue|del|except|finally|global|with|yield|lambda)\\b"
+					"match": "\\b(assert|async|await|break|continue|del|except|finally|global|with|yield)\\b"
 				}
 			]
 		},

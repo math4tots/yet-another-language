@@ -14,9 +14,3 @@ const cos "computes cosine in radians" = native(x: Number): Number {
 const tan "computes tangent in radians" = native(x: Number): Number {
   js "return NumberValue.of(Math.tan(x.value))"
 }
-
-const hello = 3
-const foo = "some foo value"
-const world = hello
-const asdf = world
-

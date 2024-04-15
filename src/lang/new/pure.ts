@@ -211,7 +211,7 @@ export function translatePureFunction(fd: ast.FunctionDisplay, constScope: Scope
   const codeGenerator = new PureCodeCodeGenerator(scope);
   const code = fd.body.accept(codeGenerator);
   if (!code) return;
-  return newClosure('', fd.parameters.map(p => `YAL${p.identifier.name}`), code);
+  return newClosure('lambda', fd.parameters.map(p => `YAL${p.identifier.name}`), code);
 }
 
 export function newPureFunctionValue(fd: ast.FunctionDisplay, scope: Scope): FunctionValue | undefined {

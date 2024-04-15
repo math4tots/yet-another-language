@@ -86,6 +86,26 @@ export class NumberValue implements Value {
     return NumberValue.of(this.value + rhs.value);
   }
 
+  YAL__sub__(rhs: Value): NumberValue {
+    if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
+    return NumberValue.of(this.value - rhs.value);
+  }
+
+  YAL__mul__(rhs: Value): NumberValue {
+    if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
+    return NumberValue.of(this.value * rhs.value);
+  }
+
+  YAL__div__(rhs: Value): NumberValue {
+    if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
+    return NumberValue.of(this.value / rhs.value);
+  }
+
+  YAL__mod__(rhs: Value): NumberValue {
+    if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
+    return NumberValue.of(this.value % rhs.value);
+  }
+
   YAL__lt__(rhs: Value): BoolValue {
     if (!(rhs instanceof NumberValue)) throw new YALError(`Expected NumberValue but got ${rhs.constructor.name}`);
     return BoolValue.of(this.value < rhs.value);

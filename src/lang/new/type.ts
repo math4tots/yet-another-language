@@ -386,6 +386,30 @@ NumberType.addMethod({
 });
 
 NumberType.addMethod({
+  identifier: { name: '__sub__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: NumberType,
+});
+
+NumberType.addMethod({
+  identifier: { name: '__div__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: NumberType,
+});
+
+NumberType.addMethod({
+  identifier: { name: '__mul__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: NumberType,
+});
+
+NumberType.addMethod({
+  identifier: { name: '__mod__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: NumberType,
+});
+
+NumberType.addMethod({
   identifier: { name: '__lt__' },
   parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
   returnType: BoolType,
