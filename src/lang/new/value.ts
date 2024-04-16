@@ -182,6 +182,10 @@ export class FunctionValue implements Value {
     throw new YALError(`Expected FunctionValue but got ${value.constructor.name}`);
   }
 
+  static of(value: (...args: Value[]) => Value): FunctionValue {
+    return new FunctionValue(value);
+  }
+
   readonly value: (...args: Value[]) => Value;
   constructor(value: (...args: Value[]) => Value) { this.value = value; }
   isNil(): boolean { return false; }
