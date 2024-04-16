@@ -952,49 +952,60 @@ export function strStaticValue(x: any): string {
 }
 
 function evalMethodCall(owner: any, methodName: string, args: any[]): Value | undefined {
-  if (methodName === '__eq__' && args.length === 1) return owner === args[0];
   if (owner === printFunction) return;
-  if (typeof owner === 'number') {
-    if (args.length === 1) {
-      const arg0 = args[0];
-      if (typeof arg0 === 'number') {
+  if (methodName === '__eq__' && args.length === 1) return owner === args[0];
+  if (methodName === '__ne__' && args.length === 1) return owner !== args[0];
+  switch (typeof owner) {
+    case 'number':
+      if (args.length === 0) {
         switch (methodName) {
-          case '__add__': return owner + arg0;
-          case '__sub__': return owner - arg0;
-          case '__mul__': return owner * arg0;
-          case '__div__': return owner / arg0;
-          case '__mod__': return owner % arg0;
-          case '__lt__': return owner < arg0;
-          case '__gt__': return owner > arg0;
-          case '__le__': return owner <= arg0;
-          case '__ge__': return owner >= arg0;
+          case '__pos__': return owner;
+          case '__neg__': return -owner;
+        }
+      } else if (args.length === 1) {
+        const arg0 = args[0];
+        if (typeof arg0 === 'number') {
+          switch (methodName) {
+            case '__add__': return owner + arg0;
+            case '__sub__': return owner - arg0;
+            case '__mul__': return owner * arg0;
+            case '__div__': return owner / arg0;
+            case '__mod__': return owner % arg0;
+            case '__lt__': return owner < arg0;
+            case '__gt__': return owner > arg0;
+            case '__le__': return owner <= arg0;
+            case '__ge__': return owner >= arg0;
+          }
         }
       }
-    }
-  }
-  if (typeof owner === 'string') {
-    if (args.length === 0) {
-      if (methodName === '__get___size') return owner.length;
-    }
-    if (args.length === 1) {
-      const arg0 = args[0];
-      if (typeof arg0 === 'string') {
-        switch (methodName) {
-          case '__lt__': return owner < arg0;
-          case '__gt__': return owner > arg0;
-          case '__le__': return owner <= arg0;
-          case '__ge__': return owner >= arg0;
+      break;
+    case 'string':
+      if (args.length === 0) {
+        if (methodName === '__get___size') return owner.length;
+      } else if (args.length === 1) {
+        const arg0 = args[0];
+        if (typeof arg0 === 'string') {
+          switch (methodName) {
+            case '__lt__': return owner < arg0;
+            case '__gt__': return owner > arg0;
+            case '__le__': return owner <= arg0;
+            case '__ge__': return owner >= arg0;
+          }
         }
       }
-    }
-  }
-  if (Array.isArray(owner)) {
-    if (args.length === 0) {
-      if (methodName === '__get___size') return owner.length;
-    }
-  }
-  if (typeof owner === 'function') {
-    if (methodName === '__call__') return owner(...args);
+      break;
+    case 'object':
+      if (Array.isArray(owner)) {
+        if (args.length === 0) {
+          if (methodName === '__get___size') return owner.length;
+        }
+      } else {
+        // Some other kind of object
+      }
+      break;
+    case 'function':
+      if (methodName === '__call__') return owner(...args);
+      break;
   }
   return;
 }
