@@ -6,7 +6,6 @@ import {
   BoolType,
   ClassType,
   ClassTypeType,
-  FunctionType,
   InterfaceType,
   InterfaceTypeType,
   LambdaType,
@@ -441,14 +440,14 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
           classValue?.addField(declaration.identifier.name, declaration.isMutable);
           this.declareVariable(variable, false);
           type.addMethod({
-            identifier: { name: `get_${declaration.identifier.name}` },
+            identifier: { name: `__get_${declaration.identifier.name}` },
             parameters: [],
             returnType: variable.type,
             sourceVariable: variable,
           });
           if (declaration.isMutable) {
             type.addMethod({
-              identifier: { name: `set_${declaration.identifier.name}` },
+              identifier: { name: `__set_${declaration.identifier.name}` },
               parameters: [{ identifier: { name: 'value' }, type: variable.type }],
               returnType: variable.type,
               sourceVariable: variable,
@@ -647,11 +646,11 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         const completions: Completion[] = [];
         for (const method of owner.type.methods) {
           const rawName = method.identifier.name;
-          if (rawName.startsWith('set_')) {
+          if (rawName.startsWith('__set_')) {
             // skip setters
-          } else if (rawName.startsWith('get_')) {
+          } else if (rawName.startsWith('__get_')) {
             // field or property
-            const name = rawName.substring('get_'.length);
+            const name = rawName.substring('__get_'.length);
             completions.push({
               name,
               detail: '(property)',
@@ -975,7 +974,7 @@ class ModuleValue implements Value {
     this.annotation = annotation;
     for (const variable of annotation.moduleVariableMap.values()) {
       const value = variable.value;
-      Object.defineProperty(this, `YALget_${variable.identifier.name}`, {
+      Object.defineProperty(this, `YAL__get_${variable.identifier.name}`, {
         value: () => value,
         enumerable: false,
         writable: false,

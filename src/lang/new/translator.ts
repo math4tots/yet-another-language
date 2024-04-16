@@ -23,21 +23,19 @@ const builtinOnlyMethodNames = new Set([
   '__get___size',
 ].flat());
 
-export class TranslationError {
-  readonly location: ast.Location;
+export type TranslationWarning = {
+  readonly location: ast.Location,
   readonly message: string;
-  constructor(location: ast.Location, message: string) {
-    this.location = location;
-    this.message = message;
-  }
-}
+};
 
 function translateVariableName(name: string): string {
+  if (name === 'this') return 'this';
   if (name.startsWith('__js_')) return name.substring(5);
   return 'YAL' + name;
 }
 
 class Translator implements ast.NodeVisitor<string> {
+  readonly warnings: TranslationWarning[] = [];
   visitNilLiteral(n: ast.NilLiteral): string {
     return 'null';
   }
@@ -110,8 +108,8 @@ class Translator implements ast.NodeVisitor<string> {
   visitNativePureFunction(n: ast.NativePureFunction): string {
     const parameters = n.parameters.map(p => translateVariableName(p.identifier.name));
     const body = n.body.find(pair => pair[0].name === 'js')?.[1].value;
-    if (!body) throw new TranslationError(n.location, `Native Pure function missing body`);
-    return `((${parameters.join(',')}) => {${body}})`;
+    if (!body) this.warnings.push({ location: n.location, message: `Native Pure function missing body` });
+    return `((${parameters.join(',')}) => {${body || 'throw new Error("missing pure function body")'}})`;
   }
   visitEmptyStatement(n: ast.EmptyStatement): string { return ''; }
   visitExpressionStatement(n: ast.ExpressionStatement): string { return `${n.expression.accept(this)};`; }
@@ -119,7 +117,7 @@ class Translator implements ast.NodeVisitor<string> {
   visitDeclaration(n: ast.Declaration): string {
     const storageClass = n.isMutable ? 'let' : 'const';
     const value = n.value ? `=${n.value.accept(this)}` : '';
-    return `${storageClass} YAL${n.identifier.name}${value};`;
+    return `${storageClass} ${translateVariableName(n.identifier.name)}${value};`;
   }
   visitIf(n: ast.If): string {
     const condition = n.condition.accept(this);
@@ -154,9 +152,10 @@ class Translator implements ast.NodeVisitor<string> {
         const value = stmt.value;
         if ((value instanceof ast.FunctionDisplay) && !stmt.type) {
           if (builtinOnlyMethodNames.has(name)) {
-            throw new TranslationError(
-              stmt.identifier.location,
-              `You cannot define a method with name ${JSON.stringify(name)} - this is a reserved name`);
+            this.warnings.push({
+              location: stmt.identifier.location,
+              message: `You cannot define a method with name ${JSON.stringify(name)} - this is a reserved name`,
+            });
           }
           const parameters = value.parameters.map(p => `YAL${p.identifier.name}`);
           const body = value.body.accept(this);
@@ -183,11 +182,8 @@ class Translator implements ast.NodeVisitor<string> {
   }
 }
 
-const TRANSLATOR = new Translator();
-
-
 export function getTranslationForFileNode(node: ast.File): string {
-  return node.accept(TRANSLATOR);
+  return node.accept(new Translator());
 }
 
 export async function getTranslationForDocument(document: vscode.TextDocument): Promise<string> {

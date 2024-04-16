@@ -405,17 +405,34 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       }
       if (consume('=')) {
         const methodIdentifier = new ast.IdentifierNode(
-          identifier.location, `set_${identifier.name}`);
+          identifier.location, `__set_${identifier.name}`);
         const value = parseExpression();
         const end = tokens[i - 1].range.end;
         return new ast.MethodCall(
           { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, [value]);
       }
       const methodIdentifier = new ast.IdentifierNode(
-        identifier.location, `get_${identifier.name}`);
+        identifier.location, `__get_${identifier.name}`);
       const end = tokens[i - 1].range.end;
       return new ast.MethodCall(
         { uri, range: { start: startRange.start, end } }, lhs, methodIdentifier, []);
+    }
+    if (consume('[')) {
+      const optokLocation: ast.Location = { uri, range: optok.range };
+      const index = parseExpression();
+      const bracketEnd = expect(']').range.end;
+      if (consume('=')) {
+        const value = parseExpression();
+        const valueEnd = value.location.range.end;
+        const methodIdentifier = new ast.IdentifierNode(optokLocation, '__setitem__');
+        return new ast.MethodCall(
+          { uri, range: { start: startRange.start, end: valueEnd } },
+          lhs, methodIdentifier, [index, value]);
+      }
+      const methodIdentifier = new ast.IdentifierNode(optokLocation, '__getitem__');
+      return new ast.MethodCall(
+        { uri, range: { start: startRange.start, end: bracketEnd } },
+        lhs, methodIdentifier, [index]);
     }
     const precedence = PrecMap.get(tokenType);
     if (precedence && consume('and')) {
