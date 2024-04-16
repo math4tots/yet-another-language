@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as yal from '../../lang/yal';
-import { getAnnotationForDocument } from '../../lang/new/annotator';
+import { getAnnotationForDocument, strStaticValue } from '../../lang/new/annotator';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
@@ -18,7 +18,7 @@ export function newNewInlayHintsProvider(): vscode.InlayHintsProvider {
       for (const printInstance of annotation.printInstances) {
         const irange = toVSRange(printInstance.range);
         hints.push(new vscode.InlayHint(
-          irange.end, ' ' + printInstance.value.toString()));
+          irange.end, ' ' + strStaticValue(printInstance.value)));
       }
       return hints;
     },

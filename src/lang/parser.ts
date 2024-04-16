@@ -30,11 +30,11 @@ const PREC_UNARY_MINUS = PrecMap.get('*')! + 1;
 const PREC_PRIMARY = PrecMap.get('.')! + 1;
 const BinopMethodMap: Map<TokenType, string> = new Map([
   ['==', '__eq__'],
-  ['!=', '__eq__'],
+  ['!=', '__ne__'],
   ['<', '__lt__'],
-  ['<=', '__lt__'],
-  ['>', '__lt__'],
-  ['>=', '__lt__'],
+  ['<=', '__le__'],
+  ['>', '__gt__'],
+  ['>=', '__ge__'],
   ['<<', '__lshift__'],
   ['>>', '__rshift__'],
   ['&', '__and__'],

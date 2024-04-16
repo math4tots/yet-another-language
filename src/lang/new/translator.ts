@@ -8,6 +8,12 @@ const specialUnaryOperatorMap = new Map([
 ]);
 
 const specialBinaryOperatorMap = new Map([
+  ['__eq__', '==='],
+  ['__ne__', '!=='],
+  ['__lt__', '<'],
+  ['__le__', '<='],
+  ['__gt__', '>'],
+  ['__ge__', '>='],
   ['__add__', '+'],
   ['__sub__', '-'],
   ['__mul__', '*'],

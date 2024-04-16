@@ -1,6 +1,5 @@
 import { Identifier } from "../ast";
 import type { Annotation, Variable } from "./annotator";
-import type { ClassValue } from "./value";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
@@ -40,7 +39,6 @@ type InterfaceTypeTypeData = {
 
 type ClassTypeData = {
   readonly fields: Field[];
-  readonly classValue: ClassValue;
 };
 
 type ClassTypeTypeData = {
@@ -354,10 +352,10 @@ function newMethod(params: NewMethodParameters): Method {
   };
 }
 
-export function newClassTypeType(identifier: Identifier, classValue: ClassValue): ClassTypeType {
+export function newClassTypeType(identifier: Identifier): ClassTypeType {
   const classType = new Type({
     identifier,
-    classTypeData: { fields: [], classValue },
+    classTypeData: { fields: [] },
   }) as ClassType;
   const classTypeType = new Type({
     identifier: { location: identifier.location, name: `(class ${identifier.name})` },
@@ -415,6 +413,24 @@ NumberType.addMethod({
   returnType: BoolType,
 });
 
+NumberType.addMethod({
+  identifier: { name: '__gt__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: BoolType,
+});
+
+NumberType.addMethod({
+  identifier: { name: '__le__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: BoolType,
+});
+
+NumberType.addMethod({
+  identifier: { name: '__ge__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  returnType: BoolType,
+});
+
 StringType.addMethod({
   identifier: { name: '__add__' },
   parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
@@ -422,21 +438,53 @@ StringType.addMethod({
 });
 
 StringType.addMethod({
-  identifier: { name: 'get_size' },
+  identifier: { name: '__get___size' },
   parameters: [],
   returnType: NumberType,
+});
+
+StringType.addMethod({
+  identifier: { name: '__lt__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
+  returnType: BoolType,
+});
+
+StringType.addMethod({
+  identifier: { name: '__gt__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
+  returnType: BoolType,
+});
+
+StringType.addMethod({
+  identifier: { name: '__le__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
+  returnType: BoolType,
+});
+
+StringType.addMethod({
+  identifier: { name: '__ge__' },
+  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
+  returnType: BoolType,
 });
 
 function addListMethods(listType: ListType) {
   const itemType = listType.listItemType;
   listType.addMethod({
-    identifier: { name: 'get_size' },
+    identifier: { name: '__get___size' },
     parameters: [],
     returnType: NumberType,
   });
   listType.addMethod({
-    identifier: { name: 'get' },
+    identifier: { name: '__getitem__' },
     parameters: [{ identifier: { name: 'index' }, type: NumberType }],
+    returnType: itemType,
+  });
+  listType.addMethod({
+    identifier: { name: '__setitem__' },
+    parameters: [
+      { identifier: { name: 'index' }, type: NumberType },
+      { identifier: { name: 'value' }, type: itemType },
+    ],
     returnType: itemType,
   });
 }

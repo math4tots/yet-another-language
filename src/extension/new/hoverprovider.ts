@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as yal from '../../lang/yal';
-import { getAnnotationForDocument } from '../../lang/new/annotator';
+import { getAnnotationForDocument, reprStaticValue } from '../../lang/new/annotator';
 import { AnyType } from '../../lang/new/type';
 
 function toVSPosition(p: yal.Position): vscode.Position {
@@ -36,7 +36,7 @@ export function newNewHoverProvider(): vscode.HoverProvider {
           const codeBlock =
             `${storageClass} ${variableName}` +
             (type === AnyType ? '' : `: ${type}`) +
-            (reference.variable.value ? ` = ${reference.variable.value.toRepr()}` : '');
+            (reference.variable.value ? ` = ${reprStaticValue(reference.variable.value)}` : '');
           definitionInfo.appendCodeblock(codeBlock);
 
           if (variable.comment) {

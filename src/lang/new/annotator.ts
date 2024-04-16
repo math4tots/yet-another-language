@@ -24,21 +24,11 @@ import {
 } from './type';
 import { getAstForDocument } from '../parser';
 import { resolveURI } from '../paths';
-import {
-  NIL,
-  BoolValue,
-  ClassValue,
-  FunctionValue,
-  ListValue,
-  NilValue,
-  NumberValue,
-  StringValue,
-  Value,
-  TRUE,
-  FALSE,
-} from './value';
 import { newPureFunctionValue } from './pure';
 import { newClosure } from './eval';
+
+
+type Value = null | boolean | number | string | Value[];
 
 
 export type ValueInfo = { readonly type: Type; readonly value?: Value; };
@@ -100,13 +90,13 @@ BASE_SCOPE['Number'] =
 BASE_SCOPE['String'] =
   { identifier: StringType.identifier, type: AnyType };
 
-const printFunctionValue = new FunctionValue(function print(x) { return NIL; });
+const printFunction = (function print(x: any) { console.log('' + x); return null; }) as any;
 
 // Dummy 'print' function
 BASE_SCOPE['print'] = {
   identifier: { name: 'print' },
   type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
-  value: printFunctionValue,
+  value: printFunction,
 };
 
 export type AnnotationError = ast.ParseError;
@@ -407,7 +397,6 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
 
   private addMethodsAndFields(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
     const fields = type.classTypeData?.fields;
-    const classValue = type.classTypeData?.classValue;
     for (const declaration of bodyStatements) {
       if (declaration instanceof ast.Declaration) {
         const value = declaration.value;
@@ -437,7 +426,6 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
             comment: declaration.comment || undefined,
           };
           fields?.push(variable);
-          classValue?.addField(declaration.identifier.name, declaration.isMutable);
           this.declareVariable(variable, false);
           type.addMethod({
             identifier: { name: `__get_${declaration.identifier.name}` },
@@ -464,12 +452,10 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     // forward declare classes
     for (const defn of statements) {
       if (defn instanceof ast.ClassDefinition) {
-        const classValue = new ClassValue(defn.identifier.name);
         const variable: ClassVariable = {
           identifier: defn.identifier,
-          type: newClassTypeType(defn.identifier, classValue),
+          type: newClassTypeType(defn.identifier),
           comment: getCommentFromClassDefinition(defn),
-          value: classValue,
         };
         this.classMap.set(defn, variable);
         this.declareVariable(variable);
@@ -501,16 +487,16 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
 
   visitNilLiteral(n: ast.NilLiteral): ValueInfo {
-    return { type: NilType, value: NilValue.INSTANCE };
+    return { type: NilType, value: null };
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): ValueInfo {
-    return { type: BoolType, value: BoolValue.of(n.value) };
+    return { type: BoolType, value: n.value };
   }
   visitNumberLiteral(n: ast.NumberLiteral): ValueInfo {
-    return { type: NumberType, value: NumberValue.of(n.value) };
+    return { type: NumberType, value: n.value };
   }
   visitStringLiteral(n: ast.StringLiteral): ValueInfo {
-    return { type: StringType, value: StringValue.of(n.value) };
+    return { type: StringType, value: n.value };
   }
   visitIdentifierNode(n: ast.IdentifierNode): ValueInfo {
     const scope = this.scope;
@@ -576,7 +562,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     for (const element of n.values) {
       const elementInfo = this.solveExpr(element, itemType, false);
       itemType = itemType.getCommonType(elementInfo.type);
-      if (elementInfo.value) {
+      if (elementInfo.value !== undefined) {
         values?.push(elementInfo.value);
       } else {
         values = undefined;
@@ -585,7 +571,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     return {
       type: itemType.list(),
       value: (startErrorCount === this.annotation.errors.length && values) ?
-        ListValue.of(values) : undefined
+        values : undefined
     };
   }
   private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
@@ -633,7 +619,9 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       // Only bother with even trying to create a pure function if processing the
       // entire function display produced no errors
       value: startErrorCount === this.annotation.errors.length ?
-        newPureFunctionValue(n, this.scope) : undefined
+        undefined : // TODO
+        undefined
+      // newPureFunctionValue(n, this.scope) : undefined
     };
   }
 
@@ -687,26 +675,19 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     const argValues: Value[] = [];
     for (let i = 0; i < method.parameters.length; i++) {
       const info = this.solveExpr(n.args[i], method.parameters[i].type);
-      if (info.value) argValues.push(info.value);
+      if (info.value !== undefined) argValues.push(info.value);
     }
 
     // If we did not encounter any errors, as a bonus, try computing the static value
     let staticValue: Value | undefined;
-    if (this.annotation.errors.length === startErrorCount) {
-      const methodKey = `YAL${n.identifier.name}`;
-      if (owner.value && argValues.length === method.parameters.length && (owner.value as any)[methodKey]) {
-        try {
-          staticValue = (owner.value as any)[methodKey](...argValues);
-        } catch (e) {
-          // if there's an error, just default to undefined
-          this.error(n.location, `eval error: ${e}`);
-        }
-        if (owner.value === printFunctionValue && argValues.length === 1) {
-          this.annotation.printInstances.push({
-            range: n.location.range,
-            value: argValues[0],
-          });
-        }
+    if (this.annotation.errors.length === startErrorCount && argValues.length === method.parameters.length) {
+      if (owner.value === printFunction && argValues.length === 1) {
+        this.annotation.printInstances.push({
+          range: n.location.range,
+          value: argValues[0],
+        });
+      } else {
+        staticValue = evalMethodCall(owner.value, n.identifier.name, argValues);
       }
     }
     return { type: method.returnType, value: staticValue };
@@ -736,25 +717,25 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
   }
   visitLogicalNot(n: ast.LogicalNot): ValueInfo {
     const { value } = this.solveExpr(n.value);
-    return { type: BoolType, value: value ? value.test() ? TRUE : FALSE : undefined };
+    return { type: BoolType, value: value === undefined ? undefined : !value };
   }
   visitLogicalAnd(n: ast.LogicalAnd): ValueInfo {
     const { value: lhs } = this.solveExpr(n.lhs);
     const { value: rhs } = this.solveExpr(n.rhs);
-    return { type: BoolType, value: (lhs && rhs) ? (lhs.test() && rhs.test() ? TRUE : FALSE) : undefined };
+    return { type: BoolType, value: (lhs !== undefined && !lhs) ? lhs : rhs };
   }
   visitLogicalOr(n: ast.LogicalOr): ValueInfo {
     const { value: lhs } = this.solveExpr(n.lhs);
     const { value: rhs } = this.solveExpr(n.rhs);
-    return { type: BoolType, value: (lhs && rhs) ? (lhs.test() || rhs.test() ? TRUE : FALSE) : undefined };
+    return { type: BoolType, value: (lhs !== undefined && lhs) ? lhs : rhs };
   }
   visitConditional(n: ast.Conditional): ValueInfo {
     const condition = this.solveExpr(n.condition);
     const lhs = this.solveExpr(n.lhs);
     const rhs = this.solveExpr(n.rhs);
-    const value = condition.value ?
-      condition.value.test() ? lhs.value : rhs.value :
-      undefined;
+    const value = condition.value === undefined ?
+      undefined :
+      condition.value ? lhs.value : rhs.value;
     return { type: lhs.type.getCommonType(rhs.type), value };
   }
   visitTypeAssertion(n: ast.TypeAssertion): ValueInfo {
@@ -772,18 +753,12 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     }));
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const lambdaType = newLambdaType(parameters, returnType);
-    let value: FunctionValue | undefined;
-    for (const [identifier, content] of n.body) {
-      if (identifier.name === 'js') {
-        value = new FunctionValue(newClosure(
-          'native',
-          n.parameters.map(p => p.identifier.name),
-          content.value
-          // `"use strict"; ${content.value}`
-        ) as any);
-      }
-    }
-    return { type: lambdaType, value };
+    const parameterNames = n.parameters.map(p => p.identifier.name);
+    const body = n.body.find(pair => pair[0].name === 'js')?.[1].value;
+    return {
+      type: lambdaType,
+      value: body == undefined ? undefined : (Function(...parameterNames, body) as any),
+    };
   }
   visitEmptyStatement(n: ast.EmptyStatement): RunStatus {
     return Continues;
@@ -962,35 +937,64 @@ function getModuleVariableForModuleType(moduleType: ModuleType): ModuleVariable 
   const variable: ModuleVariable = {
     identifier: moduleType.identifier,
     type: moduleType,
-    value: new ModuleValue(moduleType.moduleTypeData.annotation),
   };
   moduleVariableMap.set(moduleType, variable);
   return variable;
 }
 
-class ModuleValue implements Value {
-  readonly annotation: Annotation;
-  constructor(annotation: Annotation) {
-    this.annotation = annotation;
-    for (const variable of annotation.moduleVariableMap.values()) {
-      const value = variable.value;
-      Object.defineProperty(this, `YAL__get_${variable.identifier.name}`, {
-        value: () => value,
-        enumerable: false,
-        writable: false,
-      });
-      if (value instanceof FunctionValue) {
-        Object.defineProperty(this, `YAL${variable.identifier.name}`, {
-          value: (...args: Value[]) => value.value(...args),
-          enumerable: false,
-          writable: false,
-        });
+export function reprStaticValue(x: any): string {
+  if (typeof x === 'function') return x.name ? `<function ${x.name}>` : '<function>';
+  return JSON.stringify(x);
+}
+
+export function strStaticValue(x: any): string {
+  return typeof x === 'string' ? x : reprStaticValue(x);
+}
+
+function evalMethodCall(owner: any, methodName: string, args: any[]): Value | undefined {
+  if (methodName === '__eq__' && args.length === 1) return owner === args[0];
+  if (owner === printFunction) return;
+  if (typeof owner === 'number') {
+    if (args.length === 1) {
+      const arg0 = args[0];
+      if (typeof arg0 === 'number') {
+        switch (methodName) {
+          case '__add__': return owner + arg0;
+          case '__sub__': return owner - arg0;
+          case '__mul__': return owner * arg0;
+          case '__div__': return owner / arg0;
+          case '__mod__': return owner % arg0;
+          case '__lt__': return owner < arg0;
+          case '__gt__': return owner > arg0;
+          case '__le__': return owner <= arg0;
+          case '__ge__': return owner >= arg0;
+        }
       }
     }
   }
-  isNil(): boolean { return false; }
-  test(): boolean { return true; }
-  equals(rhs: Value): boolean { return this === rhs; }
-  toString(): string { return this.toRepr(); }
-  toRepr(): string { return `<module>`; }
+  if (typeof owner === 'string') {
+    if (args.length === 0) {
+      if (methodName === '__get___size') return owner.length;
+    }
+    if (args.length === 1) {
+      const arg0 = args[0];
+      if (typeof arg0 === 'string') {
+        switch (methodName) {
+          case '__lt__': return owner < arg0;
+          case '__gt__': return owner > arg0;
+          case '__le__': return owner <= arg0;
+          case '__ge__': return owner >= arg0;
+        }
+      }
+    }
+  }
+  if (Array.isArray(owner)) {
+    if (args.length === 0) {
+      if (methodName === '__get___size') return owner.length;
+    }
+  }
+  if (typeof owner === 'function') {
+    if (methodName === '__call__') return owner(...args);
+  }
+  return;
 }
