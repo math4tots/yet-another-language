@@ -200,7 +200,7 @@ export type Method = {
    * This is the Variable that this method "comes from".
    * 
    * In some cases, a single "Variable" can be associated with multiple
-   * methods (e.g. with set_* and get_* style Methods).
+   * methods (e.g. with __set_* and __get_* style Methods).
    */
   readonly sourceVariable: Variable;
 };
@@ -284,14 +284,14 @@ export function newModuleType(annotation: Annotation): ModuleType {
   const moduleType = new Type({ identifier, moduleTypeData: { annotation } }) as ModuleType;
   for (const variable of annotation.moduleVariableMap.values()) {
     moduleType.addMethod({
-      identifier: { name: `get_${variable.identifier.name}` },
+      identifier: { name: `__get_${variable.identifier.name}` },
       parameters: [],
       returnType: variable.type,
       sourceVariable: variable,
     });
     if (variable.isMutable) {
       moduleType.addMethod({
-        identifier: { name: `set_${variable.identifier.name}` },
+        identifier: { name: `__set_${variable.identifier.name}` },
         parameters: [{ identifier: variable.identifier, type: variable.type }],
         returnType: NilType,
         sourceVariable: variable,
@@ -331,7 +331,7 @@ interface NewMethodParameters {
    * This is the Variable that this method "comes from".
    * 
    * In some cases, a single "Variable" can be associated with multiple
-   * methods (e.g. with set_* and get_* style Methods).
+   * methods (e.g. with __set_* and __get_* style Methods).
    */
   readonly sourceVariable?: Variable;
 };

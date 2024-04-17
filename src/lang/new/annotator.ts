@@ -24,11 +24,34 @@ import {
 } from './type';
 import { getAstForDocument } from '../parser';
 import { resolveURI } from '../paths';
-import { newPureFunctionValue } from './pure';
-import { newClosure } from './eval';
+import { translateVariableName } from './translator';
 
 
-type Value = null | boolean | number | string | Value[];
+type Value = null | boolean | number | string | Value[] | ModuleValue;
+
+
+function newModuleValue(annotation: Annotation) {
+  const value = Object.create(null);
+  Object.defineProperties(value, {
+    toString: {}
+  });
+  return value;
+}
+
+export class ModuleValue {
+  constructor(annotation: Annotation) {
+    for (const variable of annotation.moduleVariableMap.values()) {
+      if (!variable.isMutable && variable.value !== undefined) {
+        Object.defineProperty(this, translateVariableName(variable.identifier.name), {
+          value: variable.value,
+          enumerable: true,
+          writable: false,
+        });
+      }
+    }
+  }
+  toString() { return '<module>'; }
+}
 
 
 export type ValueInfo = { readonly type: Type; readonly value?: Value; };
@@ -632,6 +655,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
       range: n.identifier.location.range,
       getCompletions(): Completion[] {
         const completions: Completion[] = [];
+        const seen = new Set<string>();
         for (const method of owner.type.methods) {
           const rawName = method.identifier.name;
           if (rawName.startsWith('__set_')) {
@@ -639,6 +663,8 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
           } else if (rawName.startsWith('__get_')) {
             // field or property
             const name = rawName.substring('__get_'.length);
+            if (seen.has(name)) continue;
+            seen.add(name);
             completions.push({
               name,
               detail: '(property)',
@@ -646,6 +672,8 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
           } else {
             // normal methods
             const name = rawName;
+            if (seen.has(name)) continue;
+            seen.add(name);
             completions.push({
               name,
               detail: '(method)',
@@ -757,7 +785,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     const body = n.body.find(pair => pair[0].name === 'js')?.[1].value;
     return {
       type: lambdaType,
-      value: body == undefined ? undefined : (Function(...parameterNames, body) as any),
+      value: body == undefined ? undefined : (Function(...parameterNames, `"use strict";${body}`) as any),
     };
   }
   visitEmptyStatement(n: ast.EmptyStatement): RunStatus {
@@ -937,6 +965,7 @@ function getModuleVariableForModuleType(moduleType: ModuleType): ModuleVariable 
   const variable: ModuleVariable = {
     identifier: moduleType.identifier,
     type: moduleType,
+    value: new ModuleValue(moduleType.moduleTypeData.annotation),
   };
   moduleVariableMap.set(moduleType, variable);
   return variable;
@@ -944,6 +973,7 @@ function getModuleVariableForModuleType(moduleType: ModuleType): ModuleVariable 
 
 export function reprStaticValue(x: any): string {
   if (typeof x === 'function') return x.name ? `<function ${x.name}>` : '<function>';
+  if (x instanceof ModuleValue) return '<module>';
   return JSON.stringify(x);
 }
 
@@ -998,6 +1028,22 @@ function evalMethodCall(owner: any, methodName: string, args: any[]): Value | un
       if (Array.isArray(owner)) {
         if (args.length === 0) {
           if (methodName === '__get___size') return owner.length;
+        } else if (args.length === 1) {
+          const arg0 = args[0];
+          if (typeof arg0 === 'number' && methodName === '__getitem__') {
+            return owner[arg0];
+          }
+        }
+      } else if (owner instanceof ModuleValue) {
+        if (methodName.startsWith('__get_')) {
+          const fieldName = methodName.substring('__get_'.length);
+          const modifiedFieldName = translateVariableName(fieldName);
+          if ((owner as any)[modifiedFieldName]) return (owner as any)[modifiedFieldName];
+        } else if (methodName.startsWith('__set_')) {
+          // setters... ignore
+        } else {
+          const modifiedMethodName = translateVariableName(methodName);
+          if ((owner as any)[modifiedMethodName]) return (owner as any)[modifiedMethodName](...args);
         }
       } else {
         // Some other kind of object
