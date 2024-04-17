@@ -186,7 +186,7 @@ export class JSCodegen implements ast.NodeVisitor<void> {
     }
     this.out += '}}\n';
   }
-  visitNilLiteral(n: ast.NilLiteral): void {
+  visitNullLiteral(n: ast.NullLiteral): void {
     this.out += 'YALnil';
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): void {

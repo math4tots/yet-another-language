@@ -42,7 +42,7 @@ export function translateVariableName(name: string): string {
 
 class Translator implements ast.NodeVisitor<string> {
   readonly warnings: TranslationWarning[] = [];
-  visitNilLiteral(n: ast.NilLiteral): string {
+  visitNullLiteral(n: ast.NullLiteral): string {
     return 'null';
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): string {

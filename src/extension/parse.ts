@@ -41,9 +41,9 @@ class Printer implements yal.ast.NodeVisitor<void> {
     }
     this.depth--;
   }
-  visitNilLiteral(n: yal.ast.NilLiteral): void {
+  visitNullLiteral(n: yal.ast.NullLiteral): void {
     this.indent();
-    this.out += `nil`;
+    this.out += `null`;
   }
   visitBooleanLiteral(n: yal.ast.BooleanLiteral): void {
     this.indent();

@@ -21,7 +21,7 @@ export function reprValue(value: Value): string {
     case 'number': return '' + v;
     case 'string': return JSON.stringify(v);
     case 'object':
-      if (v === null) return 'nil';
+      if (v === null) return 'null';
       if (Array.isArray(v)) return `[${v.map(e => reprValue(e)).join(', ')}]`;
       if (v instanceof Type) return v.repr();
       if (v instanceof Method) return `<function ${v.identifier.name}>`;

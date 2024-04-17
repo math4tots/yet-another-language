@@ -23,7 +23,7 @@
 			"patterns": [
 				{
 					"name": "constant.language.yal",
-					"match": "\\b(true|false|nil|null|super|this)\\b"
+					"match": "\\b(true|false|null|super|this)\\b"
 				},
 				{
 					"name": "storage.type",

@@ -207,9 +207,9 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
 
   function parsePrefix(): ast.Expression {
     const peek = tokens[i];
-    if (peek.type === 'nil' || peek.type === 'null') {
+    if (peek.type === 'null') {
       i++;
-      return new ast.NilLiteral({ uri, range: peek.range });
+      return new ast.NullLiteral({ uri, range: peek.range });
     }
     if (peek.type === 'true') {
       i++;

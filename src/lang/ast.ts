@@ -18,7 +18,7 @@ export interface ExplicitIdentifier {
 };
 
 export interface ExpressionVisitor<R> {
-  visitNilLiteral(n: NilLiteral): R;
+  visitNullLiteral(n: NullLiteral): R;
   visitBooleanLiteral(n: BooleanLiteral): R;
   visitNumberLiteral(n: NumberLiteral): R;
   visitStringLiteral(n: StringLiteral): R;
@@ -91,12 +91,12 @@ export class TypeExpression {
   }
 }
 
-export class NilLiteral implements Expression {
+export class NullLiteral implements Expression {
   readonly location: Location;
   constructor(location: Location) {
     this.location = location;
   }
-  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNilLiteral(this); }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNullLiteral(this); }
 }
 
 export class BooleanLiteral implements Expression {

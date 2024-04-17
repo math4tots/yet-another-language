@@ -516,7 +516,7 @@ export class Annotator implements
     }
   }
 
-  visitNilLiteral(n: ast.NilLiteral): ValueInfo {
+  visitNullLiteral(n: ast.NullLiteral): ValueInfo {
     return { type: NilType, value: null };
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): ValueInfo {
@@ -543,7 +543,7 @@ export class Annotator implements
           }
         }
         // additionally, provide provide completions for constants
-        completions.push({ name: 'nil' });
+        completions.push({ name: 'null' });
         completions.push({ name: 'true' });
         completions.push({ name: 'false' });
         completions.push({ name: 'function' });
@@ -631,7 +631,7 @@ export class Annotator implements
       if (status !== Jumps && !NilType.isAssignableTo(returnType)) {
         this.errors.push({
           location: n.returnType?.location || n.body.location,
-          message: `Function with non-nil return type must have explicit return`,
+          message: `Function with non-null return type must have explicit return`,
         });
       }
     });
@@ -868,7 +868,7 @@ export class Annotator implements
     if (!n.value && !NilType.isAssignableTo(value.type)) {
       this.errors.push({
         location: n.identifier.location,
-        message: `A declaration that cannot be nil must have an explicit initial value`,
+        message: `A declaration that cannot be null must have an explicit initial value`,
       });
     }
     const comment = n.comment || getCommentFromFunctionDisplay(n.value);

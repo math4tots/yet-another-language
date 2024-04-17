@@ -504,7 +504,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
     }
   }
 
-  visitNilLiteral(n: ast.NilLiteral): ValueInfo {
+  visitNullLiteral(n: ast.NullLiteral): ValueInfo {
     return { type: NilType, value: null };
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): ValueInfo {
@@ -526,7 +526,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
           completions.push({ name: key });
         }
         // additionally, provide provide completions for constants and keywords
-        completions.push({ name: 'nil' });
+        completions.push({ name: 'null' });
         completions.push({ name: 'true' });
         completions.push({ name: 'false' });
         completions.push({ name: 'function' });
@@ -625,7 +625,7 @@ class Annotator implements ast.ExpressionVisitor<ValueInfo>, ast.StatementVisito
         const result = this.solveStmt(n.body);
         if (result !== Jumps && !NilType.isAssignableTo(returnType)) {
           this.error(
-            n.location, `This function cannot return nil and this function might not return`);
+            n.location, `This function cannot return null and this function might not return`);
         }
       } finally {
         this.currentReturnType = outerReturnType;

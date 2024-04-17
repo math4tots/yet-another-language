@@ -11,7 +11,7 @@ export type Range = {
   readonly end: Position;
 };
 export const Keywords = [
-  'nil', 'null', 'true', 'false',
+  'null', 'true', 'false',
   'and', 'or', 'is', 'in', 'as',
   'not',
   'new',
