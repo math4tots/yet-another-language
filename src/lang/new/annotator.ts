@@ -30,14 +30,6 @@ import { translateVariableName } from './translator';
 type Value = null | boolean | number | string | Value[] | ModuleValue;
 
 
-function newModuleValue(annotation: Annotation) {
-  const value = Object.create(null);
-  Object.defineProperties(value, {
-    toString: {}
-  });
-  return value;
-}
-
 export class ModuleValue {
   constructor(annotation: Annotation) {
     for (const variable of annotation.moduleVariableMap.values()) {
@@ -166,7 +158,10 @@ export type Annotation = {
   readonly callInstances: CallInstance[];
   readonly moduleVariableMap: Map<string, Variable>;
   readonly importMap: Map<string, Annotation>;
+  readonly modifiedAST: ast.File;
 };
+
+type AnnotationWIP = Annotation & { modifiedAST: ast.File; };
 
 type AnnotatorParameters = {
   readonly annotation: Annotation;
@@ -928,7 +923,7 @@ export async function getAnnotationForDocument(
   const key = uri.toString();
   const cached = annotationCache.get(key);
   const fileNode = await getAstForDocument(document);
-  const annotation: Annotation = {
+  const annotation: AnnotationWIP = {
     uri,
     documentVersion: document.version,
     errors: [...fileNode.errors],
@@ -939,6 +934,7 @@ export async function getAnnotationForDocument(
     callInstances: [],
     moduleVariableMap: new Map(),
     importMap: new Map(),
+    modifiedAST: fileNode,
   };
   const annotator = new Annotator({ annotation, stack, cached });
   stack.add(key);
