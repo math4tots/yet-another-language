@@ -61,7 +61,7 @@ export function evalMethodCall(owner: any, methodName: string, args: any[]): Val
       break;
     case 'string':
       if (args.length === 0) {
-        if (methodName === '__get___size') return owner.length;
+        if (methodName === '__get_size') return owner.length;
       } else if (args.length === 1) {
         const arg0 = args[0];
         if (typeof arg0 === 'string') {
@@ -78,7 +78,7 @@ export function evalMethodCall(owner: any, methodName: string, args: any[]): Val
     case 'object':
       if (Array.isArray(owner)) {
         if (args.length === 0) {
-          if (methodName === '__get___size') return owner.length;
+          if (methodName === '__get_size') return owner.length;
         } else if (args.length === 1) {
           const arg0 = args[0];
           if (typeof arg0 === 'number' && methodName === '__getitem__') {

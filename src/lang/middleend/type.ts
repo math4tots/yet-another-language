@@ -436,7 +436,7 @@ StringType.addMethod({
 });
 
 StringType.addMethod({
-  identifier: { name: '__get___size' },
+  identifier: { name: '__get_size' },
   parameters: [],
   returnType: NumberType,
 });
@@ -468,7 +468,7 @@ StringType.addMethod({
 function addListMethods(listType: ListType) {
   const itemType = listType.listItemType;
   listType.addMethod({
-    identifier: { name: '__get___size' },
+    identifier: { name: '__get_size' },
     parameters: [],
     returnType: NumberType,
   });

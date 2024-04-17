@@ -64,5 +64,5 @@ export type Annotation = {
   readonly moduleVariableMap: Map<string, Variable>;
   readonly importMap: Map<string, Annotation>;
   readonly importAliasVariables: ModuleVariable[];
-  readonly modifiedAST: ast.File;
+  readonly ir: ast.File;
 };

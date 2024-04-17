@@ -79,6 +79,7 @@ type BResult = SResult & { readonly ir: ast.Block; };
 /** Result of annotating a file */
 type FResult = {
   readonly useCached: boolean;
+  readonly ir: ast.File;
 };
 
 class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
@@ -314,12 +315,14 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
 
     if (canUseCached) {
-      return { useCached: true };
+      return { useCached: true, ir: n };
     }
 
     this.forwardDeclare(n.statements);
+    const irs: ast.Statement[] = [];
     for (const statement of n.statements) {
-      this.solveStmt(statement);
+      const result = this.solveStmt(statement);
+      if (!(result.ir instanceof ast.EmptyStatement)) irs.push(result.ir);
     }
 
     // We collect module variables to determine which ones should
@@ -327,7 +330,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       this.annotation.moduleVariableMap.set(key, this.scope[key]);
     }
 
-    return { useCached: false };
+    return { useCached: false, ir: new ast.File(n.location, n.documentVersion, irs, n.errors) };
   }
 
   private addMethodsAndFields(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
@@ -932,7 +935,7 @@ export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<strin
 
 const annotationCache = new Map<string, Annotation>();
 
-type AnnotationWIP = Annotation & { modifiedAST: ast.File; };
+type AnnotationWIP = Annotation & { ir: ast.File; };
 
 export async function getAnnotationForDocument(
   document: vscode.TextDocument,
@@ -954,11 +957,12 @@ export async function getAnnotationForDocument(
     moduleVariableMap: new Map(),
     importMap: new Map(),
     importAliasVariables: [],
-    modifiedAST: fileNode,
+    ir: fileNode,
   };
   const annotator = new Annotator({ annotation, stack, cached });
   stack.add(key);
-  const { useCached } = await annotator.handle(fileNode);
+  const { useCached, ir } = await annotator.handle(fileNode);
+  annotation.ir = ir;
   stack.delete(key);
   // console.log(`DEBUG getAnnotationForDocument ${key} ${useCached ? '(cached)' : ''}`);
   if (cached && useCached) {
