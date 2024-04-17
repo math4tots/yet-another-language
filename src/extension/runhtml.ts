@@ -7,26 +7,26 @@ export async function runHTMLCommand() {
   if (!editor) {
     return;
   }
-  const translation = await yal.translateToJavascript(editor.document);
-  const javascript = `"use strict";${translation}`;
-  const html = `<!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YAL VIEW</title>
-  </head>
-  <body>
-    <script>${javascript}</script>
-  </body>
-  </html>`;
-  const panel = vscode.window.createWebviewPanel(
-    'yalhtml',
-    'YAL',
-    vscode.ViewColumn.Active,
-    {
-      enableScripts: true,
-    }
-  );
-  panel.webview.html = html;
+  // const translation = await yal.translateToJavascript(editor.document);
+  // const javascript = `"use strict";${translation}`;
+  // const html = `<!DOCTYPE html>
+  // <html lang="en">
+  // <head>
+  //   <meta charset="UTF-8">
+  //   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  //   <title>YAL VIEW</title>
+  // </head>
+  // <body>
+  //   <script>${javascript}</script>
+  // </body>
+  // </html>`;
+  // const panel = vscode.window.createWebviewPanel(
+  //   'yalhtml',
+  //   'YAL',
+  //   vscode.ViewColumn.Active,
+  //   {
+  //     enableScripts: true,
+  //   }
+  // );
+  // panel.webview.html = html;
 }
