@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as yal from '../lang/yal';
 import { writeToNewEditor } from './utils';
-import { getAstForDocument } from '../lang/parser';
+import { getAstForDocument } from '../lang/frontend/parser';
 import { getTranslationForDocument } from '../lang/new/translator';
 
 export async function translateToJSCommand() {

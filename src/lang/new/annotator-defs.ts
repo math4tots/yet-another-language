@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import * as ast from '../ast';
+import * as ast from '../frontend/ast';
 import { translateVariableName } from './translator-util';
 import type { ClassTypeType, InterfaceTypeType, ModuleType, Parameter, Type } from './type';
-import type { Range } from '../lexer';
+import type { Range } from '../frontend/lexer';
 
 export type AnnotationError = ast.ParseError;
 

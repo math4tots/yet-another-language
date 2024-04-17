@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as ast from '../ast';
-import { getAstForDocument } from '../parser';
+import * as ast from '../frontend/ast';
+import { getAstForDocument } from '../frontend/parser';
 import { translateVariableName } from './translator-util';
 
 const specialUnaryOperatorMap = new Map([

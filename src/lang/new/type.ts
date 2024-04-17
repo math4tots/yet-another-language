@@ -1,4 +1,4 @@
-import { Identifier } from "../ast";
+import { Identifier } from "../frontend/ast";
 import type { Annotation, Variable } from "./annotator-defs";
 
 type TypeConstructorParameters = {

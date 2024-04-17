@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as ast from '../ast';
-import { Position, Range } from '../lexer';
+import * as ast from '../frontend/ast';
+import { Position, Range } from '../frontend/lexer';
 import {
   AnyType,
   BoolType,
@@ -22,7 +22,7 @@ import {
   newLambdaType,
   newModuleType,
 } from './type';
-import { getAstForDocument } from '../parser';
+import { getAstForDocument } from '../frontend/parser';
 import { resolveURI } from '../paths';
 import { translateVariableName } from './translator-util';
 import {

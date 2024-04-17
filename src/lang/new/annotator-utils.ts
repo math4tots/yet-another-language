@@ -1,4 +1,4 @@
-import * as ast from '../ast';
+import * as ast from '../frontend/ast';
 
 export function getCommentFromSeq(stmts: ast.Statement[]): ast.StringLiteral | undefined {
   return (stmts.length > 0 &&
