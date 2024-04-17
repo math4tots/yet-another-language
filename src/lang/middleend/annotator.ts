@@ -50,6 +50,12 @@ type AnnotatorParameters = {
 type EResult = {
   readonly type: Type;
   readonly value?: Value;
+
+  /**
+   * Intermediate Representation
+   * A modified version of the AST better suited for code generation
+   */
+  readonly ir: ast.Expression;
 };
 
 const Continues = Symbol('Continues');
@@ -403,16 +409,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
 
   visitNullLiteral(n: ast.NullLiteral): EResult {
-    return { type: NilType, value: null };
+    return { type: NilType, value: null, ir: n };
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): EResult {
-    return { type: BoolType, value: n.value };
+    return { type: BoolType, value: n.value, ir: n };
   }
   visitNumberLiteral(n: ast.NumberLiteral): EResult {
-    return { type: NumberType, value: n.value };
+    return { type: NumberType, value: n.value, ir: n };
   }
   visitStringLiteral(n: ast.StringLiteral): EResult {
-    return { type: StringType, value: n.value };
+    return { type: StringType, value: n.value, ir: n };
   }
   visitIdentifierNode(n: ast.IdentifierNode): EResult {
     const scope = this.scope;
@@ -440,54 +446,46 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const variable = this.scope[n.name];
     if (!variable) {
       this.error(n.location, `Variable ${JSON.stringify(n.name)} not found`);
-      return { type: AnyType };
+      return { type: AnyType, ir: n };
     }
     this.markReference(variable, n.location.range);
-    return { type: variable.type, value: variable.value };
+    return { type: variable.type, value: variable.value, ir: n };
   }
   visitAssignment(n: ast.Assignment): EResult {
     const rhs = this.solveExpr(n.value);
     const variable = this.scope[n.identifier.name];
     if (!variable) {
       this.error(n.location, `Variable ${JSON.stringify(n.identifier.name)} not found`);
-      return { type: AnyType };
+      return { type: AnyType, ir: n };
     }
     if (!variable.isMutable) {
       this.error(n.location, `Variable ${n.identifier.name} is not mutable`);
-      return { type: variable.type };
+      return { type: variable.type, ir: n };
     }
     if (!rhs.type.isAssignableTo(variable.type)) {
       this.error(
         n.identifier.location,
         `Value of type ${rhs.type} is not assignable to variable of type ${variable.type}`);
     }
-    return { type: variable.type, value: rhs.value };
+    const ir = new ast.Assignment(n.location, n.identifier, rhs.ir);
+    return { type: variable.type, value: rhs.value, ir };
   }
   visitListDisplay(n: ast.ListDisplay): EResult {
     const startErrorCount = this.annotation.errors.length;
-    const givenItemType = this.hint.listItemType;
-    if (givenItemType) {
-      for (const element of n.values) {
-        this.solveExpr(element, givenItemType);
-      }
-      return { type: givenItemType.list() };
-    }
-    if (n.values.length === 0) return { type: AnyType };
-    let itemType: Type = NeverType;
+    let itemType = this.hint.listItemType || NeverType;
     let values: Value[] | undefined = [];
+    const irs: ast.Expression[] = [];
     for (const element of n.values) {
-      const elementInfo = this.solveExpr(element, itemType, false);
-      itemType = itemType.getCommonType(elementInfo.type);
-      if (elementInfo.value !== undefined) {
-        values?.push(elementInfo.value);
-      } else {
-        values = undefined;
-      }
+      const result = this.solveExpr(element, itemType, false);
+      itemType = itemType.getCommonType(result.type);
+      irs.push(result.ir);
+      if (result.value === undefined) values = undefined;
+      else values?.push(result.value);
     }
     return {
       type: itemType.list(),
-      value: (startErrorCount === this.annotation.errors.length && values) ?
-        values : undefined
+      value: (startErrorCount === this.annotation.errors.length && values) ? values : undefined,
+      ir: new ast.ListDisplay(n.location, irs),
     };
   }
   private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
@@ -506,7 +504,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   visitFunctionDisplay(n: ast.FunctionDisplay): EResult {
     const startErrorCount = this.annotation.errors.length;
     const lambdaType = this.solveFunctionDisplayType(n);
-    this.scoped(() => {
+    return this.scoped(() => {
       const parameters = lambdaType.lambdaTypeData.parameters;
       const returnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
       const outerReturnType = this.currentReturnType;
@@ -525,20 +523,25 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           this.error(
             n.location, `This function cannot return null and this function might not return`);
         }
+        return {
+          type: lambdaType,
+
+          // Only bother with even trying to create a pure function if processing the
+          // entire function display produced no errors
+          value: startErrorCount === this.annotation.errors.length ?
+            undefined : // TODO
+            undefined,
+          // newPureFunctionValue(n, this.scope) : undefined
+
+          ir: new ast.FunctionDisplay(
+            n.location, n.parameters, n.returnType,
+            // TODO: return result.ir
+            n.body),
+        };
       } finally {
         this.currentReturnType = outerReturnType;
       }
     });
-    return {
-      type: lambdaType,
-
-      // Only bother with even trying to create a pure function if processing the
-      // entire function display produced no errors
-      value: startErrorCount === this.annotation.errors.length ?
-        undefined : // TODO
-        undefined
-      // newPureFunctionValue(n, this.scope) : undefined
-    };
   }
 
   visitMethodCall(n: ast.MethodCall): EResult {
@@ -580,7 +583,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     if (!method) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `Method ${n.identifier.name} not found on type ${owner.type}`);
-      return { type: AnyType };
+      return { type: AnyType, ir: n };
     }
     this.annotation.callInstances.push({
       range: n.location.range,
@@ -591,12 +594,14 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     if (method.parameters.length !== n.args.length) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
-      return { type: method.returnType };
+      return { type: method.returnType, ir: n };
     }
     const argValues: Value[] = [];
+    const argIRs: ast.Expression[] = [];
     for (let i = 0; i < method.parameters.length; i++) {
       const info = this.solveExpr(n.args[i], method.parameters[i].type);
       if (info.value !== undefined) argValues.push(info.value);
+      argIRs.push(info.ir);
     }
 
     // If we did not encounter any errors, as a bonus, try computing the static value
@@ -611,7 +616,11 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         staticValue = evalMethodCall(owner.value, n.identifier.name, argValues);
       }
     }
-    return { type: method.returnType, value: staticValue };
+    return {
+      type: method.returnType,
+      value: staticValue,
+      ir: new ast.MethodCall(n.location, owner.ir, n.identifier, argIRs),
+    };
   }
   visitNew(n: ast.New): EResult {
     const type = this.solveType(n.type);
@@ -619,7 +628,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     if (!fields) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `${type} is not new-constructible`);
-      return { type: AnyType };
+      return { type: AnyType, ir: n };
     }
     this.annotation.callInstances.push({
       range: n.location.range,
@@ -629,26 +638,40 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     if (fields.length !== n.args.length) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `${type} requires ${fields.length} args but got ${n.args.length}`);
-      return { type };
+      return { type, ir: n };
     }
+    const argIRs: ast.Expression[] = [];
     for (let i = 0; i < fields.length; i++) {
-      this.solveExpr(n.args[i], fields[i].type);
+      const result = this.solveExpr(n.args[i], fields[i].type);
+      argIRs.push(result.ir);
     }
-    return { type };
+    return { type, ir: new ast.New(n.location, n.type, argIRs) };
   }
   visitLogicalNot(n: ast.LogicalNot): EResult {
-    const { value } = this.solveExpr(n.value);
-    return { type: BoolType, value: value === undefined ? undefined : !value };
+    const { value, ir: valueIR } = this.solveExpr(n.value);
+    return {
+      type: BoolType,
+      value: value === undefined ? undefined : !value,
+      ir: new ast.LogicalNot(n.location, valueIR),
+    };
   }
   visitLogicalAnd(n: ast.LogicalAnd): EResult {
-    const { value: lhs } = this.solveExpr(n.lhs);
-    const { value: rhs } = this.solveExpr(n.rhs);
-    return { type: BoolType, value: (lhs !== undefined && !lhs) ? lhs : rhs };
+    const { value: lhs, ir: lhsIR } = this.solveExpr(n.lhs);
+    const { value: rhs, ir: rhsIR } = this.solveExpr(n.rhs);
+    return {
+      type: BoolType,
+      value: (lhs !== undefined && !lhs) ? lhs : rhs,
+      ir: new ast.LogicalAnd(n.location, lhsIR, rhsIR),
+    };
   }
   visitLogicalOr(n: ast.LogicalOr): EResult {
-    const { value: lhs } = this.solveExpr(n.lhs);
-    const { value: rhs } = this.solveExpr(n.rhs);
-    return { type: BoolType, value: (lhs !== undefined && lhs) ? lhs : rhs };
+    const { value: lhs, ir: lhsIR } = this.solveExpr(n.lhs);
+    const { value: rhs, ir: rhsIR } = this.solveExpr(n.rhs);
+    return {
+      type: BoolType,
+      value: (lhs !== undefined && lhs) ? lhs : rhs,
+      ir: new ast.LogicalOr(n.location, lhsIR, rhsIR),
+    };
   }
   visitConditional(n: ast.Conditional): EResult {
     const condition = this.solveExpr(n.condition);
@@ -657,15 +680,19 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const value = condition.value === undefined ?
       undefined :
       condition.value ? lhs.value : rhs.value;
-    return { type: lhs.type.getCommonType(rhs.type), value };
+    return {
+      type: lhs.type.getCommonType(rhs.type),
+      value,
+      ir: new ast.Conditional(n.location, condition.ir, lhs.ir, rhs.ir),
+    };
   }
   visitTypeAssertion(n: ast.TypeAssertion): EResult {
-    this.solveExpr(n.value);
+    const value = this.solveExpr(n.value);
     const type = this.solveType(n.type);
-    return { type };
+    return { type, ir: value.ir };
   }
   visitNativeExpression(n: ast.NativeExpression): EResult {
-    return { type: AnyType };
+    return { type: AnyType, ir: n };
   }
   visitNativePureFunction(n: ast.NativePureFunction): EResult {
     const parameters: Parameter[] = n.parameters.map(p => ({
@@ -679,6 +706,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return {
       type: lambdaType,
       value: body == undefined ? undefined : (Function(...parameterNames, `"use strict";${body}`) as any),
+      ir: n,
     };
   }
   visitEmptyStatement(n: ast.EmptyStatement): SResult {
