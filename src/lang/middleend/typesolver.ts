@@ -12,7 +12,7 @@ import {
   newFunctionType,
 } from './type';
 
-export class TypeSolver extends Solver<ast.TypeExpression, Type> {
+export class TypeSolver extends Solver {
   private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
 
   private _solveType(e: ast.TypeExpression): Type {

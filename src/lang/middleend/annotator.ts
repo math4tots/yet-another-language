@@ -16,7 +16,7 @@ type AnnotatorParameters = {
 
 export class Annotator {
 
-  // All public fields here really should be package private
+  // All public fields here really should be package-private
 
   readonly annotation: Annotation;
   readonly stack: Set<string>; // for detecting recursion
@@ -25,7 +25,6 @@ export class Annotator {
   hint: Type = AnyType;
   scope: Scope = Object.create(BASE_SCOPE);
   readonly cached?: Annotation;
-  readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
   readonly markedImports = new Set<ast.Import>();
   readonly classMap = new Map<ast.ClassDefinition, ClassVariable>();
   readonly interfaceMap = new Map<ast.InterfaceDefinition, InterfaceVariable>();
@@ -46,8 +45,8 @@ export class Annotator {
   solveType(e: ast.TypeExpression): Type {
     return this.typeSolver.solve(e);
   }
-  solveExpression(e: ast.Expression): ExpressionInfo {
-    return this.expressionSolver.solve(e);
+  solveExpression(e: ast.Expression, hint: Type = AnyType, required: boolean = true): ExpressionInfo {
+    return this.expressionSolver.solve(e, hint, required);
   }
   solveStatement(s: ast.Statement): StatementInfo {
     return this.statementSolver.solve(s);

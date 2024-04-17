@@ -14,10 +14,7 @@ export type StatementInfo = {
 };
 
 
-export class StatementSolver
-  extends Solver<ast.Statement, StatementInfo>
-  implements ast.StatementVisitor<StatementInfo> {
-
+export class StatementSolver extends Solver implements ast.StatementVisitor<StatementInfo> {
   solve(a: ast.Statement): StatementInfo {
     return a.accept(this);
   }
