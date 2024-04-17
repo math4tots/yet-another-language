@@ -4,7 +4,11 @@ import {
   getCommentFromFunctionDisplay,
   getCommentFromClassDefinition,
   getCommentFromInterfaceDefinition,
-} from '../frontend/utils';
+} from '../frontend/ast-utils';
+import { toVSRange } from '../frontend/bridge-utils';
+import { getAstForDocument } from '../frontend/parser';
+import { Range } from '../frontend/lexer';
+import { resolveURI } from '../paths';
 import {
   AnyType,
   NeverType,
@@ -33,10 +37,7 @@ import {
   ModuleVariable,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
-import { Position, Range } from '../frontend/lexer';
 import { ModuleValue, Value, evalMethodCall } from './value';
-import { resolveURI } from '../paths';
-import { getAstForDocument } from '../frontend/parser';
 import { printFunction } from './print-function';
 
 type AnnotatorParameters = {
@@ -815,14 +816,6 @@ const diagnostics = vscode.languages.createDiagnosticCollection('yal');
 
 export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<string>()): Promise<Annotation> {
   return await getAnnotationForDocument(await vscode.workspace.openTextDocument(uri), stack);
-}
-
-function toVSPosition(p: Position): vscode.Position {
-  return new vscode.Position(p.line, p.column);
-}
-
-function toVSRange(range: Range): vscode.Range {
-  return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
 }
 
 const annotationCache = new Map<string, Annotation>();
