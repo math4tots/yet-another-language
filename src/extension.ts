@@ -6,11 +6,11 @@ import { runCommand } from './extension/run';
 import { translateToJSCommand } from './extension/translate-to-js';
 import { runHTMLCommand } from './extension/runhtml';
 import { newNewDefinitionProvider } from './extension/new/definitionprovider';
-import { getAnnotationForDocument } from './lang/new/annotator';
 import { newNewHoverProvider } from './extension/new/hoverprovider';
 import { newNewCompletionProvider } from './extension/new/completionprovider';
 import { newNewInlayHintsProvider } from './extension/new/inlayhintsprovider';
 import { newNewSignatureHelpProvider } from './extension/new/signaturehelpprovider';
+import { getAnnotationForDocument } from './lang/middleend/annotator';
 
 
 export function activate(context: vscode.ExtensionContext) {

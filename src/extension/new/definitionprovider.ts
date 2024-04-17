@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as yal from '../../lang/yal';
-import { getAnnotationForDocument } from '../../lang/new/annotator';
+import { getAnnotationForDocument } from '../../lang/middleend/annotator';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
