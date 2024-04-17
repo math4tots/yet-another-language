@@ -70,6 +70,7 @@ export function evalMethodCall(owner: any, methodName: string, args: any[]): Val
             case '__gt__': return owner > arg0;
             case '__le__': return owner <= arg0;
             case '__ge__': return owner >= arg0;
+            case '__add__': return owner + arg0;
           }
         }
       }
