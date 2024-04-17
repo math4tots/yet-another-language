@@ -24,70 +24,35 @@ import {
 } from './type';
 import { getAstForDocument } from '../parser';
 import { resolveURI } from '../paths';
-import { translateVariableName } from './translator';
+import { translateVariableName } from './translator-util';
+import {
+  Annotation,
+  AnnotationError,
+  Variable,
+  ClassVariable,
+  InterfaceVariable,
+  ModuleVariable,
+  Value,
+  ModuleValue,
+  Reference,
+  PrintInstance,
+  CallInstance,
+  Completion,
+  CompletionPoint,
+  Continues,
+  Jumps,
+  MaybeJumps,
+  RunStatus,
+} from './annotator-defs';
+import {
+  getCommentFromFunctionDisplay,
+  getCommentFromInterfaceDefinition,
+  getCommentFromClassDefinition,
+} from './annotator-utils';
+import { evalMethodCall, printFunction } from './annotator-eval';
 
 
-type Value = null | boolean | number | string | Value[] | ModuleValue;
-
-
-export class ModuleValue {
-  constructor(annotation: Annotation) {
-    for (const variable of annotation.moduleVariableMap.values()) {
-      if (!variable.isMutable && variable.value !== undefined) {
-        Object.defineProperty(this, translateVariableName(variable.identifier.name), {
-          value: variable.value,
-          enumerable: true,
-          writable: false,
-        });
-      }
-    }
-  }
-  toString() { return '<module>'; }
-}
-
-
-export type ValueInfo = { readonly type: Type; readonly value?: Value; };
-
-export const Continues = Symbol('Continues');
-export const Jumps = Symbol('Jumps'); // return, throw, break, continue, etc
-export const MaybeJumps = Symbol('MaybeJumps');
-export type RunStatus = typeof Continues | typeof Jumps | typeof MaybeJumps;
-
-export type Variable = {
-  readonly isMutable?: boolean;
-  readonly identifier: ast.Identifier;
-  readonly type: Type;
-  readonly comment?: ast.StringLiteral;
-  readonly value?: Value;
-};
-
-export type ModuleVariable = Variable & {
-  readonly type: ModuleType;
-};
-
-export type ClassVariable = Variable & {
-  readonly type: ClassTypeType;
-};
-
-export type InterfaceVariable = Variable & {
-  readonly type: InterfaceTypeType;
-};
-
-export type Reference = {
-  readonly range: Range;
-  readonly variable: Variable;
-};
-
-export interface PrintInstance {
-  readonly range: Range;
-  readonly value: Value;
-}
-
-export interface CallInstance {
-  readonly range: Range; // range of entire call
-  readonly args: Range[]; // range of individual arguments
-  readonly parameters: Parameter[];
-}
+type ValueInfo = { readonly type: Type; readonly value?: Value; };
 
 export type Scope = { [key: string]: Variable; };
 
@@ -105,60 +70,11 @@ BASE_SCOPE['Number'] =
 BASE_SCOPE['String'] =
   { identifier: StringType.identifier, type: AnyType };
 
-const printFunction = (function print(x: any) { console.log('' + x); return null; }) as any;
-
 // Dummy 'print' function
 BASE_SCOPE['print'] = {
   identifier: { name: 'print' },
   type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
   value: printFunction,
-};
-
-export type AnnotationError = ast.ParseError;
-
-export interface Completion {
-  readonly name: string;
-  readonly detail?: string;
-}
-
-export interface CompletionPoint {
-  readonly range: Range;
-  getCompletions(): Completion[];
-}
-
-function getCommentFromSeq(stmts: ast.Statement[]): ast.StringLiteral | undefined {
-  return (stmts.length > 0 &&
-    stmts[0] instanceof ast.ExpressionStatement &&
-    stmts[0].expression instanceof ast.StringLiteral) ? stmts[0].expression : undefined;
-}
-
-function getCommentFromFunctionDisplay(fd: ast.Node | null): ast.StringLiteral | undefined {
-  return fd instanceof ast.FunctionDisplay ?
-    getCommentFromSeq(fd.body.statements) : undefined;
-}
-
-function getCommentFromClassDefinition(cd: ast.Node | null): ast.StringLiteral | undefined {
-  return cd instanceof ast.ClassDefinition ?
-    getCommentFromSeq(cd.statements) : undefined;
-}
-
-function getCommentFromInterfaceDefinition(cd: ast.Node | null): ast.StringLiteral | undefined {
-  return cd instanceof ast.InterfaceDefinition ?
-    getCommentFromSeq(cd.statements) : undefined;
-}
-
-export type Annotation = {
-  readonly uri: vscode.Uri;
-  readonly documentVersion: number;
-  readonly errors: AnnotationError[];
-  readonly variables: Variable[];
-  readonly references: Reference[];
-  readonly completionPoints: CompletionPoint[];
-  readonly printInstances: PrintInstance[];
-  readonly callInstances: CallInstance[];
-  readonly moduleVariableMap: Map<string, Variable>;
-  readonly importMap: Map<string, Annotation>;
-  readonly modifiedAST: ast.File;
 };
 
 type AnnotationWIP = Annotation & { modifiedAST: ast.File; };
@@ -965,89 +881,4 @@ function getModuleVariableForModuleType(moduleType: ModuleType): ModuleVariable 
   };
   moduleVariableMap.set(moduleType, variable);
   return variable;
-}
-
-export function reprStaticValue(x: any): string {
-  if (typeof x === 'function') return x.name ? `<function ${x.name}>` : '<function>';
-  if (x instanceof ModuleValue) return '<module>';
-  return JSON.stringify(x);
-}
-
-export function strStaticValue(x: any): string {
-  return typeof x === 'string' ? x : reprStaticValue(x);
-}
-
-function evalMethodCall(owner: any, methodName: string, args: any[]): Value | undefined {
-  if (owner === printFunction) return;
-  if (methodName === '__eq__' && args.length === 1) return owner === args[0];
-  if (methodName === '__ne__' && args.length === 1) return owner !== args[0];
-  switch (typeof owner) {
-    case 'number':
-      if (args.length === 0) {
-        switch (methodName) {
-          case '__pos__': return owner;
-          case '__neg__': return -owner;
-        }
-      } else if (args.length === 1) {
-        const arg0 = args[0];
-        if (typeof arg0 === 'number') {
-          switch (methodName) {
-            case '__add__': return owner + arg0;
-            case '__sub__': return owner - arg0;
-            case '__mul__': return owner * arg0;
-            case '__div__': return owner / arg0;
-            case '__mod__': return owner % arg0;
-            case '__lt__': return owner < arg0;
-            case '__gt__': return owner > arg0;
-            case '__le__': return owner <= arg0;
-            case '__ge__': return owner >= arg0;
-          }
-        }
-      }
-      break;
-    case 'string':
-      if (args.length === 0) {
-        if (methodName === '__get___size') return owner.length;
-      } else if (args.length === 1) {
-        const arg0 = args[0];
-        if (typeof arg0 === 'string') {
-          switch (methodName) {
-            case '__lt__': return owner < arg0;
-            case '__gt__': return owner > arg0;
-            case '__le__': return owner <= arg0;
-            case '__ge__': return owner >= arg0;
-          }
-        }
-      }
-      break;
-    case 'object':
-      if (Array.isArray(owner)) {
-        if (args.length === 0) {
-          if (methodName === '__get___size') return owner.length;
-        } else if (args.length === 1) {
-          const arg0 = args[0];
-          if (typeof arg0 === 'number' && methodName === '__getitem__') {
-            return owner[arg0];
-          }
-        }
-      } else if (owner instanceof ModuleValue) {
-        if (methodName.startsWith('__get_')) {
-          const fieldName = methodName.substring('__get_'.length);
-          const modifiedFieldName = translateVariableName(fieldName);
-          if ((owner as any)[modifiedFieldName]) return (owner as any)[modifiedFieldName];
-        } else if (methodName.startsWith('__set_')) {
-          // setters... ignore
-        } else {
-          const modifiedMethodName = translateVariableName(methodName);
-          if ((owner as any)[modifiedMethodName]) return (owner as any)[modifiedMethodName](...args);
-        }
-      } else {
-        // Some other kind of object
-      }
-      break;
-    case 'function':
-      if (methodName === '__call__') return owner(...args);
-      break;
-  }
-  return;
 }

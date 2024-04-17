@@ -1,5 +1,5 @@
 import { Identifier } from "../ast";
-import type { Annotation, Variable } from "./annotator";
+import type { Annotation, Variable } from "./annotator-defs";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;

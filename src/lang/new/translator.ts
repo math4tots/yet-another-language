@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as ast from '../ast';
 import { getAstForDocument } from '../parser';
+import { translateVariableName } from './translator-util';
 
 const specialUnaryOperatorMap = new Map([
   ['__neg__', '-'],
@@ -33,12 +34,6 @@ export type TranslationWarning = {
   readonly location: ast.Location,
   readonly message: string;
 };
-
-export function translateVariableName(name: string): string {
-  if (name === 'this') return 'this';
-  if (name.startsWith('__js_')) return name.substring(5);
-  return 'YAL' + name;
-}
 
 class Translator implements ast.NodeVisitor<string> {
   readonly warnings: TranslationWarning[] = [];
