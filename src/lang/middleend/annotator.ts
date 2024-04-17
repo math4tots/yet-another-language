@@ -66,7 +66,15 @@ type RunStatus = typeof Continues | typeof Jumps | typeof MaybeJumps;
 /** Result of annotating a statement */
 type SResult = {
   readonly status: RunStatus;
+
+  /**
+   * Intermediate Representation
+   * A modified version of the AST better suited for code generation
+   */
+  readonly ir: ast.Statement;
 };
+
+type BResult = SResult & { readonly ir: ast.Block; };
 
 /** Result of annotating a file */
 type FResult = {
@@ -234,6 +242,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return s.accept(this);
   }
 
+  private solveBlock(b: ast.Block): BResult {
+    return this.solveStmt(b) as BResult;
+  }
+
   private declareVariable(variable: Variable, addToScope = true) {
     this.annotation.variables.push(variable);
     if (addToScope) {
@@ -283,11 +295,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
         const importModuleType = newModuleType(importModuleAnnotation);
         const importModuleVariable = getModuleVariableForModuleType(importModuleType);
-        const aliasVariable: Variable = {
+        const aliasVariable: ModuleVariable = {
           identifier,
           type: importModuleType,
           value: importModuleVariable.value,
         };
+        this.annotation.importAliasVariables.push(aliasVariable);
         this.declareVariable(aliasVariable);
         this.markReference(importModuleVariable, path.location.range);
       } else if (statement instanceof ast.ExpressionStatement &&
@@ -518,7 +531,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           };
           this.declareVariable(variable);
         }
-        const result = this.solveStmt(n.body);
+        const result = this.solveBlock(n.body);
         if (result.status !== Jumps && !NilType.isAssignableTo(returnType)) {
           this.error(
             n.location, `This function cannot return null and this function might not return`);
@@ -534,9 +547,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           // newPureFunctionValue(n, this.scope) : undefined
 
           ir: new ast.FunctionDisplay(
-            n.location, n.parameters, n.returnType,
-            // TODO: return result.ir
-            n.body),
+            n.location, n.parameters, n.returnType, result.ir),
         };
       } finally {
         this.currentReturnType = outerReturnType;
@@ -616,10 +627,29 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         staticValue = evalMethodCall(owner.value, n.identifier.name, argValues);
       }
     }
+
+    let methodIdentifier = n.identifier;
+
+    // For some special cases, let us transform the method that is called before passing
+    // the IR to the backend.
+    if (owner.type === StringType) {
+      switch (n.identifier.name) {
+        case '__get_size':
+          methodIdentifier = new ast.IdentifierNode(n.identifier.location, '__get___js_length');
+          break;
+      }
+    } else if (owner.type.listItemType) {
+      switch (n.identifier.name) {
+        case '__get_size':
+          methodIdentifier = new ast.IdentifierNode(n.identifier.location, '__get___js_length');
+          break;
+      }
+    }
+
     return {
       type: method.returnType,
       value: staticValue,
-      ir: new ast.MethodCall(n.location, owner.ir, n.identifier, argIRs),
+      ir: new ast.MethodCall(n.location, owner.ir, methodIdentifier, argIRs),
     };
   }
   visitNew(n: ast.New): EResult {
@@ -710,22 +740,34 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     };
   }
   visitEmptyStatement(n: ast.EmptyStatement): SResult {
-    return { status: Continues };
+    return { status: Continues, ir: n };
   }
   visitExpressionStatement(n: ast.ExpressionStatement): SResult {
-    this.solveExpr(n.expression);
-    return { status: Continues };
+    const expression = this.solveExpr(n.expression);
+    return {
+      status: Continues,
+      ir: isNOOPExpression(expression) ?
+        new ast.EmptyStatement(n.location) :
+        new ast.ExpressionStatement(n.location, expression.ir),
+    };
   }
   visitBlock(n: ast.Block): SResult {
     return this.scoped(() => {
       this.forwardDeclare(n.statements);
       let status: RunStatus = Continues;
+      const irs: ast.Statement[] = [];
       for (const stmt of n.statements) {
         const r = this.solveStmt(stmt);
         if (r.status === Jumps) status = Jumps;
         else if (r.status === MaybeJumps && status !== Jumps) status = MaybeJumps;
+        if (!(r.ir instanceof ast.EmptyStatement)) irs.push(r.ir);
       }
-      return { status };
+      return {
+        status,
+        ir: irs.length === 0 ?
+          new ast.EmptyStatement(n.location) :
+          new ast.Block(n.location, irs),
+      };
     });
   }
   visitDeclaration(n: ast.Declaration): SResult {
@@ -733,7 +775,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const valueInfo = n.value ? this.solveExpr(n.value, explicitType || AnyType) : null;
     if (!explicitType && !valueInfo) {
       this.error(n.location, `At least one of value or type of the variable must be specified`);
-      return { status: Continues };
+      return { status: Continues, ir: n };
     }
     const type = explicitType || valueInfo?.type || AnyType;
     const variable: Variable = {
@@ -745,37 +787,54 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       value: n.isMutable ? undefined : valueInfo?.value,
     };
     this.declareVariable(variable);
-    return { status: Continues };
+    return {
+      status: Continues,
+      ir: new ast.Declaration(
+        n.location, n.isMutable, n.identifier, n.type, n.comment,
+        valueInfo?.ir || null
+      ),
+    };
   }
   visitIf(n: ast.If): SResult {
-    this.solveExpr(n.condition);
-    const lhs = this.solveStmt(n.lhs);
-    const rhs = n.rhs ? this.solveStmt(n.rhs) : { status: Continues };
+    const condition = this.solveExpr(n.condition);
+    const lhs = this.solveBlock(n.lhs);
+    const rhs = n.rhs ? this.solveStmt(n.rhs) : { status: Continues, ir: undefined };
     const status = (lhs.status === Jumps && rhs.status === Jumps) ? Jumps :
       (lhs.status === Jumps || lhs.status === MaybeJumps || rhs.status === Jumps || rhs.status === MaybeJumps) ?
         MaybeJumps : Continues;
-    return { status };
+    return {
+      status,
+      ir: new ast.If(
+        n.location,
+        condition.ir,
+        lhs.ir,
+        (rhs.ir || null) as ast.Block | ast.If | null),
+    };
   }
   visitWhile(n: ast.While): SResult {
-    this.solveExpr(n.condition);
-    this.solveStmt(n.body);
-    return { status: MaybeJumps };
+    const condition = this.solveExpr(n.condition);
+    const body = this.solveBlock(n.body);
+    return {
+      status: MaybeJumps,
+      ir: new ast.While(n.location, condition.ir, body.ir),
+    };
   }
   visitReturn(n: ast.Return): SResult {
     const returnType = this.currentReturnType;
-    if (returnType) {
-      this.solveExpr(n.value, returnType);
-    } else {
+    if (!returnType) {
       this.solveExpr(n.value);
       this.error(n.location, `return cannot appear outside a function`);
+      return { status: Jumps, ir: n };
     }
-    return { status: Jumps };
+    const value = this.solveExpr(n.value, returnType);
+    return { status: Jumps, ir: new ast.Return(n.location, value.ir) };
   }
   visitClassDefinition(n: ast.ClassDefinition): SResult {
     // a lot is already handled by `forwardDeclare`
     const classTypeType = this.classMap.get(n);
     if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
     const classType = classTypeType.type.classTypeTypeData.classType;
+    const bodyIR: ast.Statement[] = [];
     this.scoped(() => {
       const thisVariable: Variable = {
         identifier: { name: 'this', location: n.identifier.location },
@@ -791,16 +850,32 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         } else if (statement instanceof ast.Declaration) {
           if (!statement.isMutable && statement.value instanceof ast.FunctionDisplay) {
             // methods
-            this.solveExpr(statement.value);
+            const value = this.solveExpr(statement.value);
+            bodyIR.push(new ast.Declaration(
+              statement.location,
+              statement.isMutable,
+              statement.identifier,
+              statement.type,
+              statement.comment,
+              value.ir));
           } else if (statement.type) {
             // fields
+            bodyIR.push(statement);
           }
           continue;
         }
         this.error(statement.location, `Unexpected statement in class body`);
       }
     });
-    return { status: Continues };
+    return {
+      status: Continues,
+      ir: new ast.ClassDefinition(
+        n.location,
+        n.identifier,
+        n.extendsFragment,
+        n.superClass,
+        bodyIR),
+    };
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): SResult {
     // almost everything for interfaces is handled in `forwardDeclare`
@@ -816,14 +891,23 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
       this.error(statement.location, `Unexpected statement in interface body`);
     }
-    return { status: Continues };
+    return { status: Continues, ir: new ast.EmptyStatement(n.location) };
   }
   visitImport(n: ast.Import): SResult {
     if (!this.markedImports.has(n)) {
       this.error(n.location, `Import statement is not allowed here`);
     }
-    return { status: MaybeJumps };
+    return { status: MaybeJumps, ir: new ast.EmptyStatement(n.location) };
   }
+}
+
+function isNOOPExpression(er: EResult): boolean {
+  return (
+    er.ir instanceof ast.NullLiteral ||
+    er.ir instanceof ast.BooleanLiteral ||
+    er.ir instanceof ast.NumberLiteral ||
+    er.ir instanceof ast.StringLiteral
+  );
 }
 
 const moduleVariableMap = new WeakMap<ModuleType, ModuleVariable>();
@@ -869,6 +953,7 @@ export async function getAnnotationForDocument(
     callInstances: [],
     moduleVariableMap: new Map(),
     importMap: new Map(),
+    importAliasVariables: [],
     modifiedAST: fileNode,
   };
   const annotator = new Annotator({ annotation, stack, cached });
