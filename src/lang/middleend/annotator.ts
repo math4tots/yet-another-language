@@ -8,7 +8,7 @@ import {
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
 import { Range } from '../frontend/lexer';
-import { resolveURI } from '../paths';
+import { resolveURI } from './paths';
 import {
   AnyType,
   NeverType,
