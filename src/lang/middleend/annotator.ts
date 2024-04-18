@@ -35,13 +35,14 @@ import {
   ClassVariable,
   InterfaceVariable,
   ModuleVariable,
+  AnnotationWithoutIR,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
 import { ModuleValue, Value, evalMethodCall } from './value';
 import { printFunction } from './functions';
 
 type AnnotatorParameters = {
-  readonly annotation: Annotation;
+  readonly annotation: AnnotationWithoutIR;
   readonly stack: Set<string>; // for detecting recursion
   readonly cached?: Annotation;
 };
@@ -83,7 +84,7 @@ type FResult = {
 };
 
 class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
-  readonly annotation: Annotation;
+  readonly annotation: AnnotationWithoutIR;
   private readonly stack: Set<string>; // for detecting recursion
 
   private currentReturnType: Type | null = null;
@@ -930,8 +931,6 @@ export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<strin
 
 const annotationCache = new Map<string, Annotation>();
 
-type AnnotationWIP = Annotation & { ir: ast.File; };
-
 export async function getAnnotationForDocument(
   document: vscode.TextDocument,
   stack = new Set<string>()
@@ -940,7 +939,7 @@ export async function getAnnotationForDocument(
   const key = uri.toString();
   const cached = annotationCache.get(key);
   const fileNode = await getAstForDocument(document);
-  const annotation: AnnotationWIP = {
+  const annotationWithoutIR: AnnotationWithoutIR = {
     uri,
     documentVersion: document.version,
     errors: [...fileNode.errors],
@@ -952,12 +951,11 @@ export async function getAnnotationForDocument(
     moduleVariableMap: new Map(),
     importMap: new Map(),
     importAliasVariables: [],
-    ir: fileNode,
   };
-  const annotator = new Annotator({ annotation, stack, cached });
+  const annotator = new Annotator({ annotation: annotationWithoutIR, stack, cached });
   stack.add(key);
   const { useCached, ir } = await annotator.handle(fileNode);
-  annotation.ir = ir;
+  const annotation: Annotation = { ...annotationWithoutIR, ir };
   stack.delete(key);
   // console.log(`DEBUG getAnnotationForDocument ${key} ${useCached ? '(cached)' : ''}`);
   if (cached && useCached) {

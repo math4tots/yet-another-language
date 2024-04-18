@@ -1,31 +1,16 @@
 import * as vscode from 'vscode';
 import * as ast from '../frontend/ast';
-import { getAstForDocument } from '../frontend/parser';
 import { translateVariableName } from '../middleend/value';
 import { getAnnotationForDocument } from '../middleend/annotator';
 import { Annotation } from '../middleend/annotation';
+import { PRINT_FUNCTION_DEFINITION, REPR_FUNCTION_DEFINITION, STR_FUNCTION_DEFINITION } from '../middleend/shared-functions';
 
 const specialUnaryOperatorMap = new Map([
-  ['__neg__', '-'],
-  ['__pos__', '+'],
-
   ['__op_neg__', '-'],
   ['__op_pos__', '+'],
 ]);
 
 const specialBinaryOperatorMap = new Map([
-  ['__eq__', '==='],
-  ['__ne__', '!=='],
-  ['__lt__', '<'],
-  ['__le__', '<='],
-  ['__gt__', '>'],
-  ['__ge__', '>='],
-  ['__add__', '+'],
-  ['__sub__', '-'],
-  ['__mul__', '*'],
-  ['__div__', '/'],
-  ['__mod__', '%'],
-
   ['__op_eq__', '==='],
   ['__op_ne__', '!=='],
   ['__op_lt__', '<'],
@@ -213,27 +198,6 @@ class Translator implements ast.NodeVisitor<string> {
   }
 }
 
-const PRELUDE =
-  `const YALrepr=(x)=>{` +
-  `switch (typeof x){` +
-  `case 'undefined':return 'undefined';` +
-  "case 'function':" +
-  "return x.name?x.name.startsWith('YAL')?`<function ${x.name.substring(3)}>`:" +
-  "`<function ${x.name}>`:'<function>';" +
-  `case 'object':` +
-  `if(x===null)return 'null';` +
-  `if(Array.isArray(x))return'['+x.map(i=>YALrepr(i)).join(', ')+']';` +
-  `if(x.YAL__repr__)return x.YAL__repr__();` +
-  `break;` +
-  `}` +
-  `return JSON.stringify(x)` +
-  `};` +
-  `const YALstr=(x)=>{return typeof x==='string'?x:YALrepr(x)};`;
-
-const PRINT_FUNCTION_DEFINITION =
-  `const YALprint=(x)=>{console.log(YALstr(x));return null};`;
-
-
 export async function getTranslationForDocument(
   document: vscode.TextDocument,
   options?: TranslationOptions): Promise<string> {
@@ -249,7 +213,12 @@ export async function getTranslationForDocument(
     return id;
   }
 
-  const parts: string[] = ['"use strict";', '(()=>{', PRELUDE];
+  const parts: string[] = [
+    '"use strict";',
+    '(()=>{',
+    REPR_FUNCTION_DEFINITION,
+    STR_FUNCTION_DEFINITION,
+  ];
   if (!opts.omitDefaultPrintFunction) parts.push(PRINT_FUNCTION_DEFINITION);
   if (opts.addToPrelude) parts.push(opts.addToPrelude);
   const annotation = await getAnnotationForDocument(document);
