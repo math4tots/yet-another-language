@@ -8,6 +8,9 @@ import { Annotation } from '../middleend/annotation';
 const specialUnaryOperatorMap = new Map([
   ['__neg__', '-'],
   ['__pos__', '+'],
+
+  ['__op_neg__', '-'],
+  ['__op_pos__', '+'],
 ]);
 
 const specialBinaryOperatorMap = new Map([
@@ -22,18 +25,35 @@ const specialBinaryOperatorMap = new Map([
   ['__mul__', '*'],
   ['__div__', '/'],
   ['__mod__', '%'],
+
+  ['__op_eq__', '==='],
+  ['__op_ne__', '!=='],
+  ['__op_lt__', '<'],
+  ['__op_le__', '<='],
+  ['__op_gt__', '>'],
+  ['__op_ge__', '>='],
+  ['__op_add__', '+'],
+  ['__op_sub__', '-'],
+  ['__op_mul__', '*'],
+  ['__op_div__', '/'],
+  ['__op_mod__', '%'],
 ]);
 
 const builtinOnlyMethodNames = new Set([
   ...specialBinaryOperatorMap.keys(),
   ...specialUnaryOperatorMap.keys(),
-  '__getitem__',
-  '__setitem__',
+  '__op_getitem__',
+  '__op_setitem__',
 ].flat());
 
 export type TranslationWarning = {
   readonly location: ast.Location,
   readonly message: string;
+};
+
+export type TranslationOptions = {
+  readonly addToPrelude?: string;
+  readonly omitDefaultPrintFunction?: boolean;
 };
 
 function translateType(te: ast.TypeExpression): string {
@@ -81,13 +101,13 @@ class Translator implements ast.NodeVisitor<string> {
       if (name.startsWith('__get___js_')) return `${owner}.${name.substring(11)}`;
       if (name.startsWith('__get_')) return `${owner}.YAL${name.substring(6)}`;
     } else if (args.length === 1) {
-      if (name === '__getitem__') return `${owner}[${args[0]}]`;
+      if (name === '__op_getitem__') return `${owner}[${args[0]}]`;
       const op = specialBinaryOperatorMap.get(name);
       if (op) return `(${owner}${op}${args[0]})`;
       if (name.startsWith('__set___js_')) return `(${owner}.${name.substring(11)}=${args[0]})`;
       if (name.startsWith('__set_')) return `(${owner}.YAL${name.substring(6)}=${args[0]})`;
     } else if (args.length === 2) {
-      if (name === '__setitem__') return `(${owner}[${args[0]}]=${args[1]})`;
+      if (name === '__op_setitem__') return `(${owner}[${args[0]}]=${args[1]})`;
     }
     if (name.startsWith('__js_')) return `${owner}.${name.substring(5)}(${args.join(',')})`;
     return `${owner}.YAL${name}(${args.join(',')})`;
@@ -153,7 +173,8 @@ class Translator implements ast.NodeVisitor<string> {
     const modifiedFieldNames = fields.map(f => f.startsWith('__js_') ? f.substring(5) : `YAL${f}`);
     const ctorParameters = modifiedFieldNames.join(',');
     const ctorAssignments = modifiedFieldNames.map(f => `this.${f}=${f}`).join(';');
-    const ctor = `constructor(${ctorParameters}){${ctorAssignments}}`;
+    const callSuper = n.superClass ? 'super();' : '';
+    const ctor = `constructor(${ctorParameters}){${callSuper}${ctorAssignments}}`;
     const methods = n.statements.map(statement => {
       const stmt = statement;
       if (stmt instanceof ast.Declaration) {
@@ -182,6 +203,7 @@ class Translator implements ast.NodeVisitor<string> {
       }
       return [];
     }).flat();
+    methods.push(`toString(){return '<${n.identifier.name} instance>'}`);
     return `class YAL${name}${superClass}{${ctor}${methods.join('')}}`;
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): string { return ''; }
@@ -206,10 +228,16 @@ const PRELUDE =
   `}` +
   `return JSON.stringify(x)` +
   `};` +
-  `const YALstr=(x)=>{return typeof x==='string'?x:YALrepr(x)};` +
+  `const YALstr=(x)=>{return typeof x==='string'?x:YALrepr(x)};`;
+
+const PRINT_FUNCTION_DEFINITION =
   `const YALprint=(x)=>{console.log(YALstr(x));return null};`;
 
-export async function getTranslationForDocument(document: vscode.TextDocument): Promise<string> {
+
+export async function getTranslationForDocument(
+  document: vscode.TextDocument,
+  options?: TranslationOptions): Promise<string> {
+  const opts = options || {};
   const translator = new Translator();
   const annotationToID = new Map<Annotation, string>();
 
@@ -222,6 +250,8 @@ export async function getTranslationForDocument(document: vscode.TextDocument): 
   }
 
   const parts: string[] = ['"use strict";', '(()=>{', PRELUDE];
+  if (!opts.omitDefaultPrintFunction) parts.push(PRINT_FUNCTION_DEFINITION);
+  if (opts.addToPrelude) parts.push(opts.addToPrelude);
   const annotation = await getAnnotationForDocument(document);
   const stack = [annotation];
   const seen = new Set(stack);

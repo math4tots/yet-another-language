@@ -404,95 +404,62 @@ export function newInterfaceTypeType(identifier: Identifier): InterfaceTypeType 
 // BUILTIN TYPE METHODS
 ////////////////////////
 
+function addBinaryOperatorMethod(type: Type, operatorName: string, returnType: Type) {
+  type.addMethod({
+    identifier: { name: `__${operatorName}__` },
+    parameters: [{ identifier: { name: 'other' }, type }],
+    returnType,
+    aliasFor: `__op_${operatorName}__`,
+  });
+}
+
+function addEqualityOperatorMethods(type: Type) {
+  addBinaryOperatorMethod(type, 'eq', BoolType);
+  addBinaryOperatorMethod(type, 'ne', BoolType);
+}
+
+function addComparisonOperatorMethods(type: Type) {
+  addEqualityOperatorMethods(type);
+  addBinaryOperatorMethod(type, 'lt', BoolType);
+  addBinaryOperatorMethod(type, 'le', BoolType);
+  addBinaryOperatorMethod(type, 'gt', BoolType);
+  addBinaryOperatorMethod(type, 'ge', BoolType);
+}
+
+
+// NumberType
+
+addBinaryOperatorMethod(NumberType, 'add', NumberType);
+addBinaryOperatorMethod(NumberType, 'sub', NumberType);
+addBinaryOperatorMethod(NumberType, 'mul', NumberType);
+addBinaryOperatorMethod(NumberType, 'div', NumberType);
+addBinaryOperatorMethod(NumberType, 'mod', NumberType);
+addComparisonOperatorMethods(NumberType);
+
 NumberType.addMethod({
-  identifier: { name: '__add__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  identifier: { name: '__pos__' },
+  parameters: [],
   returnType: NumberType,
+  aliasFor: '__op_pos__',
 });
 
 NumberType.addMethod({
-  identifier: { name: '__sub__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
+  identifier: { name: '__neg__' },
+  parameters: [],
   returnType: NumberType,
+  aliasFor: '__op_neg__',
 });
 
-NumberType.addMethod({
-  identifier: { name: '__div__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
-  returnType: NumberType,
-});
+// StringType
 
-NumberType.addMethod({
-  identifier: { name: '__mul__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
-  returnType: NumberType,
-});
-
-NumberType.addMethod({
-  identifier: { name: '__mod__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
-  returnType: NumberType,
-});
-
-NumberType.addMethod({
-  identifier: { name: '__lt__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
-  returnType: BoolType,
-});
-
-NumberType.addMethod({
-  identifier: { name: '__gt__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
-  returnType: BoolType,
-});
-
-NumberType.addMethod({
-  identifier: { name: '__le__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
-  returnType: BoolType,
-});
-
-NumberType.addMethod({
-  identifier: { name: '__ge__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: NumberType }],
-  returnType: BoolType,
-});
-
-StringType.addMethod({
-  identifier: { name: '__add__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
-  returnType: StringType,
-});
+addBinaryOperatorMethod(StringType, 'add', StringType);
+addComparisonOperatorMethods(StringType);
 
 StringType.addMethod({
   identifier: { name: '__get_size' },
   parameters: [],
   returnType: NumberType,
   aliasFor: '__get___js_length',
-});
-
-StringType.addMethod({
-  identifier: { name: '__lt__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
-  returnType: BoolType,
-});
-
-StringType.addMethod({
-  identifier: { name: '__gt__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
-  returnType: BoolType,
-});
-
-StringType.addMethod({
-  identifier: { name: '__le__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
-  returnType: BoolType,
-});
-
-StringType.addMethod({
-  identifier: { name: '__ge__' },
-  parameters: [{ identifier: { name: 'rhs' }, type: StringType }],
-  returnType: BoolType,
 });
 
 function addListMethods(listType: ListType) {
@@ -507,6 +474,7 @@ function addListMethods(listType: ListType) {
     identifier: { name: '__getitem__' },
     parameters: [{ identifier: { name: 'index' }, type: NumberType }],
     returnType: itemType,
+    aliasFor: '__op_getitem__',
   });
   listType.addMethod({
     identifier: { name: '__setitem__' },
@@ -515,5 +483,6 @@ function addListMethods(listType: ListType) {
       { identifier: { name: 'value' }, type: itemType },
     ],
     returnType: itemType,
+    aliasFor: '__op_setitem__',
   });
 }

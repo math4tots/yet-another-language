@@ -11,6 +11,12 @@ export type Value =
   Function;
 
 
+/**
+ * Translates variable names from YAL to JS.
+ * 
+ * This functionality arguably belongs in the backend, but is needed to properly handle
+ * properties of values in the middleend
+ */
 export function translateVariableName(name: string): string {
   if (name === 'this') return 'this';
   if (name.startsWith('__js_')) return name.substring(5);
@@ -95,6 +101,7 @@ export function evalMethodCall(owner: any, methodName: string, args: any[]): Val
         } else if (methodName.startsWith('__set_')) {
           // setters... ignore
         } else {
+          // NOTE: this may not correctly handle aliasing methods
           const modifiedMethodName = translateVariableName(methodName);
           if ((owner as any)[modifiedMethodName]) return (owner as any)[modifiedMethodName](...args);
         }
