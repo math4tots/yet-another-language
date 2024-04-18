@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import * as yal from '../../lang/yal';
-import { getAnnotationForDocument } from '../../lang/middleend/annotator';
-import { AnyType } from '../../lang/middleend/type';
-import { reprFunction } from '../../lang/middleend/functions';
+import * as yal from '../lang/yal';
+import { getAnnotationForDocument } from '../lang/middleend/annotator';
+import { AnyType } from '../lang/middleend/type';
+import { reprFunction } from '../lang/middleend/functions';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
@@ -20,7 +20,7 @@ function formatComment(s: string): string {
   return s.replaceAll(prefix, '\n');
 }
 
-export function newNewHoverProvider(): vscode.HoverProvider {
+export function newHoverProvider(): vscode.HoverProvider {
   return {
     async provideHover(document, position, token) {
       const annotation = await getAnnotationForDocument(document);

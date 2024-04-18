@@ -5,11 +5,11 @@ import { parseCommand } from './extension/parse';
 import { runCommand } from './extension/run';
 import { translateToJSCommand } from './extension/translate-to-js';
 import { runHTMLCommand } from './extension/runhtml';
-import { newNewDefinitionProvider } from './extension/new/definitionprovider';
-import { newNewHoverProvider } from './extension/new/hoverprovider';
-import { newNewCompletionProvider } from './extension/new/completionprovider';
-import { newNewInlayHintsProvider } from './extension/new/inlayhintsprovider';
-import { newNewSignatureHelpProvider } from './extension/new/signaturehelpprovider';
+import { newDefinitionProvider } from './extension/definitionprovider';
+import { newHoverProvider } from './extension/hoverprovider';
+import { newCompletionProvider } from './extension/completionprovider';
+import { newInlayHintsProvider } from './extension/inlayhintsprovider';
+import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { getAnnotationForDocument } from './lang/middleend/annotator';
 
 
@@ -64,19 +64,19 @@ export function activate(context: vscode.ExtensionContext) {
 
   sub(vscode.languages.registerDefinitionProvider(
     { language: 'yal' },
-    newNewDefinitionProvider()));
+    newDefinitionProvider()));
   sub(vscode.languages.registerHoverProvider(
     { language: 'yal' },
-    newNewHoverProvider()));
+    newHoverProvider()));
   sub(vscode.languages.registerCompletionItemProvider(
     { language: 'yal' },
-    newNewCompletionProvider(), '.'));
+    newCompletionProvider(), '.'));
   sub(vscode.languages.registerSignatureHelpProvider(
     { language: 'yal' },
-    newNewSignatureHelpProvider(), '('));
+    newSignatureHelpProvider(), '('));
   sub(vscode.languages.registerInlayHintsProvider(
     { language: 'yal' },
-    newNewInlayHintsProvider()));
+    newInlayHintsProvider()));
 
   // sub(vscode.languages.registerDefinitionProvider(
   //   { language: 'yal' },

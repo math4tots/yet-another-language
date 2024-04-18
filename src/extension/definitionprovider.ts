@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as yal from '../../lang/yal';
-import { getAnnotationForDocument } from '../../lang/middleend/annotator';
+import * as yal from '../lang/yal';
+import { getAnnotationForDocument } from '../lang/middleend/annotator';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
@@ -14,7 +14,7 @@ function toVSLocation(location: yal.Location): vscode.Location {
   return new vscode.Location(location.uri, toVSRange(location.range));
 }
 
-export function newNewDefinitionProvider(): vscode.DefinitionProvider {
+export function newDefinitionProvider(): vscode.DefinitionProvider {
   return {
     async provideDefinition(document, position, token) {
       const annotation = await getAnnotationForDocument(document);

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as yal from '../../lang/yal';
-import { getAnnotationForDocument } from '../../lang/middleend/annotator';
+import * as yal from '../lang/yal';
+import { getAnnotationForDocument } from '../lang/middleend/annotator';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
@@ -10,7 +10,7 @@ function toVSRange(range: yal.Range): vscode.Range {
   return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
 }
 
-export function newNewCompletionProvider(): vscode.CompletionItemProvider {
+export function newCompletionProvider(): vscode.CompletionItemProvider {
   return {
     async provideCompletionItems(document, position, token, context) {
       const items: vscode.CompletionItem[] = [];

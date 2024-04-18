@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
-import * as yal from '../../lang/yal';
-import { CallInstance } from '../../lang/middleend/annotation';
-import { getAnnotationForDocument } from '../../lang/middleend/annotator';
+import * as yal from '../lang/yal';
+import { CallInstance } from '../lang/middleend/annotation';
+import { getAnnotationForDocument } from '../lang/middleend/annotator';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
@@ -11,7 +11,7 @@ function toVSRange(range: yal.Range): vscode.Range {
   return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
 }
 
-export function newNewSignatureHelpProvider(): vscode.SignatureHelpProvider {
+export function newSignatureHelpProvider(): vscode.SignatureHelpProvider {
   return {
     async provideSignatureHelp(document, position, token, context) {
       const annotation = await getAnnotationForDocument(document);

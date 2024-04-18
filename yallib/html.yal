@@ -1,19 +1,19 @@
 
 
 class Element {
-  function get_innerHTML(): String {
+  function __get_innerHTML(): String {
     return native "new YALString(this.value.innerHTML)" as String
   }
-  function set_innerHTML(s: String): Nil {
+  function __set_innerHTML(s: String): Nil {
     native "this.value.innerHTML = YALs.value"
   }
-  function get_id(): String {
+  function __get_id(): String {
     return native "new YALString(this.value.id)" as String
   }
-  function set_id(s: String): Nil {
+  function __set_id(s: String): Nil {
     native "this.value.id = YALs.value"
   }
-  function get_tagName(): String {
+  function __get_tagName(): String {
     return native "new YALString(this.value.tagName)" as String
   }
   function append(element: Element) {
