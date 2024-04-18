@@ -1,6 +1,6 @@
 import { Variable } from "./annotation";
 import { printFunction, reprFunction, strFunction } from "./functions";
-import { AnyType, BoolType, NeverType, NilType, NumberType, StringType, newLambdaType } from "./type";
+import { AnyType, BoolType, NeverType, NullType, NumberType, StringType, newLambdaType } from "./type";
 
 export type Scope = { [key: string]: Variable; };
 
@@ -9,8 +9,8 @@ BASE_SCOPE['Any'] =
   { identifier: AnyType.identifier, type: AnyType };
 BASE_SCOPE['Never'] =
   { identifier: NeverType.identifier, type: NeverType };
-BASE_SCOPE['Nil'] =
-  { identifier: NilType.identifier, type: AnyType };
+BASE_SCOPE['Null'] =
+  { identifier: NullType.identifier, type: AnyType };
 BASE_SCOPE['Bool'] =
   { identifier: BoolType.identifier, type: AnyType };
 BASE_SCOPE['Number'] =

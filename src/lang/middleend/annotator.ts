@@ -12,7 +12,7 @@ import { resolveURI } from './paths';
 import {
   AnyType,
   NeverType,
-  NilType,
+  NullType,
   BoolType,
   NumberType,
   StringType,
@@ -178,10 +178,11 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         // Provide completions for builtin generic types
         completions.push({ name: 'Any' });
         completions.push({ name: 'Never' });
-        completions.push({ name: 'Nil' });
+        completions.push({ name: 'Null' });
         completions.push({ name: 'Bool' });
         completions.push({ name: 'Number' });
         completions.push({ name: 'String' });
+        completions.push({ name: 'Nullable' });
         completions.push({ name: 'List' });
         completions.push({ name: 'Function' });
         return completions;
@@ -193,11 +194,14 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       switch (e.identifier.name) {
         case 'Any': return AnyType;
         case 'Never': return NeverType;
-        case 'Nil': return NilType;
+        case 'Null': return NullType;
         case 'Bool': return BoolType;
         case 'Number': return NumberType;
         case 'String': return StringType;
       }
+    }
+    if (e.args.length === 1 && e.identifier.name === 'Nullable') {
+      return this.solveType(e.args[0]).nullable();
     }
     if (e.args.length === 1 && e.identifier.name === 'List') {
       return this.solveType(e.args[0]).list();
@@ -506,7 +510,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
 
   visitNullLiteral(n: ast.NullLiteral): EResult {
-    return { type: NilType, value: null, ir: n };
+    return { type: NullType, value: null, ir: n };
   }
   visitBooleanLiteral(n: ast.BooleanLiteral): EResult {
     return { type: BoolType, value: n.value, ir: n };
@@ -616,7 +620,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           this.declareVariable(variable);
         }
         const result = this.solveBlock(n.body);
-        if (result.status !== Jumps && !NilType.isAssignableTo(returnType)) {
+        if (result.status !== Jumps && !NullType.isAssignableTo(returnType)) {
           this.error(
             n.location, `This function cannot return null and this function might not return`);
         }

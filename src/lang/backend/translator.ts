@@ -3,11 +3,20 @@ import * as ast from '../frontend/ast';
 import { translateVariableName } from '../middleend/value';
 import { getAnnotationForDocument } from '../middleend/annotator';
 import { Annotation } from '../middleend/annotation';
-import { PRINT_FUNCTION_DEFINITION, REPR_FUNCTION_DEFINITION, STR_FUNCTION_DEFINITION } from '../middleend/shared-functions';
+import {
+  RAISE_FUNCTION_DEFINITION,
+  NULL_GET_FUNCTION_DEFINITION,
+  REPR_FUNCTION_DEFINITION,
+  STR_FUNCTION_DEFINITION,
+  PRINT_FUNCTION_DEFINITION,
+} from '../middleend/shared-functions';
 
-const specialUnaryOperatorMap = new Map([
-  ['__op_neg__', '-'],
-  ['__op_pos__', '+'],
+const specialUnaryOperatorMap = new Map<string, (e: string) => string>([
+  ['__op_neg__', e => `(-${e})`],
+  ['__op_pos__', e => `(+${e})`],
+  ['__op_isnull__', e => `((${e}??null)===null)`],
+  ['__op_hasvalue__', e => `((${e}??null)!==null)`],
+  ['__op_nullget__', e => `nullGet(${e})`],
 ]);
 
 const specialBinaryOperatorMap = new Map([
@@ -23,6 +32,7 @@ const specialBinaryOperatorMap = new Map([
   ['__op_div__', '/'],
   ['__op_mod__', '%'],
   ['__op_pow__', '**'],
+  ['__op_nullish_coalescing__', '??'],
 ]);
 
 const builtinOnlyMethodNames = new Set([
@@ -81,8 +91,8 @@ class Translator implements ast.NodeVisitor<string> {
     const name = n.identifier.name;
     if (name === '__call__') return `${owner}(${args.join(',')})`;
     if (args.length === 0) {
-      const op = specialUnaryOperatorMap.get(name);
-      if (op) return `(${op}${owner})`;
+      const applyOperator = specialUnaryOperatorMap.get(name);
+      if (applyOperator) return applyOperator(owner);
       if (name === '__get___size') return `${owner}.length`;
       if (name.startsWith('__get___js_')) return `${owner}.${name.substring(11)}`;
       if (name.startsWith('__get_')) return `${owner}.YAL${name.substring(6)}`;
@@ -218,6 +228,8 @@ export async function getTranslationForDocument(
   const parts: string[] = [
     '"use strict";',
     '(()=>{',
+    RAISE_FUNCTION_DEFINITION,
+    NULL_GET_FUNCTION_DEFINITION,
     REPR_FUNCTION_DEFINITION,
     STR_FUNCTION_DEFINITION,
   ];

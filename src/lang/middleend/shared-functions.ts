@@ -3,6 +3,10 @@
 // Definitions for functions that are shared between the backend and middle end evaluator.
 
 
+export const RAISE_FUNCTION_DEFINITION = `function raise(x) { throw new Error(x) }`;
+
+export const NULL_GET_FUNCTION_DEFINITION = `function nullGet(x) { return x ?? raise('nullish value error'); }`;
+
 export const REPR_FUNCTION_DEFINITION = `function YALrepr(x) {
   switch (typeof x) {
     case 'undefined': return 'undefined';
@@ -13,13 +17,16 @@ export const REPR_FUNCTION_DEFINITION = `function YALrepr(x) {
       if (x === null) return 'null';
       if (Array.isArray(x)) return '[' + x.map(i => YALrepr(i)).join(', ') + ']';
       if (x.YAL__repr__) return x.YAL__repr__();
+      if (x.toString && x.toString !== Object.prototype.toString) return x.toString();
       break;
   }
   return JSON.stringify(x);
 }`;
 
 export const STR_FUNCTION_DEFINITION = `function YALstr(x) {
-  return typeof x === 'string' ? x : YALrepr(x);
+  return typeof x === 'string' ? x : 
+         (typeof x === 'object' && x && x.YAL__str__) ? x.YAL__str__() :
+         YALrepr(x);
 }`;
 
 export const PRINT_FUNCTION_DEFINITION = `function YALprint(x) {

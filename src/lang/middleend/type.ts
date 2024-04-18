@@ -1,8 +1,9 @@
-import { Identifier } from "../frontend/ast";
+import { Identifier, TypeExpression } from "../frontend/ast";
 import type { Annotation, Variable } from "./annotation";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
+  readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
@@ -11,6 +12,10 @@ type TypeConstructorParameters = {
   readonly classTypeTypeData?: ClassTypeTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
+};
+
+type NullableTypeData = {
+  readonly itemType: Type;
 };
 
 type ListTypeData = {
@@ -50,6 +55,7 @@ type ClassTypeTypeData = {
   readonly classType: ClassType;
 };
 
+export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
 export type ListType = Type & { readonly listTypeData: ListTypeData; };
 export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
 export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData; };
@@ -62,6 +68,8 @@ export type InterfaceTypeType = Type & { readonly interfaceTypeTypeData: Interfa
 export class Type {
   readonly identifier: Identifier;
   private _list?: ListType;
+  private _nullable?: NullableType;
+  readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
@@ -76,6 +84,9 @@ export class Type {
   constructor(parameters: TypeConstructorParameters) {
     const params = parameters;
     this.identifier = params.identifier;
+    if (params.nullableTypeData) {
+      this.nullableTypeData = params.nullableTypeData;
+    }
     if (params.listTypeData) {
       this.listTypeData = params.listTypeData;
     }
@@ -110,6 +121,7 @@ export class Type {
     const source = this.getProxyType();
     const target = givenTarget.getProxyType();
     if (source === target || target === AnyType || source === NeverType) return true;
+    if (source === NullType && target.nullableTypeData) return true;
     if (target.interfaceTypeData) {
       // if the target is an interface, we need to check if source implements all the methods
       // required by the interface
@@ -135,13 +147,24 @@ export class Type {
   getCommonType(givenRhs: Type): Type {
     const lhs = this.getProxyType();
     const rhs = givenRhs.getProxyType();
+
+    if (lhs === NullType) return rhs.nullable();
+    if (rhs === NullType) return lhs.nullable();
+
+    // if either type is nullable, get the common type without null first, then
+    // re-apply nullable to it
+    if (lhs.nullableTypeData || rhs.nullableTypeData) {
+      return (lhs.nullableTypeData?.itemType || lhs).getCommonType(
+        rhs.nullableTypeData?.itemType || rhs).nullable();
+    }
+
     return lhs.isAssignableTo(rhs) ? rhs :
       rhs.isAssignableTo(lhs) ? lhs : AnyType;
   }
 
   toString(): string { return this.identifier.name; }
 
-  list(): Type {
+  list(): ListType {
     const cached = this._list;
     if (cached) return cached;
     const listType = new Type({
@@ -151,6 +174,20 @@ export class Type {
     addListMethods(listType);
     this._list = listType;
     return listType;
+  }
+
+  nullable(): Type {
+    if (this === NullType || this === AnyType || this.nullableTypeData) return this;
+    if (this === NeverType) return NullType;
+    const cached = this._nullable;
+    if (cached) return cached;
+    const nullableType = new Type({
+      identifier: { name: `Nullable[${this.identifier.name}]` },
+      nullableTypeData: { itemType: this },
+    }) as NullableType;
+    addNullableMethods(nullableType);
+    this._nullable = nullableType;
+    return nullableType;
   }
 
   getMethod(key: string): Method | null { return this._methodMap.get(key) || null; }
@@ -221,12 +258,22 @@ export type Method = {
    * the value provided here.
    */
   readonly aliasFor?: string;
+
+  /**
+   * If true, indicates that this is a 'control-flow' method.
+   * 
+   * That is to say, not actually a method, but more like control flow.
+   * 
+   * This means that some of the arguments to this method may not be
+   * evaluated based on the result of earlier arguments.
+   */
+  readonly isControlFlow: boolean;
 };
 
 export const AnyType = new Type({ identifier: { name: 'Any' } });
 export const NeverType = new Type({ identifier: { name: 'Never' } });
 
-export const NilType = new Type({ identifier: { name: 'Nil' } });
+export const NullType = new Type({ identifier: { name: 'Null' } });
 export const BoolType = new Type({ identifier: { name: 'Bool' } });
 export const NumberType = new Type({ identifier: { name: 'Number' } });
 export const StringType = new Type({ identifier: { name: 'String' } });
@@ -311,7 +358,7 @@ export function newModuleType(annotation: Annotation): ModuleType {
       moduleType.addMethod({
         identifier: { name: `__set_${variable.identifier.name}` },
         parameters: [{ identifier: variable.identifier, type: variable.type }],
-        returnType: NilType,
+        returnType: NullType,
         sourceVariable: variable,
       });
     } else {
@@ -360,6 +407,16 @@ interface NewMethodParameters {
    * the value provided here.
    */
   readonly aliasFor?: string;
+
+  /**
+   * If true, indicates that this is a 'control-flow' method.
+   * 
+   * That is to say, not actually a method, but more like control flow.
+   * 
+   * This means that some of the arguments to this method may not be
+   * evaluated based on the result of earlier arguments.
+   */
+  readonly isControlFlow?: boolean;
 };
 
 function newMethod(params: NewMethodParameters): Method {
@@ -376,6 +433,7 @@ function newMethod(params: NewMethodParameters): Method {
     functionType,
     sourceVariable,
     aliasFor: params.aliasFor,
+    isControlFlow: !!params.isControlFlow,
   };
 }
 
@@ -465,6 +523,40 @@ StringType.addMethod({
   returnType: NumberType,
   aliasFor: '__get___js_length',
 });
+
+// NullableType
+
+function addNullableMethods(nullableType: NullableType) {
+  const itemType = nullableType.nullableTypeData.itemType;
+  nullableType.addMethod({
+    identifier: { name: 'get' },
+    parameters: [],
+    returnType: itemType,
+    aliasFor: '__op_nullget__',
+  });
+  nullableType.addMethod({
+    identifier: { name: 'getOrElse' },
+    parameters: [{ identifier: { name: 'alternative' }, type: itemType }],
+    returnType: itemType,
+    aliasFor: '__op_nullish_coalescing__',
+    isControlFlow: true,
+  });
+  nullableType.addMethod({
+    identifier: { name: 'orElse' },
+    parameters: [{ identifier: { name: 'alternative' }, type: nullableType }],
+    returnType: nullableType,
+    aliasFor: '__op_nullish_coalescing__',
+    isControlFlow: true,
+  });
+  nullableType.addMethod({
+    identifier: { name: 'hasValue' },
+    parameters: [],
+    returnType: nullableType,
+    aliasFor: '__op_hasvalue__',
+  });
+}
+
+// ListType
 
 function addListMethods(listType: ListType) {
   const itemType = listType.listTypeData.itemType;

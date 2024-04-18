@@ -41,7 +41,7 @@
 				{
 					"comment": "Globals provided by the runtime (types)",
 					"name": "support.class.yal",
-					"match": "\\b(Nil|Bool|Number|String|StringBuilder|Buffer|Iteration|Iterable|Optional|List|FrozenList|Dict|FrozenDict|Function|Class|File|Table)\\b"
+					"match": "\\b(Null|Bool|Number|String|StringBuilder|Buffer|Iteration|Iterable|Optional|List|FrozenList|Dict|FrozenDict|Function|Class|File|Table)\\b"
 				},
 				{
 					"comment": "Pseudo Types (Not provide by the runtime, purely for type annotations)",

@@ -155,7 +155,14 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       end = expect(']').range.end;
     }
     const location: ast.Location = { uri, range: { start, end } };
-    return new ast.TypeExpression(location, qualifier, identifier, args);
+    const coreExpression = new ast.TypeExpression(location, qualifier, identifier, args);
+    if (at('?')) {
+      const nullableIdentifier = new ast.IdentifierNode({ uri, range: next().range }, 'Nullable');
+      const nullableRange: Range = { start, end: nullableIdentifier.location.range.end };
+      const nullableLocation: ast.Location = { uri, range: nullableRange };
+      return new ast.TypeExpression(nullableLocation, null, nullableIdentifier, [coreExpression]);
+    }
+    return coreExpression;
   }
 
   function atFunctionDisplay(): boolean {
