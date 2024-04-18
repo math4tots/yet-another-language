@@ -3,8 +3,7 @@ import type { Annotation, Variable } from "./annotation";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
-  readonly listItemType?: Type;
-  readonly hasFields?: boolean;
+  readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
   readonly moduleTypeData?: ModuleTypeData;
@@ -12,6 +11,10 @@ type TypeConstructorParameters = {
   readonly classTypeTypeData?: ClassTypeTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
+};
+
+type ListTypeData = {
+  readonly itemType: Type;
 };
 
 type FunctionTypeData = {
@@ -38,6 +41,7 @@ type InterfaceTypeTypeData = {
 };
 
 type ClassTypeData = {
+  readonly superClassType?: ClassType;
   readonly fields: Field[];
 };
 
@@ -45,7 +49,7 @@ type ClassTypeTypeData = {
   readonly classType: ClassType;
 };
 
-export type ListType = Type & { readonly listItemType: Type; };
+export type ListType = Type & { readonly listTypeData: ListTypeData; };
 export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
 export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData; };
 export type ModuleType = Type & { readonly moduleTypeData: ModuleTypeData; };
@@ -57,7 +61,7 @@ export type InterfaceTypeType = Type & { readonly interfaceTypeTypeData: Interfa
 export class Type {
   readonly identifier: Identifier;
   private _list?: ListType;
-  readonly listItemType?: Type;
+  readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
   readonly moduleTypeData?: ModuleTypeData;
@@ -71,8 +75,8 @@ export class Type {
   constructor(parameters: TypeConstructorParameters) {
     const params = parameters;
     this.identifier = params.identifier;
-    if (params.listItemType) {
-      this.listItemType = params.listItemType;
+    if (params.listTypeData) {
+      this.listTypeData = params.listTypeData;
     }
     if (params.functionTypeData) {
       this.functionTypeData = params.functionTypeData;
@@ -116,7 +120,7 @@ export class Type {
       // TODO: consider the consequences
       target.interfaceTypeData.cache.set(source, true);
 
-      for (const method of target.methods) {
+      for (const method of target.getAllMethods()) {
         if (!source.implementsMethod(method)) {
           target.interfaceTypeData.cache.set(source, false);
           return false;
@@ -124,7 +128,7 @@ export class Type {
       }
       return true;
     }
-    return false;
+    return source.classTypeData?.superClassType?.isAssignableTo(target) || false;
   }
 
   getCommonType(givenRhs: Type): Type {
@@ -141,15 +145,23 @@ export class Type {
     if (cached) return cached;
     const listType = new Type({
       identifier: { name: `List[${this.identifier.name}]` },
-      listItemType: this,
+      listTypeData: { itemType: this },
     }) as ListType;
     addListMethods(listType);
     this._list = listType;
     return listType;
   }
 
-  get methods(): Method[] { return [...this._methods]; }
-  getMethod(key: string): Method | null { return this._methodMap.get(key) || null; }
+  getMethod(key: string): Method | null {
+    return this._methodMap.get(key) || this.classTypeData?.superClassType?.getMethod(key) || null;
+  }
+  getOwnedMethods(): Method[] { return [...this._methods]; }
+  getAllMethods(): Method[] {
+    return [
+      ...(this.classTypeData?.superClassType?.getAllMethods() || []),
+      ...this._methods,
+    ];
+  }
 
   addMethod(params: NewMethodParameters) {
     const method = newMethod(params);
@@ -367,10 +379,10 @@ function newMethod(params: NewMethodParameters): Method {
   };
 }
 
-export function newClassTypeType(identifier: Identifier): ClassTypeType {
+export function newClassTypeType(identifier: Identifier, superClassType?: ClassType): ClassTypeType {
   const classType = new Type({
     identifier,
-    classTypeData: { fields: [] },
+    classTypeData: { superClassType, fields: [] },
   }) as ClassType;
   const classTypeType = new Type({
     identifier: { location: identifier.location, name: `(class ${identifier.name})` },
@@ -484,7 +496,7 @@ StringType.addMethod({
 });
 
 function addListMethods(listType: ListType) {
-  const itemType = listType.listItemType;
+  const itemType = listType.listTypeData.itemType;
   listType.addMethod({
     identifier: { name: '__get_size' },
     parameters: [],

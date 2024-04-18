@@ -390,9 +390,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     // forward declare classes
     for (const defn of statements) {
       if (defn instanceof ast.ClassDefinition) {
+        const superClassType = defn.superClass ? this.solveType(defn.superClass) : undefined;
         const variable: ClassVariable = {
           identifier: defn.identifier,
-          type: newClassTypeType(defn.identifier),
+          type: newClassTypeType(
+            defn.identifier,
+            superClassType?.classTypeData ? (superClassType as ClassType) : undefined),
           comment: getCommentFromClassDefinition(defn),
         };
         this.classMap.set(defn, variable);
@@ -488,7 +491,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
   visitListDisplay(n: ast.ListDisplay): EResult {
     const startErrorCount = this.annotation.errors.length;
-    let itemType = this.hint.listItemType || NeverType;
+    let itemType = this.hint.listTypeData?.itemType || NeverType;
     let values: Value[] | undefined = [];
     const irs: ast.Expression[] = [];
     for (const element of n.values) {
@@ -566,7 +569,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       getCompletions(): Completion[] {
         const completions: Completion[] = [];
         const seen = new Set<string>();
-        for (const method of owner.type.methods) {
+        for (const method of owner.type.getAllMethods()) {
           const rawName = method.identifier.name;
           if (rawName.startsWith('__set_')) {
             // skip setters
@@ -824,6 +827,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
     const classType = classTypeType.type.classTypeTypeData.classType;
     const bodyIR: ast.Statement[] = [];
+    if (n.extendsFragment) {
+      this.annotation.completionPoints.push({
+        range: n.extendsFragment?.location.range,
+        getCompletions() { return [{ name: 'extends' }]; },
+      });
+    }
     this.scoped(() => {
       const thisVariable: Variable = {
         identifier: { name: 'this', location: n.identifier.location },

@@ -36,6 +36,12 @@ export type TranslationWarning = {
   readonly message: string;
 };
 
+function translateType(te: ast.TypeExpression): string {
+  return te.qualifier ?
+    `${translateVariableName(te.qualifier.name)}.${translateVariableName(te.identifier.name)}` :
+    translateVariableName(te.identifier.name);
+}
+
 class Translator implements ast.NodeVisitor<string> {
   readonly warnings: TranslationWarning[] = [];
   visitNullLiteral(n: ast.NullLiteral): string {
@@ -88,9 +94,7 @@ class Translator implements ast.NodeVisitor<string> {
   }
   visitNew(n: ast.New): string {
     const te = n.type;
-    const type = te.qualifier ?
-      `${translateVariableName(te.qualifier.name)}.${translateVariableName(te.identifier.name)}` :
-      translateVariableName(te.identifier.name);
+    const type = translateType(te);
     return `new ${type}(${n.args.map(e => e.accept(this)).join(',')})`;
   }
   visitLogicalNot(n: ast.LogicalNot): string {
@@ -137,6 +141,7 @@ class Translator implements ast.NodeVisitor<string> {
   }
   visitClassDefinition(n: ast.ClassDefinition): string {
     const name = n.identifier.name;
+    const superClass = n.superClass ? ` extends ${translateType(n.superClass)}` : '';
     const fields = n.statements.map(statement => {
       const stmt = statement;
       if (stmt instanceof ast.Declaration) {
@@ -177,7 +182,7 @@ class Translator implements ast.NodeVisitor<string> {
       }
       return [];
     }).flat();
-    return `class YAL${name}{${ctor}${methods.join('')}}`;
+    return `class YAL${name}${superClass}{${ctor}${methods.join('')}}`;
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): string { return ''; }
   visitImport(n: ast.Import): string { return ''; }
