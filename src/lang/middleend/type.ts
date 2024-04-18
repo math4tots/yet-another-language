@@ -33,6 +33,7 @@ type ModuleTypeData = {
 };
 
 type InterfaceTypeData = {
+  readonly superTypes: InterfaceType[];
   readonly cache: WeakMap<Type, boolean>;
 };
 
@@ -152,16 +153,10 @@ export class Type {
     return listType;
   }
 
-  getMethod(key: string): Method | null {
-    return this._methodMap.get(key) || this.classTypeData?.superClassType?.getMethod(key) || null;
-  }
-  getOwnedMethods(): Method[] { return [...this._methods]; }
-  getAllMethods(): Method[] {
-    return [
-      ...(this.classTypeData?.superClassType?.getAllMethods() || []),
-      ...this._methods,
-    ];
-  }
+  getMethod(key: string): Method | null { return this._methodMap.get(key) || null; }
+
+  /** Returns all methods of this type, including those inherited from super class or interfaces */
+  getAllMethods(): Method[] { return [...this._methods]; }
 
   addMethod(params: NewMethodParameters) {
     const method = newMethod(params);
@@ -396,8 +391,11 @@ export function newClassTypeType(identifier: Identifier, superClassType?: ClassT
   return classTypeType;
 }
 
-export function newInterfaceTypeType(identifier: Identifier): InterfaceTypeType {
-  const interfaceType = new Type({ identifier, interfaceTypeData: { cache: new WeakMap() } }) as InterfaceType;
+export function newInterfaceTypeType(identifier: Identifier, superTypes: InterfaceType[]): InterfaceTypeType {
+  const interfaceType = new Type({
+    identifier,
+    interfaceTypeData: { superTypes, cache: new WeakMap() },
+  }) as InterfaceType;
   const interfaceTypeType = new Type({
     identifier: { location: identifier.location, name: `(interface ${identifier.name})` },
     interfaceTypeTypeData: { interfaceType },
@@ -439,6 +437,7 @@ addBinaryOperatorMethod(NumberType, 'sub', NumberType);
 addBinaryOperatorMethod(NumberType, 'mul', NumberType);
 addBinaryOperatorMethod(NumberType, 'div', NumberType);
 addBinaryOperatorMethod(NumberType, 'mod', NumberType);
+addBinaryOperatorMethod(NumberType, 'pow', NumberType);
 addComparisonOperatorMethods(NumberType);
 
 NumberType.addMethod({

@@ -22,6 +22,7 @@ const specialBinaryOperatorMap = new Map([
   ['__op_mul__', '*'],
   ['__op_div__', '/'],
   ['__op_mod__', '%'],
+  ['__op_pow__', '**'],
 ]);
 
 const builtinOnlyMethodNames = new Set([

@@ -453,9 +453,18 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         this.classMap.set(defn, variable);
         this.declareVariable(variable);
       } else if (defn instanceof ast.InterfaceDefinition) {
+        const superTypes: InterfaceType[] = [];
+        for (const superTypeExpression of defn.superTypes) {
+          const superType = this.solveType(superTypeExpression);
+          if (superType.interfaceTypeData) {
+            superTypes.push(superType as InterfaceType);
+          } else {
+            this.error(superTypeExpression.location, `interfaces can only extend other interfaces`);
+          }
+        }
         const variable: InterfaceVariable = {
           identifier: defn.identifier,
-          type: newInterfaceTypeType(defn.identifier),
+          type: newInterfaceTypeType(defn.identifier, superTypes),
           comment: getCommentFromInterfaceDefinition(defn),
         };
         this.interfaceMap.set(defn, variable);
@@ -469,11 +478,28 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         const classTypeType = this.classMap.get(defn);
         if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
         const classType = classTypeType.type.classTypeTypeData.classType;
+
+        // inherit from super class
+        const superClassType = classType.classTypeData.superClassType;
+        if (superClassType) {
+          for (const method of superClassType.getAllMethods()) {
+            classType.addMethod(method);
+          }
+        }
+
         this.addMethodsAndFields(classType, defn.statements);
       } else if (defn instanceof ast.InterfaceDefinition) {
         const interfaceTypeType = this.interfaceMap.get(defn);
         if (!interfaceTypeType) throw new Error(`FUBAR interface ${interfaceTypeType}`);
         const interfaceType = interfaceTypeType.type.interfaceTypeTypeData.interfaceType;
+
+        // inherit from all the super interfaces
+        for (const superType of interfaceType.interfaceTypeData.superTypes) {
+          for (const method of superType.getAllMethods()) {
+            interfaceType.addMethod(method);
+          }
+        }
+
         this.addMethodsAndFields(interfaceType, defn.statements);
       }
     }
@@ -929,6 +955,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): SResult {
     // almost everything for interfaces is handled in `forwardDeclare`
+    if (n.extendsFragment) {
+      this.annotation.completionPoints.push({
+        range: n.extendsFragment?.location.range,
+        getCompletions() { return [{ name: 'extends' }]; },
+      });
+    }
     for (const statement of n.statements) {
       if (statement instanceof ast.ExpressionStatement) {
         if (statement.expression instanceof ast.StringLiteral) {
