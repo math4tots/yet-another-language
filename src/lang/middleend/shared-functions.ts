@@ -6,19 +6,13 @@
 export const REPR_FUNCTION_DEFINITION = `function YALrepr(x) {
   switch (typeof x) {
     case 'undefined': return 'undefined';
-    case 'boolean': return x ? 'true' : 'false';
-    case 'number': return '' + x;
-    case 'string': return JSON.stringify(x);
     case 'function':
-      return x.name ? x.name.startsWith('YAL') ?
-          '<function ' + x.name.substring(3) + '>' :
-          '<function ' + x.name + '>' :
-          '<function>';
+      return x.name ? x.name.startsWith('YAL') ? '<function ' + x.name.substring(3) + '>' :
+        '<function ' + x.name + '>' : '<function>';
     case 'object':
       if (x === null) return 'null';
-      if (Array.isArray(x)) return '[' + x.map(i => reprFunction(i)).join(', ') + ']';
+      if (Array.isArray(x)) return '[' + x.map(i => YALrepr(i)).join(', ') + ']';
       if (x.YAL__repr__) return x.YAL__repr__();
-      if (x.toString && Object.prototype.toString !== x.toString) return x.toString();
       break;
   }
   return JSON.stringify(x);
