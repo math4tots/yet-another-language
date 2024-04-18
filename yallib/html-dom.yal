@@ -23,11 +23,27 @@ interface HTMLCanvasElement extends HTMLElement {
   function __set_width(x: Number): Number { aliasFor(__set___js_width) }
   function __get_height(): Number { aliasFor(__get___js_height) }
   function __set_height(x: Number): Number { aliasFor(__set___js_height) }
+  function get2DContext(contextType: String = "2d"): CanvasRenderingContext2D {
+    """
+    Calls canvas.getContext() to get the rendering context.
+    The default parameter automatically passes "2d" to the method to get the correct
+    context type.
+    """
+    aliasFor(__js_getContext)
+  }
 }
 
 interface Document {
   function __get_body(): HTMLBodyElement { aliasFor(__get___js_body) }
-  function getElementById(id: String): Element? { aliasFor(__get___js_getElementById) }
+  function getElementById(id: String): Element? { aliasFor(__js_getElementById) }
+}
+
+interface CanvasRenderingContext2D {
+  function __get_fillStyle(): String { aliasFor(__get___js_fillStyle) }
+  function __set_fillStyle(x: String): String { aliasFor(__set___js_fillStyle) }
+  function fillRect(x: Number, y: Number, width: Number, height: Number) {
+    aliasFor(__js_fillRect)
+  }
 }
 
 const createElement = native(tagName: String): Element {

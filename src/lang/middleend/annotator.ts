@@ -597,6 +597,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       isMutable: p.isMutable,
       identifier: p.identifier,
       type: (p.type ? this.solveType(p.type) : null) || AnyType,
+      defaultValue: p.value || undefined,
     }));
     const lambdaType = newLambdaType(parameters, returnType);
     this.lambdaTypeCache.set(n, lambdaType);
@@ -690,7 +691,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       parameters: method.parameters,
     });
     this.markReference(method.sourceVariable, n.identifier.location.range);
-    if (method.parameters.length !== n.args.length) {
+    const argExprs = [...n.args];
+    while (argExprs.length < method.parameters.length && method.parameters[argExprs.length].defaultValue) {
+      const defaultValue = method.parameters[argExprs.length].defaultValue;
+      if (defaultValue) argExprs.push(defaultValue);
+    }
+    if (method.parameters.length !== argExprs.length) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
       return { type: method.returnType, ir: n };
@@ -698,7 +704,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const argValues: Value[] = [];
     const argIRs: ast.Expression[] = [];
     for (let i = 0; i < method.parameters.length; i++) {
-      const info = this.solveExpr(n.args[i], method.parameters[i].type);
+      const info = this.solveExpr(argExprs[i], method.parameters[i].type);
       if (info.value !== undefined) argValues.push(info.value);
       argIRs.push(info.ir);
     }
@@ -802,6 +808,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const parameters: Parameter[] = n.parameters.map(p => ({
       identifier: p.identifier,
       type: p.type ? this.solveType(p.type) : AnyType,
+      defaultValue: p.value || undefined,
     }));
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const lambdaType = newLambdaType(parameters, returnType);

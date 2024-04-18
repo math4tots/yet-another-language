@@ -186,22 +186,39 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     }
   }
 
-  function parseParameter(): ast.Declaration {
+  function parseLiteral(): ast.Literal {
+    if (at('null')) return new ast.NullLiteral({ uri, range: next().range });
+    if (at('true')) return new ast.BooleanLiteral({ uri, range: next().range }, true);
+    if (at('false')) return new ast.BooleanLiteral({ uri, range: next().range }, false);
+    if (at('NUMBER')) return new ast.NumberLiteral({ uri, range: tokens[i].range }, next().value as number);
+    if (at('STRING')) return new ast.StringLiteral({ uri, range: tokens[i].range }, next().value as string);
+    errors.push({
+      location: { uri, range: tokens[i].range },
+      message: `Expected literal expression`,
+    });
+    return new ast.NullLiteral({ uri, range: tokens[i].range });
+  }
+
+  function parseParameter(): ast.Parameter {
     const identifier = parseIdentifier();
     const type = consume(':') ? parseTypeExpression() : null;
+    const value = consume('=') ? parseLiteral() : null;
     const location = {
       uri,
       range: {
         start: identifier.location.range.start,
-        end: type ? type.location.range.end : identifier.location.range.end,
+        end:
+          value ? value.location.range.end :
+            type ? type.location.range.end :
+              identifier.location.range.end,
       }
     };
-    return new ast.Declaration(location, true, identifier, type, null, null);
+    return new ast.Parameter(location, true, identifier, type, null, value);
   }
 
-  function parseParameters(): ast.Declaration[] {
+  function parseParameters(): ast.Parameter[] {
     expect('(');
-    const parameters: ast.Declaration[] = [];
+    const parameters: ast.Parameter[] = [];
     while (!atEOF() && !at(')')) {
       parameters.push(parseParameter());
       if (!consume(',')) {

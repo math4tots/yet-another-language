@@ -65,6 +65,8 @@ export interface Statement {
   accept<R>(visitor: StatementVisitor<R>): R;
 }
 
+export type Literal = NullLiteral | BooleanLiteral | NumberLiteral | StringLiteral;
+
 export type Node = File | Expression | Statement;
 
 export type ParseError = {
@@ -162,14 +164,37 @@ export class ListDisplay implements Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitListDisplay(this); }
 }
 
+export class Parameter {
+  readonly location: Location;
+  readonly isMutable: boolean;
+  readonly identifier: IdentifierNode;
+  readonly type: TypeExpression | null;
+  readonly comment: StringLiteral | null;
+  readonly value: Literal | null;
+  constructor(
+    location: Location,
+    isMutable: boolean,
+    identifier: IdentifierNode,
+    type: TypeExpression | null,
+    comment: StringLiteral | null,
+    value: Literal | null) {
+    this.location = location;
+    this.isMutable = isMutable;
+    this.identifier = identifier;
+    this.type = type;
+    this.comment = comment;
+    this.value = value;
+  }
+}
+
 export class FunctionDisplay implements Expression {
   readonly location: Location;
-  readonly parameters: Declaration[];
+  readonly parameters: Parameter[];
   readonly returnType: TypeExpression | null;
   readonly body: Block;
   constructor(
     location: Location,
-    parameters: Declaration[],
+    parameters: Parameter[],
     returnType: TypeExpression | null,
     body: Block) {
     this.location = location;
@@ -294,11 +319,11 @@ export class NativeExpression implements Expression {
 //
 export class NativePureFunction implements Expression {
   readonly location: Location;
-  readonly parameters: Declaration[];
+  readonly parameters: Parameter[];
   readonly returnType: TypeExpression | null;
   readonly body: [IdentifierNode, StringLiteral][];
   constructor(location: Location,
-    parameters: Declaration[],
+    parameters: Parameter[],
     returnType: TypeExpression | null,
     body: [IdentifierNode, StringLiteral][]) {
     this.location = location;

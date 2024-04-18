@@ -1,4 +1,5 @@
-import { Identifier, TypeExpression } from "../frontend/ast";
+import { Identifier } from "../frontend/ast";
+import * as ast from "../frontend/ast";
 import type { Annotation, Variable } from "./annotation";
 
 type TypeConstructorParameters = {
@@ -227,6 +228,7 @@ export type Parameter = {
   readonly isMutable?: boolean;
   readonly identifier: Identifier;
   readonly type: Type;
+  readonly defaultValue?: ast.Literal;
 };
 
 export type Method = {
