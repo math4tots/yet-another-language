@@ -172,6 +172,11 @@ export class Type {
   implementsMethod(targetMethod: Method): boolean {
     const method = this.getMethod(targetMethod.identifier.name);
     if (!method) return false;
+
+    // If there is any sort of method aliasing going on, the methods must match exactly.
+    // Otherwise, there could be strange errors at runtime.
+    if (method.aliasFor !== targetMethod.aliasFor) return false;
+
     if (method.parameters.length !== targetMethod.parameters.length) return false;
     for (let i = 0; i < method.parameters.length; i++) {
       if (!targetMethod.parameters[i].type.isAssignableTo(method.parameters[i].type)) return false;

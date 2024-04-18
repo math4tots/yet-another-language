@@ -83,6 +83,10 @@ type FResult = {
   readonly ir: ast.File;
 };
 
+type InterfacetMethodBodyContents = {
+  readonly aliasFor?: ast.Identifier;
+};
+
 class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
   readonly annotation: AnnotationWithoutIR;
   private readonly stack: Set<string>; // for detecting recursion
@@ -245,7 +249,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
 
   private solveBlock(b: ast.Block): BResult {
-    return this.solveStmt(b) as BResult;
+    const result = this.solveStmt(b);
+    if (result.ir instanceof ast.Block) return { ...result, ir: result.ir };
+    if (result.ir instanceof ast.EmptyStatement) return { ...result, ir: new ast.Block(result.ir.location, []) };
+    return { ...result, ir: new ast.Block(result.ir.location, [result.ir]) };
   }
 
   private declareVariable(variable: Variable, addToScope = true) {
@@ -349,12 +356,22 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             comment: declaration.comment || getCommentFromFunctionDisplay(funcdisp),
           };
           this.declareVariable(variable, false);
+
+          // If this is an interface method, its body may contain additional information
+          // about the method, like whether it is an alias method.
+          let aliasFor: string | undefined;
+          if (type.interfaceTypeData) {
+            const interfacetMethodBodyContents = this.inspectInterfaceMethodBody(value);
+            aliasFor = interfacetMethodBodyContents.aliasFor?.name;
+          }
+
           type.addMethod({
             identifier: declaration.identifier,
             parameters: funcdispType.lambdaTypeData.parameters,
             returnType: funcdispType.lambdaTypeData.returnType,
             functionType: funcdispType.lambdaTypeData.functionType,
             sourceVariable: variable,
+            aliasFor,
           });
         } else if (declaration.type) {
           // field/property
@@ -385,6 +402,40 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
       }
     }
+  }
+
+  private inspectInterfaceMethodBody(fd: ast.FunctionDisplay): InterfacetMethodBodyContents {
+    let aliasFor: ast.Identifier | undefined;
+    for (const stmt of fd.body.statements) {
+      if (stmt instanceof ast.ExpressionStatement) {
+        const expr = stmt.expression;
+        if (expr instanceof ast.StringLiteral) {
+          continue; // comments
+        }
+        if (expr instanceof ast.MethodCall && expr.identifier.name === '__call__' && expr.args.length === 1) {
+          const owner = expr.owner;
+          const arg = expr.args[0];
+          if (owner instanceof ast.IdentifierNode && arg instanceof ast.IdentifierNode) {
+            if (owner.name === 'aliasFor') {
+              if (aliasFor) {
+                this.error(owner.location, 'Duplicate aliasFor declaration');
+              }
+              aliasFor = arg;
+              continue;
+            }
+          }
+        }
+        if (expr instanceof ast.IdentifierNode) {
+          // this an error, but also a chance to help autocomplete 'aliasFor'
+          this.annotation.completionPoints.push({
+            range: expr.location.range,
+            getCompletions() { return [{ name: 'aliasFor' }]; },
+          });
+        }
+      }
+      this.error(stmt.location, `Unexpected statement in interface method body`);
+    }
+    return { aliasFor };
   }
 
   private forwardDeclare(statements: ast.Statement[]) {
