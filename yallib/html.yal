@@ -2,78 +2,36 @@
 
 # SOME COMMENTS
 
+interface Node {
+  function __get_baseURI(): String { aliasFor(__get___js_baseURI) }
+  function appendChild(node: Node): Node { aliasFor(__js_appendChild) }
+}
+interface Element extends Node {
+  function __get_id(): String { aliasFor(__get___js_id) }
+  function __set_id(x: String): String { aliasFor(__set___js_id) }
+  function __get_innerHTML(): String { aliasFor(__get___js_innerHTML) }
+  function __set_innerHTML(x: String): String { aliasFor(__set___js_innerHTML) }
+  function __get_tagName(): String { aliasFor(__get___js_tagName) }
+  function __get_textContent(): String { aliasFor(__get___js_textContent) }
+  function __set_textContent(x: String): String { aliasFor(__set___js_textContent) }
+  function append(node: Node) { aliasFor(__js_append) }
+}
+interface HTMLElement extends Element {}
+interface HTMLBodyElement extends HTMLElement {}
+interface HTMLCanvasElement extends HTMLElement {
+  function __get_width(): Number { aliasFor(__get___js_width) }
+  function __set_width(x: Number): Number { aliasFor(__set___js_width) }
+  function __get_height(): Number { aliasFor(__get___js_height) }
+  function __set_height(x: Number): Number { aliasFor(__set___js_height) }
+}
+
 interface Document {
   function __get_body(): HTMLBodyElement { aliasFor(__get___js_body) }
   function getElementById(id: String): Element? { aliasFor(__get___js_getElementById) }
 }
 
-interface Element {
-  function __get_id(): String { aliasFor(__get___js_id) }
-  function __set_id(x: String): String { aliasFor(__set___js_id) }
-  function __get_innerHTML(): String { aliasFor(__get___js_innerHTML) }
-  function __set_innerHTML(x: String): String { aliasFor(__set___js_innerHTML) }
+const createElement = native(tagName: String): Element {
+  js "return createElement(tagName)"
 }
 
-interface HTMLElement extends Element {
-}
-
-interface HTMLBodyElement extends HTMLElement {}
-
-
-class Element {
-  function __get_innerHTML(): String {
-    return native "new YALString(this.value.innerHTML)" as String
-  }
-  function __set_innerHTML(s: String): Null {
-    native "this.value.innerHTML = YALs.value"
-  }
-  function __get_id(): String {
-    return native "new YALString(this.value.id)" as String
-  }
-  function __set_id(s: String): Null {
-    native "this.value.id = YALs.value"
-  }
-  function __get_tagName(): String {
-    return native "new YALString(this.value.tagName)" as String
-  }
-  function append(element: Element) {
-    native "this.value.append(element.value)"
-  }
-  function get_textContent(): String {
-    return native "new YALString(this.value.textContent)" as String
-  }
-  function set_textContent(s: String): Null {
-    native "this.value.textContent = YALs.value"
-  }
-}
-
-class CanvasElement extends Element {
-}
-
-const _createElementCore = native(tagName: String): Any {
-  js "createElement(tagName)"
-}
-
-function createElement(tagName: String): Element {
-  return _newElement(_createElementCore(tagName))
-}
-
-function _newElement(jsv: Any): Element {
-  const element = new Element()
-  native "YALelement.value = YALjsv"
-  return element
-}
-
-class Document {
-  function get_body(): Element {
-    return _newElement(native "document.body")
-  }
-
-  function getElementById(id: String): Element {
-    const element = new Element()
-    native "YALelement.value = document.getElementById(YALid.value)"
-    return element
-  }
-}
-
-const document = new Document()
+const document = native "document" as Document
