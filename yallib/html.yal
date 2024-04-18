@@ -1,5 +1,24 @@
 
 
+# SOME COMMENTS
+
+interface Document {
+  function __get_body(): HTMLBodyElement { aliasFor(__get___js_body) }
+}
+
+interface Element {
+  function __get_id(): String { aliasFor(__get___js_id) }
+  function __set_id(x: String): String { aliasFor(__set___js_id) }
+  function __get_innerHTML(): String { aliasFor(__get___js_innerHTML) }
+  function __set_innerHTML(x: String): String { aliasFor(__set___js_innerHTML) }
+}
+
+interface HTMLElement extends Element {
+}
+
+interface HTMLBodyElement extends HTMLElement {}
+
+
 class Element {
   function __get_innerHTML(): String {
     return native "new YALString(this.value.innerHTML)" as String

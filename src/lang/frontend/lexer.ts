@@ -36,7 +36,7 @@ export const Symbols = [
 ] as const;
 export type KeywordTokenType = typeof Keywords[number];
 export type SymbolTokenType = typeof Symbols[number];
-export type StringValueTokenType = 'ERROR' | 'IDENTIFIER' | 'STRING';
+export type StringValueTokenType = 'ERROR' | 'IDENTIFIER' | 'STRING' | 'COMMENT';
 export type TokenType = (
   StringValueTokenType |
   KeywordTokenType |
@@ -119,6 +119,20 @@ export function lex(s: string): Token[] {
     }
     const j = i;
     const c = s[i];
+
+    // COMMENTs
+    if (c === '#') {
+      while (i < s.length && s[i] !== '\n') {
+        i++;
+        column++;
+      }
+      tokens.push({
+        range: { start, end: { line, column, index: i } },
+        type: 'COMMENT',
+        value: s.substring(j, i),
+      });
+      continue;
+    }
 
     // NUMBERs
     if (isDigit(c)) {

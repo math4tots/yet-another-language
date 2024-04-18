@@ -29,6 +29,10 @@ class Printer implements yal.ast.NodeVisitor<void> {
     this.indent();
     this.out += `NONE`;
   }
+  visitCommentStatement(n: yal.ast.CommentStatement): void {
+    this.indent();
+    this.out += `COMMENT ${n.comment}`;
+  }
   visitExpressionStatement(n: yal.ast.ExpressionStatement): void {
     n.expression.accept(this);
   }

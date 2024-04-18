@@ -39,6 +39,7 @@ export interface ExpressionVisitor<R> {
 
 export interface StatementVisitor<R> {
   visitEmptyStatement(n: EmptyStatement): R;
+  visitCommentStatement(n: CommentStatement): R;
   visitExpressionStatement(n: ExpressionStatement): R;
   visitBlock(n: Block): R;
   visitDeclaration(n: Declaration): R;
@@ -320,6 +321,16 @@ export class EmptyStatement implements Statement {
     this.location = location;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitEmptyStatement(this); }
+}
+
+export class CommentStatement implements Statement {
+  readonly location: Location;
+  readonly comment: string;
+  constructor(location: Location, comment: string) {
+    this.location = location;
+    this.comment = comment;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitCommentStatement(this); }
 }
 
 export class ExpressionStatement implements Statement {

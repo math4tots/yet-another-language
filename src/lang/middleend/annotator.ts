@@ -812,6 +812,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   visitEmptyStatement(n: ast.EmptyStatement): SResult {
     return { status: Continues, ir: n };
   }
+  visitCommentStatement(n: ast.CommentStatement): SResult {
+    return { status: Continues, ir: new ast.EmptyStatement(n.location) };
+  }
   visitExpressionStatement(n: ast.ExpressionStatement): SResult {
     const expression = this.solveExpr(n.expression);
     return {

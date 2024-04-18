@@ -493,6 +493,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
 
   function parseStatement(): ast.Statement {
     const peek = tokens[i];
+    if (at('COMMENT')) return new ast.CommentStatement({ uri, range: peek.range }, next().value as string);
     if (consume(';')) return new ast.EmptyStatement({ uri, range: peek.range });
     if (at('return')) return parseReturn();
     if (at('if')) return parseIf();

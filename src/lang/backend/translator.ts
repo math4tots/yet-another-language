@@ -126,6 +126,7 @@ class Translator implements ast.NodeVisitor<string> {
     return `((${parameters.join(',')}) => {${body || 'throw new Error("missing pure function body")'}})`;
   }
   visitEmptyStatement(n: ast.EmptyStatement): string { return ''; }
+  visitCommentStatement(n: ast.CommentStatement): string { return ''; }
   visitExpressionStatement(n: ast.ExpressionStatement): string { return `${n.expression.accept(this)};`; }
   visitBlock(n: ast.Block): string { return `{${n.statements.map(s => s.accept(this)).join('')}}`; }
   visitDeclaration(n: ast.Declaration): string {
