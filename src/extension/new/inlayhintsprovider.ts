@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as yal from '../../lang/yal';
-import { strStaticValue } from '../../lang/middleend/value';
 import { getAnnotationForDocument } from '../../lang/middleend/annotator';
+import { strFunction } from '../../lang/middleend/functions';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
@@ -19,7 +19,7 @@ export function newNewInlayHintsProvider(): vscode.InlayHintsProvider {
       for (const printInstance of annotation.printInstances) {
         const irange = toVSRange(printInstance.range);
         hints.push(new vscode.InlayHint(
-          irange.end, ' ' + strStaticValue(printInstance.value)));
+          irange.end, ' ' + strFunction(printInstance.value)));
       }
       return hints;
     },

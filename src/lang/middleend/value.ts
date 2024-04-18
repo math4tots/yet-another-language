@@ -1,5 +1,5 @@
 import type { Annotation } from "./annotation";
-import { printFunction } from "./print-function";
+import { printFunction } from "./functions";
 
 export type Value =
   null |
@@ -7,7 +7,8 @@ export type Value =
   number |
   string |
   Value[] |
-  ModuleValue;
+  ModuleValue |
+  Function;
 
 
 export function translateVariableName(name: string): string {
@@ -29,6 +30,7 @@ export class ModuleValue {
     }
   }
   toString() { return '<module>'; }
+  YAL__repr__() { return '<module>'; }
 }
 
 export function evalMethodCall(owner: any, methodName: string, args: any[]): Value | undefined {
@@ -105,14 +107,4 @@ export function evalMethodCall(owner: any, methodName: string, args: any[]): Val
       break;
   }
   return;
-}
-
-export function reprStaticValue(x: any): string {
-  if (typeof x === 'function') return x.name ? `<function ${x.name}>` : '<function>';
-  if (x instanceof ModuleValue) return '<module>';
-  return JSON.stringify(x);
-}
-
-export function strStaticValue(x: any): string {
-  return typeof x === 'string' ? x : reprStaticValue(x);
 }

@@ -1,5 +1,5 @@
 import { Variable } from "./annotation";
-import { printFunction } from "./print-function";
+import { printFunction, reprFunction, strFunction } from "./functions";
 import { AnyType, BoolType, NeverType, NilType, NumberType, StringType, newLambdaType } from "./type";
 
 export type Scope = { [key: string]: Variable; };
@@ -18,9 +18,20 @@ BASE_SCOPE['Number'] =
 BASE_SCOPE['String'] =
   { identifier: StringType.identifier, type: AnyType };
 
-// Dummy 'print' function
 BASE_SCOPE['print'] = {
   identifier: { name: 'print' },
   type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
   value: printFunction,
+};
+
+BASE_SCOPE['repr'] = {
+  identifier: { name: 'repr' },
+  type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
+  value: reprFunction,
+};
+
+BASE_SCOPE['str'] = {
+  identifier: { name: 'str' },
+  type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
+  value: strFunction,
 };

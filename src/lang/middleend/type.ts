@@ -201,6 +201,14 @@ export type Method = {
    * methods (e.g. with __set_* and __get_* style Methods).
    */
   readonly sourceVariable: Variable;
+
+  /**
+   * If present, this field has a method name that this method is an 'alias' for.
+   * 
+   * When this method is invoked, the annotator will replace the method name with
+   * the value provided here.
+   */
+  readonly aliasFor?: string;
 };
 
 export const AnyType = new Type({ identifier: { name: 'Any' } });
@@ -332,6 +340,14 @@ interface NewMethodParameters {
    * methods (e.g. with __set_* and __get_* style Methods).
    */
   readonly sourceVariable?: Variable;
+
+  /**
+   * If present, this field has a method name that this method is an 'alias' for.
+   * 
+   * When this method is invoked, the annotator will replace the method name with
+   * the value provided here.
+   */
+  readonly aliasFor?: string;
 };
 
 function newMethod(params: NewMethodParameters): Method {
@@ -347,6 +363,7 @@ function newMethod(params: NewMethodParameters): Method {
     returnType: params.returnType,
     functionType,
     sourceVariable,
+    aliasFor: params.aliasFor,
   };
 }
 
@@ -439,6 +456,7 @@ StringType.addMethod({
   identifier: { name: '__get_size' },
   parameters: [],
   returnType: NumberType,
+  aliasFor: '__get___js_length',
 });
 
 StringType.addMethod({
@@ -471,6 +489,7 @@ function addListMethods(listType: ListType) {
     identifier: { name: '__get_size' },
     parameters: [],
     returnType: NumberType,
+    aliasFor: '__get___js_length',
   });
   listType.addMethod({
     identifier: { name: '__getitem__' },

@@ -29,7 +29,6 @@ const builtinOnlyMethodNames = new Set([
   ...specialUnaryOperatorMap.keys(),
   '__getitem__',
   '__setitem__',
-  '__get___size',
 ].flat());
 
 export type TranslationWarning = {
@@ -187,6 +186,24 @@ class Translator implements ast.NodeVisitor<string> {
   }
 }
 
+const PRELUDE =
+  `const YALrepr=(x)=>{` +
+  `switch (typeof x){` +
+  `case 'undefined':return 'undefined';` +
+  "case 'function':" +
+  "return x.name?x.name.startsWith('YAL')?`<function ${x.name.substring(3)}>`:" +
+  "`<function ${x.name}>`:'<function>';" +
+  `case 'object':` +
+  `if(x===null)return 'null';` +
+  `if(Array.isArray(x))return'['+x.map(i=>YALrepr(i)).join(', ')+']';` +
+  `if(x.YAL__repr__)return x.YAL__repr__();` +
+  `break;` +
+  `}` +
+  `return JSON.stringify(x)` +
+  `};` +
+  `const YALstr=(x)=>{return typeof x==='string'?x:YALrepr(x)};` +
+  `const YALprint=(x)=>{console.log(YALstr(x));return null};`;
+
 export async function getTranslationForDocument(document: vscode.TextDocument): Promise<string> {
   const translator = new Translator();
   const annotationToID = new Map<Annotation, string>();
@@ -199,7 +216,7 @@ export async function getTranslationForDocument(document: vscode.TextDocument): 
     return id;
   }
 
-  const parts: string[] = ['"use strict";'];
+  const parts: string[] = ['"use strict";', '(()=>{', PRELUDE];
   const annotation = await getAnnotationForDocument(document);
   const stack = [annotation];
   const seen = new Set(stack);
@@ -226,8 +243,10 @@ export async function getTranslationForDocument(document: vscode.TextDocument): 
         parts.push(`${translateVariableName(statement.identifier.name)},`);
       }
     }
+    parts.push(`YAL__repr__(){return '<module>'},`);
     parts.push('};})()}})();');
   }
   parts.push(`${getAnnotationID(annotation)}();`);
+  parts.push('})();');
   return parts.join('');
 }

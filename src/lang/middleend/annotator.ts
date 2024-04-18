@@ -38,7 +38,7 @@ import {
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
 import { ModuleValue, Value, evalMethodCall } from './value';
-import { printFunction } from './print-function';
+import { printFunction } from './functions';
 
 type AnnotatorParameters = {
   readonly annotation: Annotation;
@@ -631,23 +631,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
     }
 
-    let methodIdentifier = n.identifier;
-
-    // For some special cases, let us transform the method that is called before passing
-    // the IR to the backend.
-    if (owner.type === StringType) {
-      switch (n.identifier.name) {
-        case '__get_size':
-          methodIdentifier = new ast.IdentifierNode(n.identifier.location, '__get___js_length');
-          break;
-      }
-    } else if (owner.type.listItemType) {
-      switch (n.identifier.name) {
-        case '__get_size':
-          methodIdentifier = new ast.IdentifierNode(n.identifier.location, '__get___js_length');
-          break;
-      }
-    }
+    const methodIdentifier = method.aliasFor ?
+      new ast.IdentifierNode(n.identifier.location, method.aliasFor) :
+      n.identifier;
 
     return {
       type: method.returnType,

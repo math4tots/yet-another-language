@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as yal from '../../lang/yal';
 import { getAnnotationForDocument } from '../../lang/middleend/annotator';
 import { AnyType } from '../../lang/middleend/type';
-import { reprStaticValue } from '../../lang/middleend/value';
+import { reprFunction } from '../../lang/middleend/functions';
 
 function toVSPosition(p: yal.Position): vscode.Position {
   return new vscode.Position(p.line, p.column);
@@ -37,7 +37,7 @@ export function newNewHoverProvider(): vscode.HoverProvider {
           const codeBlock =
             `${storageClass} ${variableName}` +
             (type === AnyType ? '' : `: ${type}`) +
-            (reference.variable.value ? ` = ${reprStaticValue(reference.variable.value)}` : '');
+            (reference.variable.value ? ` = ${reprFunction(reference.variable.value)}` : '');
           definitionInfo.appendCodeblock(codeBlock);
 
           if (variable.comment) {
