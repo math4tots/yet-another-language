@@ -11,6 +11,7 @@ import { newCompletionProvider } from './extension/completionprovider';
 import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { getAnnotationForDocument } from './lang/middleend/annotator';
+import { crawlAndIndex } from './lang/middleend/crawler';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -24,7 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
   }));
 
   const sub = (item: vscode.Disposable) => context.subscriptions.push(item);
-  // const registry = new Registry();
+
+  crawlAndIndex();
 
   if (vscode.window.activeTextEditor &&
     vscode.window.activeTextEditor.document.languageId === 'yal') {

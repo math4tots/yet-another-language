@@ -43,6 +43,8 @@ export class ModuleValue {
 export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
   const methodName = method.identifier.name;
   const endName = method.aliasFor || method.identifier.name;
+  if (endName.startsWith('__js_')) return owner[endName.substring('__js_'.length)](...args);
+  if (args.length === 0 && endName.startsWith('__get___js_')) return owner[endName.substring('__get___js_'.length)];
   if (args.length === 0 && endName === '__op_noop__') return owner;
   if (owner === printFunction) return;
   if (methodName === '__eq__' && args.length === 1) return owner === args[0];
