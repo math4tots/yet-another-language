@@ -191,7 +191,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('true')) return new ast.BooleanLiteral({ uri, range: next().range }, true);
     if (at('false')) return new ast.BooleanLiteral({ uri, range: next().range }, false);
     if (at('NUMBER')) return new ast.NumberLiteral({ uri, range: tokens[i].range }, next().value as number);
-    if (at('STRING')) return new ast.StringLiteral({ uri, range: tokens[i].range }, next().value as string);
+    if (at('STRING')) return parseStringLiteral();
     if (consume('-')) {
       return new ast.NumberLiteral({ uri, range: tokens[i].range }, -(expect('NUMBER').value as number));
     }
@@ -251,8 +251,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       return new ast.NumberLiteral({ uri, range: peek.range }, peek.value);
     }
     if (peek.type === 'STRING') {
-      i++;
-      return new ast.StringLiteral({ uri, range: peek.range }, peek.value);
+      return parseStringLiteral();
     }
     if (peek.type === 'IDENTIFIER') {
       const identifier = parseIdentifier();
@@ -382,9 +381,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     expect('{');
     while (!atEOF() && !at('}')) {
       const identifier = parseIdentifier();
-      const stringToken = expect('STRING');
-      const implementation = new ast.StringLiteral(
-        { uri, range: stringToken.range }, stringToken.value as string);
+      const implementation = parseStringLiteral();
       body.push([identifier, implementation]);
     }
     expect('}');
@@ -644,6 +641,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   function parseNativeFunctionDefinition(isExported: boolean): ast.Declaration {
     const startPos = expect('native').range.start;
     const identifier = parseIdentifier();
+    const comments = at('STRING') ? parseStringLiteral() : null;
     const parameters = parseParameters();
     const returnType = consume(':') ? parseTypeExpression() : null;
     const body = parseNativePureFunctionBody();
@@ -651,13 +649,14 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       { uri, range: { start: startPos, end: tokens[i - 1].range.end } };
     return new ast.Declaration(
       location,
-      isExported, false, identifier, null, null,
+      isExported, false, identifier, null, comments,
       new ast.NativePureFunction(location, identifier, parameters, returnType, body));
   }
 
   function parseFunctionDefinition(isExported: boolean): ast.Declaration {
     const startPos = expect('function').range.start;
     const identifier = parseIdentifier();
+    const comments = at('STRING') ? parseStringLiteral() : null;
     const parameters = parseParameters();
     const returnType = consume(':') ? parseTypeExpression() : null;
     const body = (atFirstTokenOfNewLine() || consume(';')) ?
@@ -667,7 +666,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       { uri, range: { start: startPos, end: body.location.range.end } };
     return new ast.Declaration(
       location,
-      isExported, false, identifier, null, null,
+      isExported, false, identifier, null, comments,
       new ast.FunctionDisplay(location, parameters, returnType, body));
   }
 
@@ -711,11 +710,15 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       isExported, identifier, extendsFragment, superTypes, body.statements);
   }
 
+  function parseStringLiteral(): ast.StringLiteral {
+    const stringToken = expect('STRING');
+    const value = stringToken.value as string;
+    return new ast.StringLiteral({ uri, range: stringToken.range }, value);
+  }
+
   function parseImport(): ast.Import {
     const start = expect('import').range.start;
-    const pathToken = expect('STRING');
-    const path = new ast.StringLiteral(
-      { uri, range: pathToken.range }, pathToken.value as string);
+    const path = parseStringLiteral();
     expect('as');
     const identifier = parseIdentifier();
     const end = identifier.location.range.end;
