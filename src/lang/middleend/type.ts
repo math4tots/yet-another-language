@@ -114,15 +114,20 @@ export class Type {
     }
   }
 
-  private getProxyType(): Type {
+  private lambdaErasure(): Type {
     return this.lambdaTypeData?.functionType || this;
   }
 
   isAssignableTo(givenTarget: Type): boolean {
-    const source = this.getProxyType();
-    const target = givenTarget.getProxyType();
+    const source = this.lambdaErasure();
+    const target = givenTarget.lambdaErasure();
     if (source === target || target === AnyType || source === NeverType) return true;
-    if (source === NullType && target.nullableTypeData) return true;
+    if (target.nullableTypeData) {
+      const targetCore = target.nullableTypeData.itemType;
+      if (source === NullType) return true;
+      if (source.nullableTypeData) return source.nullableTypeData.itemType.isAssignableTo(targetCore);
+      return source.isAssignableTo(targetCore);
+    }
     if (target.interfaceTypeData) {
       // if the target is an interface, we need to check if source implements all the methods
       // required by the interface
@@ -146,8 +151,8 @@ export class Type {
   }
 
   getCommonType(givenRhs: Type): Type {
-    const lhs = this.getProxyType();
-    const rhs = givenRhs.getProxyType();
+    const lhs = this.lambdaErasure();
+    const rhs = givenRhs.lambdaErasure();
 
     if (lhs === NullType) return rhs.nullable();
     if (rhs === NullType) return lhs.nullable();
