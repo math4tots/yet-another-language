@@ -23,6 +23,13 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
             if (completion.detail) {
               item.detail = completion.detail;
             }
+            if (completion.importFrom) {
+              item.additionalTextEdits = [
+                new vscode.TextEdit(
+                  new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
+                  `import ${completion.name} from '${completion.importFrom}'\n`)
+              ];
+            }
             item.sortText =
               (completion.name.startsWith('_') ? '~' : '5') + completion.name;
             items.push(item);

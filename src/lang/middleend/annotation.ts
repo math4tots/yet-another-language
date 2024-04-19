@@ -63,6 +63,7 @@ export interface CallInstance {
 export interface Completion {
   readonly name: string;
   readonly detail?: string;
+  readonly importFrom?: string;
 }
 
 export interface CompletionPoint {

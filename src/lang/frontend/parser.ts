@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as ast from './ast';
 import { lex, Position, Range, Token, TokenType } from './lexer';
+import { registerSymbol, removeUriFromSymbolRegistry } from './symbolregistry';
 
 const PrecList: TokenType[][] = [
   [],
@@ -802,6 +803,16 @@ export async function getAstForDocument(document: vscode.TextDocument): Promise<
   if (entry && entry.version === version) return entry.node;
 
   const node = parse(document.uri, document.getText(), document.version);
+  removeUriFromSymbolRegistry(key);
+  for (const statement of node.statements) {
+    if ((statement instanceof ast.InterfaceDefinition ||
+      statement instanceof ast.ClassDefinition ||
+      statement instanceof ast.EnumDefinition ||
+      (statement instanceof ast.Declaration && !statement.isMutable)) &&
+      statement.isExported) {
+      registerSymbol(statement.identifier.name, key);
+    }
+  }
   astCache.set(key, { version, node });
   return node;
 }

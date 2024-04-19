@@ -9,7 +9,7 @@ import {
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
 import { Position, Range } from '../frontend/lexer';
-import { resolveURI } from './paths';
+import { formatUriString, getImportPath, resolveURI } from './paths';
 import {
   AnyType,
   NeverType,
@@ -45,6 +45,7 @@ import {
 import { Scope, BASE_SCOPE } from './scope';
 import { ModuleValue, Value, evalMethodCall, translateVariableName } from './value';
 import { printFunction } from './functions';
+import { getSymbolTable } from '../frontend/symbolregistry';
 
 type AnnotatorParameters = {
   readonly annotation: AnnotationWithoutIR;
@@ -130,6 +131,20 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
   }
 
+  private addSymbolTableCompletions(completions: Completion[]) {
+    const startingUriString = this.annotation.uri.toString();
+    const symbolTable = getSymbolTable();
+    for (const [symbol, uris] of symbolTable) {
+      // Only include if the symbol is not currently in scope
+      if (!this.scope[symbol]) {
+        for (const uri of uris) {
+          const importPath = getImportPath(uri, startingUriString);
+          completions.push({ name: symbol, detail: importPath, importFrom: importPath });
+        }
+      }
+    }
+  }
+
   private _solveType(e: ast.TypeExpression): Type {
     // class or interface from an imported module
     if (e.qualifier) {
@@ -198,6 +213,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'Nullable' });
         completions.push({ name: 'List' });
         completions.push({ name: 'Function' });
+        this.addSymbolTableCompletions(completions);
         return completions;
       },
     });
@@ -727,6 +743,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'typedef' });
         completions.push({ name: 'export' });
         completions.push({ name: 'import' });
+        this.addSymbolTableCompletions(completions);
         return completions;
       },
     });

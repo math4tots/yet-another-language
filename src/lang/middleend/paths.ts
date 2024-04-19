@@ -54,3 +54,36 @@ export async function resolveURI(srcURI: vscode.Uri, rawPath: string): Promise<R
     error: `Module ${JSON.stringify(rawPath)} not found`
   };
 }
+
+export function formatUriString(uriString: string): string {
+  const roots: string[] = [];
+  vscode.workspace.workspaceFolders?.forEach(root => roots.push(root.uri.toString() + '/'));
+  LIBRARY_URIS.forEach(root => roots.push(root.toString() + '/'));
+  for (const root of roots) {
+    if (uriString.startsWith(root)) {
+      return uriString.substring(root.length);
+    }
+  }
+  return uriString;
+}
+
+function stripYALExtension(s: string): string {
+  return s.endsWith('.yal') ? s.substring(0, s.length - 4) : s;
+}
+
+export function getImportPath(uriString: string, startingUriString: string): string {
+  const slashIndex = startingUriString.lastIndexOf('/');
+  if (slashIndex !== -1) {
+    const folderUri = startingUriString.substring(0, slashIndex + 1);
+    if (uriString.startsWith(folderUri)) {
+      return stripYALExtension('./' + uriString.substring(folderUri.length));
+    }
+  }
+  for (const root of LIBRARY_URIS) {
+    const folderUri = root.toString() + '/';
+    if (uriString.startsWith(folderUri)) {
+      return stripYALExtension(uriString.substring(folderUri.length));
+    }
+  }
+  return stripYALExtension(uriString);
+}
