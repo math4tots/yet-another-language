@@ -7,8 +7,9 @@ interface Node {
   function appendChild(node: Node): Node { aliasFor(__js_appendChild) }
 }
 interface Element extends Node {
-  function __get_id(): String { aliasFor(__get___js_id) }
-  function __set_id(x: String): String { aliasFor(__set___js_id) }
+  var id: String = aliasFor(__js_id)
+  # function __get_id(): String { aliasFor(__get___js_id) }
+  # function __set_id(x: String): String { aliasFor(__set___js_id) }
   function __get_innerHTML(): String { aliasFor(__get___js_innerHTML) }
   function __set_innerHTML(x: String): String { aliasFor(__set___js_innerHTML) }
   function __get_tagName(): String { aliasFor(__get___js_tagName) }
@@ -19,10 +20,12 @@ interface Element extends Node {
 interface HTMLElement extends Element {}
 interface HTMLBodyElement extends HTMLElement {}
 interface HTMLCanvasElement extends HTMLElement {
-  function __get_width(): Number { aliasFor(__get___js_width) }
-  function __set_width(x: Number): Number { aliasFor(__set___js_width) }
-  function __get_height(): Number { aliasFor(__get___js_height) }
-  function __set_height(x: Number): Number { aliasFor(__set___js_height) }
+  var width: Number = aliasFor(__js_width)
+  var height: Number = aliasFor(__js_height)
+  # function __get_width(): Number { aliasFor(__get___js_width) }
+  # function __set_width(x: Number): Number { aliasFor(__set___js_width) }
+  # function __get_height(): Number { aliasFor(__get___js_height) }
+  # function __set_height(x: Number): Number { aliasFor(__set___js_height) }
   function get2DContext(contextType: String = "2d"): CanvasRenderingContext2D {
     """
     Calls canvas.getContext() to get the rendering context.

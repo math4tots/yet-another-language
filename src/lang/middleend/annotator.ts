@@ -83,7 +83,11 @@ type FResult = {
   readonly ir: ast.File;
 };
 
-type InterfacetMethodBodyContents = {
+type InterfaceMethodBodyContents = {
+  readonly aliasFor?: ast.Identifier;
+};
+
+type InterfaceFieldValueContents = {
   readonly aliasFor?: ast.Identifier;
 };
 
@@ -365,8 +369,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           // about the method, like whether it is an alias method.
           let aliasFor: string | undefined;
           if (type.interfaceTypeData) {
-            const interfacetMethodBodyContents = this.inspectInterfaceMethodBody(value);
-            aliasFor = interfacetMethodBodyContents.aliasFor?.name;
+            const interfaceMethodBodyContents = this.inspectInterfaceMethodBody(value);
+            aliasFor = interfaceMethodBodyContents.aliasFor?.name;
           }
 
           type.addMethod({
@@ -379,6 +383,17 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           });
         } else if (declaration.type) {
           // field/property
+
+          let aliasFor: string | undefined;
+          if (declaration.value) {
+            if (type.interfaceTypeData) {
+              const interfaceFieldValueContents = this.inspectInterfaceFieldValue(declaration.value);
+              aliasFor = interfaceFieldValueContents.aliasFor?.name;
+            } else {
+              // TODO: like default parameters, but for passing to 'new'/constructor.
+            }
+          }
+
           const variable: Variable = {
             isMutable: declaration.isMutable,
             identifier: declaration.identifier,
@@ -392,6 +407,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             parameters: [],
             returnType: variable.type,
             sourceVariable: variable,
+            aliasFor: aliasFor ? `__get_${aliasFor}` : undefined,
           });
           if (declaration.isMutable) {
             type.addMethod({
@@ -399,6 +415,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
               parameters: [{ identifier: { name: 'value' }, type: variable.type }],
               returnType: variable.type,
               sourceVariable: variable,
+              aliasFor: aliasFor ? `__set_${aliasFor}` : undefined,
             });
           }
         } else {
@@ -408,9 +425,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
   }
 
-  private inspectInterfaceMethodBody(fd: ast.FunctionDisplay): InterfacetMethodBodyContents {
+  private inspectInterfaceMethodBody(fd: ast.FunctionDisplay): InterfaceMethodBodyContents {
     let aliasFor: ast.Identifier | undefined;
     for (const stmt of fd.body.statements) {
+      if (stmt instanceof ast.CommentStatement) {
+        continue; // comments
+      }
       if (stmt instanceof ast.ExpressionStatement) {
         const expr = stmt.expression;
         if (expr instanceof ast.StringLiteral) {
@@ -440,6 +460,27 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       this.error(stmt.location, `Unexpected statement in interface method body`);
     }
     return { aliasFor };
+  }
+
+  private inspectInterfaceFieldValue(e: ast.Expression): InterfaceFieldValueContents {
+    if (e instanceof ast.MethodCall && e.identifier.name === '__call__' && e.args.length === 1) {
+      const owner = e.owner;
+      const arg = e.args[0];
+      if (owner instanceof ast.IdentifierNode && arg instanceof ast.IdentifierNode) {
+        if (owner.name === 'aliasFor') {
+          return { aliasFor: arg };
+        }
+      }
+    }
+    if (e instanceof ast.IdentifierNode) {
+      // this an error, but also a chance to help autocomplete 'aliasFor'
+      this.annotation.completionPoints.push({
+        range: e.location.range,
+        getCompletions() { return [{ name: 'aliasFor' }]; },
+      });
+    }
+    this.error(e.location, `Invalid descriptor expression for interface field`);
+    return {};
   }
 
   private forwardDeclare(statements: ast.Statement[]) {
@@ -932,6 +973,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       };
       this.scope['this'] = thisVariable;
       for (const statement of n.statements) {
+        if (statement instanceof ast.CommentStatement) {
+          continue;
+        }
         if (statement instanceof ast.ExpressionStatement) {
           if (statement.expression instanceof ast.StringLiteral) {
             // comments
@@ -978,12 +1022,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     for (const statement of n.statements) {
       if (statement instanceof ast.ExpressionStatement) {
         if (statement.expression instanceof ast.StringLiteral) {
-          // comments
-          continue;
+          continue; // comments
         }
       } else if (statement instanceof ast.Declaration) {
         // methods and properties
         continue;
+      } else if (statement instanceof ast.CommentStatement) {
+        continue; // comments
       }
       this.error(statement.location, `Unexpected statement in interface body`);
     }
