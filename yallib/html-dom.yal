@@ -3,18 +3,14 @@
 # SOME COMMENTS
 
 interface Node {
-  function __get_baseURI(): String { aliasFor(__get___js_baseURI) }
+  const baseURI: String = aliasFor(__js_baseURI)
   function appendChild(node: Node): Node { aliasFor(__js_appendChild) }
 }
 interface Element extends Node {
   var id: String = aliasFor(__js_id)
-  # function __get_id(): String { aliasFor(__get___js_id) }
-  # function __set_id(x: String): String { aliasFor(__set___js_id) }
-  function __get_innerHTML(): String { aliasFor(__get___js_innerHTML) }
-  function __set_innerHTML(x: String): String { aliasFor(__set___js_innerHTML) }
-  function __get_tagName(): String { aliasFor(__get___js_tagName) }
-  function __get_textContent(): String { aliasFor(__get___js_textContent) }
-  function __set_textContent(x: String): String { aliasFor(__set___js_textContent) }
+  var innerHTML: String = aliasFor(__js_innerHTML)
+  const tagName: String = aliasFor(__js_tagName)
+  var textContent: String = aliasFor(__js_textContent)
   function append(node: Node) { aliasFor(__js_append) }
 }
 interface HTMLElement extends Element {}
@@ -22,10 +18,6 @@ interface HTMLBodyElement extends HTMLElement {}
 interface HTMLCanvasElement extends HTMLElement {
   var width: Number = aliasFor(__js_width)
   var height: Number = aliasFor(__js_height)
-  # function __get_width(): Number { aliasFor(__get___js_width) }
-  # function __set_width(x: Number): Number { aliasFor(__set___js_width) }
-  # function __get_height(): Number { aliasFor(__get___js_height) }
-  # function __set_height(x: Number): Number { aliasFor(__set___js_height) }
   function get2DContext(contextType: String = "2d"): CanvasRenderingContext2D {
     """
     Calls canvas.getContext() to get the rendering context.
@@ -37,13 +29,12 @@ interface HTMLCanvasElement extends HTMLElement {
 }
 
 interface Document {
-  function __get_body(): HTMLBodyElement { aliasFor(__get___js_body) }
+  const body: HTMLBodyElement = aliasFor(__js_body)
   function getElementById(id: String): Element? { aliasFor(__js_getElementById) }
 }
 
 interface CanvasRenderingContext2D {
-  function __get_fillStyle(): String { aliasFor(__get___js_fillStyle) }
-  function __set_fillStyle(x: String): String { aliasFor(__set___js_fillStyle) }
+  var fillStyle: String = aliasFor(__js_fillStyle)
   function fillRect(x: Number, y: Number, width: Number, height: Number) {
     aliasFor(__js_fillRect)
   }

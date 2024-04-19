@@ -981,6 +981,19 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             // comments
             continue;
           }
+          if (statement.expression instanceof ast.IdentifierNode) {
+            // This is still an error, but gives us a chance to help autocomplete keywords
+            this.annotation.completionPoints.push({
+              range: statement.expression.location.range,
+              getCompletions() {
+                return [
+                  { name: 'function' },
+                  { name: 'var' },
+                  { name: 'const' },
+                ];
+              },
+            });
+          }
         } else if (statement instanceof ast.Declaration) {
           if (!statement.isMutable && statement.value instanceof ast.FunctionDisplay) {
             // methods
@@ -1023,6 +1036,19 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       if (statement instanceof ast.ExpressionStatement) {
         if (statement.expression instanceof ast.StringLiteral) {
           continue; // comments
+        }
+        if (statement.expression instanceof ast.IdentifierNode) {
+          // This is still an error, but gives us a chance to help autocomplete keywords
+          this.annotation.completionPoints.push({
+            range: statement.expression.location.range,
+            getCompletions() {
+              return [
+                { name: 'function' },
+                { name: 'var' },
+                { name: 'const' },
+              ];
+            },
+          });
         }
       } else if (statement instanceof ast.Declaration) {
         // methods and properties

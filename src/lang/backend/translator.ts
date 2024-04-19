@@ -40,6 +40,7 @@ const builtinOnlyMethodNames = new Set([
   ...specialUnaryOperatorMap.keys(),
   '__op_getitem__',
   '__op_setitem__',
+  '__call__',
 ].flat());
 
 export type TranslationWarning = {
