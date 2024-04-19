@@ -1,16 +1,8 @@
 
 
-const PI = 3.14159265358979323846
-const TAU "Two times PI" = 2 * PI
+export const PI = 3.14159265358979323846
+export const TAU "Two times PI" = 2 * PI
 
-const sin "computes sine in radians" = native(x: Number): Number {
-  js "return Math.sin(x)"
-}
-
-const cos "computes cosine in radians" = native(x: Number): Number {
-  js "return Math.cos(x)"
-}
-
-const tan "computes tangent in radians" = native(x: Number): Number {
-  js "return Math.tan(x)"
-}
+export const sin "computes sine in radians" = native(x: Number): Number "Math.sin(x)"
+export const cos "computes cosine in radians" = native(x: Number): Number "Math.cos(x)"
+export const tan "computes tangent in radians" = native(x: Number): Number "Math.tan(x)"

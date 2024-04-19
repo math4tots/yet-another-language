@@ -258,7 +258,7 @@ export async function getTranslationForDocument(
     }
     parts.push(`return {`);
     for (const statement of ann.ir.statements) {
-      if (statement instanceof ast.Declaration) {
+      if (statement instanceof ast.Declaration && statement.isExported) {
         parts.push(`${translateVariableName(statement.identifier.name)},`);
       }
     }

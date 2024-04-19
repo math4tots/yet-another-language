@@ -263,7 +263,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         const range = { start: identifier.location.range.start, end: body.location.range.end };
         return new ast.FunctionDisplay(
           { uri, range },
-          [new ast.Declaration(identifier.location, true, identifier, null, null, null)],
+          [new ast.Parameter(identifier.location, true, identifier, null, null, null)],
           null,
           body);
       }
@@ -339,6 +339,19 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const parameters = parseParameters();
       const returnType = consume(':') ? parseTypeExpression() : null;
       const body: [ast.IdentifierNode, ast.StringLiteral][] = [];
+
+      // syntactic sugar for simple expressions
+      if (at('STRING')) {
+        const stringToken = expect('STRING');
+        const end = stringToken.range.end;
+        const location: ast.Location = { uri, range: stringToken.range };
+        const identifier = new ast.IdentifierNode(location, 'js');
+        const stringLiteral = new ast.StringLiteral(location, `return ${stringToken.value}`);
+        body.push([identifier, stringLiteral]);
+        return new ast.NativePureFunction(location, parameters, returnType, body);
+      }
+
+      // Otherwise, we have a block of content
       expect('{');
       while (!atEOF() && !at('}')) {
         const identifier = parseIdentifier();
@@ -522,12 +535,28 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('return')) return parseReturn();
     if (at('if')) return parseIf();
     if (at('while')) return parseWhile();
-    if (at('var') || at('const')) return parseDeclaration();
     if (at('{')) return parseBlock();
-    if (at('function')) return parseFunctionDefinition();
-    if (at('class')) return parseClassDefinition();
-    if (at('interface')) return parseInterfaceDefinition();
+    if (at('var') || at('const')) return parseDeclaration(false);
+    if (at('function')) return parseFunctionDefinition(false);
+    if (at('class')) return parseClassDefinition(false);
+    if (at('interface')) return parseInterfaceDefinition(false);
     if (at('import')) return parseImport();
+    if (consume('export')) {
+      if (at('function')) return parseFunctionDefinition(true);
+      if (at('class')) return parseClassDefinition(true);
+      if (at('interface')) return parseInterfaceDefinition(true);
+      if (at('var') || at('const')) return parseDeclaration(true);
+
+      // This is actually an error, but it helps autocomplete to not panic and return
+      // some sensible values
+      const location: ast.Location = { uri, range: tokens[i - 1].range };
+      const identifier = new ast.IdentifierNode(location, 'export');
+      errors.push({
+        location,
+        message: `export must be followed by a 'function', 'class', 'interface', 'var' or 'const'`,
+      });
+      return new ast.ExpressionStatement(location, identifier);
+    }
     const expression = parseExpression();
     expectStatementDelimiter();
     return new ast.ExpressionStatement(expression.location, expression);
@@ -558,7 +587,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.While({ uri, range: { start, end } }, condition, body);
   }
 
-  function parseDeclaration(): ast.Declaration {
+  function parseDeclaration(isExported: boolean): ast.Declaration {
     const start = tokens[i].range.start;
     const isMutable = consume('const') ? false : (expect('var'), true);
     const identifier = parseIdentifier();
@@ -569,7 +598,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const value = consume('=') ? parseExpression() : null;
     const end = expectStatementDelimiter().range.end;
     return new ast.Declaration(
-      { uri, range: { start, end } }, isMutable, identifier, type, comment, value);
+      { uri, range: { start, end } }, isExported, isMutable, identifier, type, comment, value);
   }
 
   function parseBlock(): ast.Block {
@@ -601,7 +630,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     })();
   }
 
-  function parseFunctionDefinition(): ast.Declaration {
+  function parseFunctionDefinition(isExported: boolean): ast.Declaration {
     const startPos = expect('function').range.start;
     const identifier = parseIdentifier();
     const parameters = parseParameters();
@@ -613,11 +642,11 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       { uri, range: { start: startPos, end: body.location.range.end } };
     return new ast.Declaration(
       location,
-      false, identifier, null, null,
+      isExported, false, identifier, null, null,
       new ast.FunctionDisplay(location, parameters, returnType, body));
   }
 
-  function parseClassDefinition(): ast.ClassDefinition {
+  function parseClassDefinition(isExported: boolean): ast.ClassDefinition {
     const startPos = expect('class').range.start;
     const identifier = parseIdentifier();
     const extendsFragment = at('IDENTIFIER') ? parseIdentifier() : null;
@@ -631,10 +660,10 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const body = at('{') ? parseBlock() : new ast.Block(identifier.location, []);
     return new ast.ClassDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
-      identifier, extendsFragment, superClass, body.statements);
+      isExported, identifier, extendsFragment, superClass, body.statements);
   }
 
-  function parseInterfaceDefinition(): ast.InterfaceDefinition {
+  function parseInterfaceDefinition(isExported: boolean): ast.InterfaceDefinition {
     const startPos = expect('interface').range.start;
     const identifier = parseIdentifier();
     const extendsFragment = at('IDENTIFIER') ? parseIdentifier() : null;
@@ -654,7 +683,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const body = at('{') ? parseBlock() : new ast.Block(identifier.location, []);
     return new ast.InterfaceDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
-      identifier, extendsFragment, superTypes, body.statements);
+      isExported, identifier, extendsFragment, superTypes, body.statements);
   }
 
   function parseImport(): ast.Import {

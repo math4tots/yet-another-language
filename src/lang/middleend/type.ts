@@ -354,7 +354,7 @@ export function newModuleType(annotation: Annotation): ModuleType {
     },
   };
   const moduleType = new Type({ identifier, moduleTypeData: { annotation } }) as ModuleType;
-  for (const variable of annotation.moduleVariableMap.values()) {
+  for (const variable of annotation.exportMap.values()) {
     moduleType.addMethod({
       identifier: { name: `__get_${variable.identifier.name}` },
       parameters: [],

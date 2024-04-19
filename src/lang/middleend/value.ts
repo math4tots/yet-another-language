@@ -25,7 +25,7 @@ export function translateVariableName(name: string): string {
 
 export class ModuleValue {
   constructor(annotation: Annotation) {
-    for (const variable of annotation.moduleVariableMap.values()) {
+    for (const variable of annotation.exportMap.values()) {
       if (!variable.isMutable && variable.value !== undefined) {
         Object.defineProperty(this, translateVariableName(variable.identifier.name), {
           value: variable.value,

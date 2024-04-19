@@ -380,6 +380,7 @@ export class Block implements Statement {
 
 export class Declaration implements Statement {
   readonly location: Location;
+  readonly isExported: boolean;
   readonly isMutable: boolean;
   readonly identifier: IdentifierNode;
   readonly type: TypeExpression | null;
@@ -387,12 +388,14 @@ export class Declaration implements Statement {
   readonly value: Expression | null;
   constructor(
     location: Location,
+    isExported: boolean,
     isMutable: boolean,
     identifier: IdentifierNode,
     type: TypeExpression | null,
     comment: StringLiteral | null,
     value: Expression | null) {
     this.location = location;
+    this.isExported = isExported;
     this.isMutable = isMutable;
     this.identifier = identifier;
     this.type = type;
@@ -440,17 +443,20 @@ export class Return implements Statement {
 
 export class ClassDefinition implements Statement {
   readonly location: Location;
+  readonly isExported: boolean;
   readonly identifier: IdentifierNode;
   readonly extendsFragment: IdentifierNode | null;
   readonly superClass: TypeExpression | null;
   readonly statements: Statement[];
   constructor(
     location: Location,
+    isExported: boolean,
     identifier: IdentifierNode,
     extendsFragment: IdentifierNode | null,
     superClass: TypeExpression | null,
     statements: Statement[]) {
     this.location = location;
+    this.isExported = isExported;
     this.identifier = identifier;
     this.extendsFragment = extendsFragment;
     this.superClass = superClass;
@@ -461,17 +467,20 @@ export class ClassDefinition implements Statement {
 
 export class InterfaceDefinition implements Statement {
   readonly location: Location;
+  readonly isExported: boolean;
   readonly identifier: IdentifierNode;
   readonly extendsFragment: IdentifierNode | null;
   readonly superTypes: TypeExpression[];
   readonly statements: Statement[];
   constructor(
     location: Location,
+    isExported: boolean,
     identifier: IdentifierNode,
     extendsFragment: IdentifierNode | null,
     superTypes: TypeExpression[],
     statements: Statement[]) {
     this.location = location;
+    this.isExported = isExported;
     this.identifier = identifier;
     this.extendsFragment = extendsFragment;
     this.superTypes = superTypes;

@@ -144,13 +144,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       this.annotation.completionPoints.push({
         range: e.identifier.location.range,
         getCompletions() {
-          return Array.from(moduleTypeData.annotation.moduleVariableMap.values())
+          return Array.from(moduleTypeData.annotation.exportMap.values())
             .filter(v => v.type.classTypeTypeData || v.type.interfaceTypeTypeData)
             .map(v => ({ name: v.identifier.name }));
         },
       });
 
-      const variable = moduleTypeData.annotation.moduleVariableMap.get(e.identifier.name);
+      const variable = moduleTypeData.annotation.exportMap.get(e.identifier.name);
       if (!variable) {
         this.error(e.identifier.location, `Type ${e.identifier.name} not found in module`);
         return AnyType;
@@ -339,11 +339,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     for (const statement of n.statements) {
       const result = this.solveStmt(statement);
       if (!(result.ir instanceof ast.EmptyStatement)) irs.push(result.ir);
-    }
-
-    // We collect module variables to determine which ones should
-    for (const key of Object.getOwnPropertyNames(this.scope)) {
-      this.annotation.moduleVariableMap.set(key, this.scope[key]);
+      if ((statement instanceof ast.Declaration || statement instanceof ast.ClassDefinition ||
+        statement instanceof ast.InterfaceDefinition) && statement.isExported) {
+        const variable = this.scope[statement.identifier.name];
+        if (variable) {
+          this.annotation.exportMap.set(variable.identifier.name, variable);
+        }
+      }
     }
 
     return { useCached: false, ir: new ast.File(n.location, n.documentVersion, irs, n.errors) };
@@ -582,6 +584,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'return' });
         completions.push({ name: 'interface' });
         completions.push({ name: 'class' });
+        completions.push({ name: 'export' });
+        completions.push({ name: 'import' });
         return completions;
       },
     });
@@ -915,7 +919,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return {
       status: Continues,
       ir: new ast.Declaration(
-        n.location, n.isMutable, n.identifier, n.type, n.comment,
+        n.location, n.isExported, n.isMutable, n.identifier, n.type, n.comment,
         valueInfo?.ir || null
       ),
     };
@@ -1000,6 +1004,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             const value = this.solveExpr(statement.value);
             bodyIR.push(new ast.Declaration(
               statement.location,
+              statement.isExported,
               statement.isMutable,
               statement.identifier,
               statement.type,
@@ -1018,6 +1023,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       status: Continues,
       ir: new ast.ClassDefinition(
         n.location,
+        n.isExported,
         n.identifier,
         n.extendsFragment,
         n.superClass,
@@ -1116,7 +1122,7 @@ export async function getAnnotationForDocument(
     completionPoints: [],
     printInstances: [],
     callInstances: [],
-    moduleVariableMap: new Map(),
+    exportMap: new Map(),
     importMap: new Map(),
     importAliasVariables: [],
   };

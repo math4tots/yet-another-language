@@ -1,21 +1,21 @@
-
+import "html-dom-window" as windowmodule
 
 # SOME COMMENTS
 
-interface Node {
+export interface Node {
   const baseURI: String = aliasFor(__js_baseURI)
   function appendChild(node: Node): Node { aliasFor(__js_appendChild) }
 }
-interface Element extends Node {
+export interface Element extends Node {
   var id: String = aliasFor(__js_id)
   var innerHTML: String = aliasFor(__js_innerHTML)
   const tagName: String = aliasFor(__js_tagName)
   var textContent: String = aliasFor(__js_textContent)
   function append(node: Node) { aliasFor(__js_append) }
 }
-interface HTMLElement extends Element {}
-interface HTMLBodyElement extends HTMLElement {}
-interface HTMLCanvasElement extends HTMLElement {
+export interface HTMLElement extends Element {}
+export interface HTMLBodyElement extends HTMLElement {}
+export interface HTMLCanvasElement extends HTMLElement {
   var width: Number = aliasFor(__js_width)
   var height: Number = aliasFor(__js_height)
   function get2DContext(contextType: String = "2d"): CanvasRenderingContext2D {
@@ -28,20 +28,21 @@ interface HTMLCanvasElement extends HTMLElement {
   }
 }
 
-interface Document {
+export interface Document {
   const body: HTMLBodyElement = aliasFor(__js_body)
   function getElementById(id: String): Element? { aliasFor(__js_getElementById) }
 }
 
-interface CanvasRenderingContext2D {
+export interface CanvasRenderingContext2D {
   var fillStyle: String = aliasFor(__js_fillStyle)
   function fillRect(x: Number, y: Number, width: Number, height: Number) {
     aliasFor(__js_fillRect)
   }
 }
 
-const createElement = native(tagName: String): Element {
+export const createElement = native(tagName: String): Element {
   js "return createElement(tagName)"
 }
 
-const document = native "document" as Document
+export const document = native "document" as Document
+

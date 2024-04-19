@@ -61,7 +61,7 @@ export type AnnotationWithoutIR = {
   readonly completionPoints: CompletionPoint[];
   readonly printInstances: PrintInstance[];
   readonly callInstances: CallInstance[];
-  readonly moduleVariableMap: Map<string, Variable>;
+  readonly exportMap: Map<string, Variable>;
   readonly importMap: Map<string, Annotation>;
   readonly importAliasVariables: ModuleVariable[];
 };
