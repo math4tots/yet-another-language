@@ -38,7 +38,7 @@ import {
   AnnotationWithoutIR,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
-import { ModuleValue, Value, evalMethodCall } from './value';
+import { ModuleValue, Value, evalMethodCall, translateVariableName } from './value';
 import { printFunction } from './functions';
 
 type AnnotatorParameters = {
@@ -857,11 +857,18 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }));
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const lambdaType = newLambdaType(parameters, returnType);
-    const parameterNames = n.parameters.map(p => p.identifier.name);
+    const paramNames = n.parameters.map(p => p.identifier.name);
     const body = n.body.find(pair => pair[0].name === 'js')?.[1].value;
+    const jsName = n.identifier?.name ? translateVariableName(n.identifier.name) : undefined;
     return {
       type: lambdaType,
-      value: body == undefined ? undefined : (Function(...parameterNames, `"use strict";${body}`) as any),
+      value:
+        body == undefined ?
+          undefined :
+          jsName ?
+            (Function(
+              `"use strict";const ${jsName}=(${paramNames.join(',')})=>{${body}};return ${jsName}`)() as any) :
+            (Function(...paramNames, `"use strict";${body}`) as any),
       ir: n,
     };
   }

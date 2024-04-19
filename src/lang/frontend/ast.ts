@@ -319,14 +319,17 @@ export class NativeExpression implements Expression {
 //
 export class NativePureFunction implements Expression {
   readonly location: Location;
+  readonly identifier: IdentifierNode | undefined;
   readonly parameters: Parameter[];
   readonly returnType: TypeExpression | null;
   readonly body: [IdentifierNode, StringLiteral][];
   constructor(location: Location,
+    identifier: IdentifierNode | undefined,
     parameters: Parameter[],
     returnType: TypeExpression | null,
     body: [IdentifierNode, StringLiteral][]) {
     this.location = location;
+    this.identifier = identifier;
     this.parameters = parameters;
     this.returnType = returnType;
     this.body = body;

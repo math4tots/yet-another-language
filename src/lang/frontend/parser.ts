@@ -192,6 +192,9 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('false')) return new ast.BooleanLiteral({ uri, range: next().range }, false);
     if (at('NUMBER')) return new ast.NumberLiteral({ uri, range: tokens[i].range }, next().value as number);
     if (at('STRING')) return new ast.StringLiteral({ uri, range: tokens[i].range }, next().value as string);
+    if (consume('-')) {
+      return new ast.NumberLiteral({ uri, range: tokens[i].range }, -(expect('NUMBER').value as number));
+    }
     errors.push({
       location: { uri, range: tokens[i].range },
       message: `Expected literal expression`,
@@ -336,33 +339,13 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         return new ast.NativeExpression({ uri, range: { start, end } }, source);
       }
       // native pure function
+      const identifier = at('IDENTIFIER') ? parseIdentifier() : undefined;
       const parameters = parseParameters();
       const returnType = consume(':') ? parseTypeExpression() : null;
-      const body: [ast.IdentifierNode, ast.StringLiteral][] = [];
-
-      // syntactic sugar for simple expressions
-      if (at('STRING')) {
-        const stringToken = expect('STRING');
-        const end = stringToken.range.end;
-        const location: ast.Location = { uri, range: stringToken.range };
-        const identifier = new ast.IdentifierNode(location, 'js');
-        const stringLiteral = new ast.StringLiteral(location, `return ${stringToken.value}`);
-        body.push([identifier, stringLiteral]);
-        return new ast.NativePureFunction(location, parameters, returnType, body);
-      }
-
-      // Otherwise, we have a block of content
-      expect('{');
-      while (!atEOF() && !at('}')) {
-        const identifier = parseIdentifier();
-        const stringToken = expect('STRING');
-        const implementation = new ast.StringLiteral(
-          { uri, range: stringToken.range }, stringToken.value as string);
-        body.push([identifier, implementation]);
-      }
-      const end = expect('}').range.end;
+      const body = parseNativePureFunctionBody();
+      const end = tokens[i - 1].range.end;
       return new ast.NativePureFunction(
-        { uri, range: { start, end } }, parameters, returnType, body);
+        { uri, range: { start, end } }, identifier, parameters, returnType, body);
     }
     const unopMethod = UnopMethodMap.get(peek.type);
     if (unopMethod) {
@@ -381,6 +364,32 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       message: `Expected expression but got ${JSON.stringify(peek.type)}`,
     });
     throw new Exception();
+  }
+
+  function parseNativePureFunctionBody(): [ast.IdentifierNode, ast.StringLiteral][] {
+    const body: [ast.IdentifierNode, ast.StringLiteral][] = [];
+
+    // syntactic sugar for simple expressions
+    if (at('STRING')) {
+      const stringToken = expect('STRING');
+      const location: ast.Location = { uri, range: stringToken.range };
+      const identifier = new ast.IdentifierNode(location, 'js');
+      const stringLiteral = new ast.StringLiteral(location, `return ${stringToken.value}`);
+      return [[identifier, stringLiteral]];
+    }
+
+    // Otherwise, we have a block of content
+    expect('{');
+    while (!atEOF() && !at('}')) {
+      const identifier = parseIdentifier();
+      const stringToken = expect('STRING');
+      const implementation = new ast.StringLiteral(
+        { uri, range: stringToken.range }, stringToken.value as string);
+      body.push([identifier, implementation]);
+    }
+    expect('}');
+
+    return body;
   }
 
   function parseArgs(): ast.Expression[] {
@@ -537,11 +546,13 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('while')) return parseWhile();
     if (at('{')) return parseBlock();
     if (at('var') || at('const')) return parseDeclaration(false);
+    if (at('native')) return parseNativeFunctionDefinition(false);
     if (at('function')) return parseFunctionDefinition(false);
     if (at('class')) return parseClassDefinition(false);
     if (at('interface')) return parseInterfaceDefinition(false);
     if (at('import')) return parseImport();
     if (consume('export')) {
+      if (at('native')) return parseNativeFunctionDefinition(true);
       if (at('function')) return parseFunctionDefinition(true);
       if (at('class')) return parseClassDefinition(true);
       if (at('interface')) return parseInterfaceDefinition(true);
@@ -628,6 +639,20 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         expression.location,
         [new ast.Return(expression.location, expression)]);
     })();
+  }
+
+  function parseNativeFunctionDefinition(isExported: boolean): ast.Declaration {
+    const startPos = expect('native').range.start;
+    const identifier = parseIdentifier();
+    const parameters = parseParameters();
+    const returnType = consume(':') ? parseTypeExpression() : null;
+    const body = parseNativePureFunctionBody();
+    const location: ast.Location =
+      { uri, range: { start: startPos, end: tokens[i - 1].range.end } };
+    return new ast.Declaration(
+      location,
+      isExported, false, identifier, null, null,
+      new ast.NativePureFunction(location, identifier, parameters, returnType, body));
   }
 
   function parseFunctionDefinition(isExported: boolean): ast.Declaration {
