@@ -8,7 +8,7 @@ import {
 } from '../frontend/ast-utils';
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
-import { Range } from '../frontend/lexer';
+import { Position, Range } from '../frontend/lexer';
 import { resolveURI } from './paths';
 import {
   AnyType,
@@ -106,7 +106,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   private readonly cached?: Annotation;
   private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
   private readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
-  private readonly markedImports = new Set<ast.Import>();
+  private readonly markedImports = new Set<ast.Import | ast.ImportFrom>();
   private readonly classMap = new Map<ast.ClassDefinition, ClassVariable>();
   private readonly interfaceMap = new Map<ast.InterfaceDefinition, InterfaceVariable>();
 
@@ -291,7 +291,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const srcURI = n.location.uri;
     let canUseCached = n.documentVersion === this.cached?.documentVersion;
     for (const statement of n.statements) {
-      if (statement instanceof ast.Import) {
+      if (statement instanceof ast.Import || statement instanceof ast.ImportFrom) {
         this.markedImports.add(statement);
         const { location, path, identifier } = statement;
         const { uri, error: errMsg } = await resolveURI(srcURI, path.value);
@@ -321,18 +321,33 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           }
         }
         const importModuleType = newModuleType(importModuleAnnotation);
-        const importModuleVariable = getModuleVariableForModuleType(importModuleType);
-        const aliasVariable: ModuleVariable = {
-          identifier,
-          type: importModuleType,
-          value: importModuleVariable.value,
-        };
-        this.annotation.importAliasVariables.push(aliasVariable);
-        this.declareVariable(aliasVariable);
-        this.markReference(importModuleVariable, path.location.range);
-      } else if (statement instanceof ast.ExpressionStatement &&
-        statement.expression instanceof ast.StringLiteral) {
-        // String literals at the top may be ignored
+        const moduleVariable = getModuleVariableForModuleType(importModuleType);
+        this.markReference(moduleVariable, path.location.range);
+
+        if (statement instanceof ast.ImportFrom) {
+          const isExported = statement.isExported;
+          const memberVariable = importModuleAnnotation.exportMap.get(identifier.name);
+          if (memberVariable) {
+            this.markReference(memberVariable, identifier.location.range);
+            this.scope[identifier.name] = memberVariable;
+            this.annotation.memberImports.push({ isExported, moduleVariable, memberVariable });
+          } else {
+            this.error(identifier.location, `${identifier.name} not found in module`);
+          }
+        } else {
+          const aliasVariable: ModuleVariable = {
+            identifier,
+            type: importModuleType,
+            value: moduleVariable.value,
+          };
+          this.annotation.importAliasVariables.push(aliasVariable);
+          this.declareVariable(aliasVariable);
+        }
+      } else if (
+        statement instanceof ast.CommentStatement ||
+        (statement instanceof ast.ExpressionStatement &&
+          statement.expression instanceof ast.StringLiteral)) {
+        // Comments or string literals at the top may be ignored
       } else {
         // However, if we see any other kind of statement, we don't process any
         // further imports.
@@ -351,7 +366,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       if (!(result.ir instanceof ast.EmptyStatement)) irs.push(result.ir);
       if ((statement instanceof ast.Declaration || statement instanceof ast.ClassDefinition ||
         statement instanceof ast.InterfaceDefinition || statement instanceof ast.EnumDefinition ||
-        statement instanceof ast.Typedef) &&
+        statement instanceof ast.Typedef || statement instanceof ast.ImportFrom) &&
         statement.isExported) {
         const variable = this.scope[statement.identifier.name];
         if (variable) {
@@ -1211,6 +1226,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
     return { status: MaybeJumps, ir: new ast.EmptyStatement(n.location) };
   }
+  visitImportFrom(n: ast.ImportFrom): SResult {
+    if (!this.markedImports.has(n)) {
+      this.error(n.location, `Import statement is not allowed here`);
+    }
+    return { status: MaybeJumps, ir: new ast.EmptyStatement(n.location) };
+  }
   visitTypedef(n: ast.Typedef): SResult {
     // TODO: make it work for classes too
     return { status: Continues, ir: new ast.EmptyStatement(n.location) };
@@ -1243,6 +1264,36 @@ function getModuleVariableForModuleType(moduleType: ModuleType): ModuleVariable 
 const diagnostics = vscode.languages.createDiagnosticCollection('yal');
 
 export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<string>()): Promise<Annotation> {
+  let maybeDocument: vscode.TextDocument | undefined;
+  try {
+    maybeDocument = await vscode.workspace.openTextDocument(uri);
+  } catch (e) {
+    // failed to open document
+  }
+  const document = maybeDocument;
+  if (!document) {
+    // failed to open document
+    const POS: Position = { line: 0, column: 0, index: 0 };
+    const LOC: ast.Location = { uri, range: { start: POS, end: POS } };
+    return {
+      uri,
+      documentVersion: -1,
+      errors: [{
+        location: LOC,
+        message: `Could not open YAL source file`,
+      }],
+      variables: [],
+      references: [],
+      completionPoints: [],
+      printInstances: [],
+      callInstances: [],
+      exportMap: new Map(),
+      importMap: new Map(),
+      importAliasVariables: [],
+      memberImports: [],
+      ir: new ast.File(LOC, -1, [], []),
+    };
+  }
   return await getAnnotationForDocument(await vscode.workspace.openTextDocument(uri), stack);
 }
 
@@ -1268,6 +1319,7 @@ export async function getAnnotationForDocument(
     exportMap: new Map(),
     importMap: new Map(),
     importAliasVariables: [],
+    memberImports: [],
   };
   const annotator = new Annotator({ annotation: annotationWithoutIR, stack, cached });
   stack.add(key);

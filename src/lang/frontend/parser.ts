@@ -549,7 +549,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('interface')) return parseInterfaceDefinition(false);
     if (at('enum')) return parseEnumDefinition(false);
     if (at('typedef')) return parseTypedef(false);
-    if (at('import')) return parseImport();
+    if (at('import')) return parseImport(false);
     if (consume('export')) {
       if (at('native')) return parseNativeFunctionDefinition(true);
       if (at('function')) return parseFunctionDefinition(true);
@@ -558,6 +558,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       if (at('enum')) return parseEnumDefinition(true);
       if (at('var') || at('const')) return parseDeclaration(true);
       if (at('typedef')) return parseTypedef(true);
+      if (at('IDENTIFIER')) return parseImport(true);
 
       // This is actually an error, but it helps autocomplete to not panic and return
       // some sensible values
@@ -735,8 +736,21 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.StringLiteral({ uri, range: stringToken.range }, value);
   }
 
-  function parseImport(): ast.Import {
-    const start = expect('import').range.start;
+  function parseImport(isExported: boolean): ast.Import | ast.ImportFrom {
+    const start = isExported ? tokens[i - 1].range.start : expect('import').range.start;
+    if (at('IDENTIFIER')) {
+      const identifier = parseIdentifier();
+      expect('from');
+      const path = parseStringLiteral();
+      const end = path.location.range.end;
+      return new ast.ImportFrom({ uri, range: { start, end } }, isExported, identifier, path);
+    }
+    if (isExported) {
+      errors.push({
+        location: { uri, range: tokens[i - 1].range },
+        message: `export not supported for this style of import`,
+      });
+    }
     const path = parseStringLiteral();
     expect('as');
     const identifier = parseIdentifier();
@@ -779,10 +793,6 @@ type AstCacheEntry = {
 };
 
 const astCache = new Map<string, AstCacheEntry>();
-
-export async function getAstForURI(uri: vscode.Uri): Promise<ast.File> {
-  return await getAstForDocument(await vscode.workspace.openTextDocument(uri));
-}
 
 export async function getAstForDocument(document: vscode.TextDocument): Promise<ast.File> {
   const key = document.uri.toString();

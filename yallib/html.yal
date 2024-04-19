@@ -1,0 +1,13 @@
+"""
+HTML DOM interface
+"""
+
+export Window from 'html/window'
+export Document from 'html/document'
+export Element from 'html/element'
+export HTMLElement from 'html/htmlelement'
+export HTMLCanvasElement from 'html/htmlcanvaselement'
+export CanvasRenderingContext2D from 'html/canvasrenderingcontext2d'
+
+export const window = native "window" as Window
+export const document = native "document" as Document

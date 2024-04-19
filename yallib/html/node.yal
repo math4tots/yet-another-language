@@ -1,0 +1,7 @@
+
+
+export interface Node {
+  const baseURI: String = aliasFor(__js_baseURI)
+  function appendChild(node: Node): Node { aliasFor(__js_appendChild) }
+}
+

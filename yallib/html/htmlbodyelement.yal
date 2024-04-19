@@ -1,0 +1,4 @@
+import HTMLElement from './htmlelement'
+
+
+export interface HTMLBodyElement extends HTMLElement {}

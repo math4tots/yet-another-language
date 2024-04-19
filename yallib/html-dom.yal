@@ -5,6 +5,7 @@ export interface Node {
   const baseURI: String = aliasFor(__js_baseURI)
   function appendChild(node: Node): Node { aliasFor(__js_appendChild) }
 }
+
 export interface Element extends Node {
   var id: String = aliasFor(__js_id)
   var innerHTML: String = aliasFor(__js_innerHTML)

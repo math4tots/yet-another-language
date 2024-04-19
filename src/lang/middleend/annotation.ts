@@ -70,6 +70,12 @@ export interface CompletionPoint {
   getCompletions(): Completion[];
 }
 
+export type MemberImport = {
+  readonly isExported: boolean;
+  readonly moduleVariable: ModuleVariable;
+  readonly memberVariable: Variable;
+};
+
 export type AnnotationWithoutIR = {
   readonly uri: vscode.Uri;
   readonly documentVersion: number;
@@ -82,6 +88,7 @@ export type AnnotationWithoutIR = {
   readonly exportMap: Map<string, Variable>;
   readonly importMap: Map<string, Annotation>;
   readonly importAliasVariables: ModuleVariable[];
+  readonly memberImports: MemberImport[];
 };
 
 export type Annotation = AnnotationWithoutIR & {

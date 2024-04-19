@@ -1,0 +1,7 @@
+
+
+export interface Window {
+  function requestAnimationFrame(callback: Function[Number, Any]) {
+    aliasFor(__js_requestAnimationFrame)
+  }
+}

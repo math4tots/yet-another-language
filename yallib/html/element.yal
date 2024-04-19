@@ -1,0 +1,9 @@
+import Node from './node'
+
+export interface Element extends Node {
+  var id: String = aliasFor(__js_id)
+  var innerHTML: String = aliasFor(__js_innerHTML)
+  const tagName: String = aliasFor(__js_tagName)
+  var textContent: String = aliasFor(__js_textContent)
+  function append(node: Node) { aliasFor(__js_append) }
+}

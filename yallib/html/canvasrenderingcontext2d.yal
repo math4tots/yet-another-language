@@ -1,0 +1,8 @@
+
+
+export interface CanvasRenderingContext2D {
+  var fillStyle: String = aliasFor(__js_fillStyle)
+  function fillRect(x: Number, y: Number, width: Number, height: Number) {
+    aliasFor(__js_fillRect)
+  }
+}

@@ -208,6 +208,7 @@ class Translator implements ast.NodeVisitor<string> {
   visitInterfaceDefinition(n: ast.InterfaceDefinition): string { return ''; }
   visitEnumDefinition(n: ast.EnumDefinition): string { return ''; }
   visitImport(n: ast.Import): string { return ''; }
+  visitImportFrom(n: ast.ImportFrom): string { return ''; }
   visitTypedef(n: ast.Typedef): string { return ''; }
   visitFile(n: ast.File): string {
     return '"use strict";' + n.statements.map(s => s.accept(this)).join('');
@@ -256,6 +257,25 @@ export async function getTranslationForDocument(
       parts.push(`const ${translateVariableName(variable.identifier.name)}=` +
         `${getAnnotationID(importAnnotation)}();`);
     }
+    const exportImports: string[] = [];
+    for (const { isExported, moduleVariable, memberVariable } of ann.memberImports) {
+      // If the member is an enum or interface type, the variable exists only at compile time
+      // and the translator does not have to emit anything for this import.
+      if (memberVariable.type.enumTypeTypeData || memberVariable.type.interfaceTypeTypeData) {
+        continue;
+      }
+      const importAnnotation = moduleVariable.type.moduleTypeData.annotation;
+      if (!seen.has(importAnnotation)) {
+        seen.add(importAnnotation);
+        stack.push(importAnnotation);
+      }
+      const moduleID = getAnnotationID(importAnnotation);
+      const memberName = translateVariableName(memberVariable.identifier.name);
+      parts.push(`const { ${memberName} } = ${moduleID}();`);
+      if (isExported) {
+        exportImports.push(memberName);
+      }
+    }
     for (const statement of ann.ir.statements) {
       parts.push(statement.accept(translator));
     }
@@ -264,6 +284,9 @@ export async function getTranslationForDocument(
       if (statement instanceof ast.Declaration && statement.isExported) {
         parts.push(`${translateVariableName(statement.identifier.name)},`);
       }
+    }
+    for (const exportImport of exportImports) {
+      parts.push(`${exportImport},`);
     }
     parts.push(`YAL__repr__(){return '<module>'},`);
     parts.push('};})()}})();');
