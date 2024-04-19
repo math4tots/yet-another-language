@@ -50,6 +50,7 @@ export interface StatementVisitor<R> {
   visitInterfaceDefinition(n: InterfaceDefinition): R;
   visitEnumDefinition(n: EnumDefinition): R;
   visitImport(n: Import): R;
+  visitTypedef(n: Typedef): R;
 }
 
 export interface NodeVisitor<R> extends ExpressionVisitor<R>, StatementVisitor<R> {
@@ -521,6 +522,20 @@ export class Import implements Statement {
     this.identifier = identifier;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitImport(this); }
+}
+
+export class Typedef implements Statement {
+  readonly location: Location;
+  readonly isExported: boolean;
+  readonly identifier: IdentifierNode;
+  readonly type: TypeExpression;
+  constructor(location: Location, isExported: boolean, identifier: IdentifierNode, type: TypeExpression) {
+    this.location = location;
+    this.isExported = isExported;
+    this.identifier = identifier;
+    this.type = type;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitTypedef(this); }
 }
 
 export class File {

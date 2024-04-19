@@ -16,7 +16,7 @@ export const Keywords = [
   'not',
   'new',
   'import', 'export',
-  'class', 'interface', "enum",
+  'class', 'interface', 'enum', 'typedef',
   'function', 'var', 'const', 'let', 'final', 'extends',
   'if', 'then', 'else', 'while', 'break', 'continue',
   'return',

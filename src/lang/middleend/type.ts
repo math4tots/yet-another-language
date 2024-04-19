@@ -50,8 +50,14 @@ type ClassTypeTypeData = {
 };
 
 type InterfaceTypeData = {
+  readonly typeType: InterfaceTypeType;
   readonly superTypes: InterfaceType[];
+  readonly comments: ast.StringLiteral | undefined;
   readonly cache: WeakMap<Type, boolean>;
+};
+
+type InterfaceTypeDataWIP = InterfaceTypeData & {
+  typeType: InterfaceTypeType;
 };
 
 type InterfaceTypeTypeData = {
@@ -476,15 +482,29 @@ export function newClassTypeType(identifier: Identifier, superClassType?: ClassT
   return classTypeType;
 }
 
-export function newInterfaceTypeType(identifier: Identifier, superTypes: InterfaceType[]): InterfaceTypeType {
+export function newInterfaceTypeType(
+  identifier: Identifier,
+  superTypes: InterfaceType[],
+  comments: ast.StringLiteral | undefined): InterfaceTypeType {
+  const interfaceTypeData: InterfaceTypeDataWIP = {
+    superTypes,
+    cache: new WeakMap(),
+
+    comments,
+
+    // We put an invalid type here first, so that we can have a cyclic reference between
+    // InterfaceTypeType and InterfaceType
+    typeType: new Type({ identifier: { name: '(fake)' } }) as InterfaceTypeType,
+  };
   const interfaceType = new Type({
     identifier,
-    interfaceTypeData: { superTypes, cache: new WeakMap() },
+    interfaceTypeData,
   }) as InterfaceType;
   const interfaceTypeType = new Type({
     identifier: { location: identifier.location, name: `(interface ${identifier.name})` },
     interfaceTypeTypeData: { interfaceType },
   }) as InterfaceTypeType;
+  interfaceTypeData.typeType = interfaceTypeType;
   return interfaceTypeType;
 }
 

@@ -548,6 +548,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('class')) return parseClassDefinition(false);
     if (at('interface')) return parseInterfaceDefinition(false);
     if (at('enum')) return parseEnumDefinition(false);
+    if (at('typedef')) return parseTypedef(false);
     if (at('import')) return parseImport();
     if (consume('export')) {
       if (at('native')) return parseNativeFunctionDefinition(true);
@@ -556,6 +557,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       if (at('interface')) return parseInterfaceDefinition(true);
       if (at('enum')) return parseEnumDefinition(true);
       if (at('var') || at('const')) return parseDeclaration(true);
+      if (at('typedef')) return parseTypedef(true);
 
       // This is actually an error, but it helps autocomplete to not panic and return
       // some sensible values
@@ -740,6 +742,15 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const identifier = parseIdentifier();
     const end = identifier.location.range.end;
     return new ast.Import({ uri, range: { start, end } }, path, identifier);
+  }
+
+  function parseTypedef(isExported: boolean): ast.Typedef {
+    const start = expect('typedef').range.start;
+    const identifier = parseIdentifier();
+    expect('=');
+    const type = parseTypeExpression();
+    const end = type.location.range.end;
+    return new ast.Typedef({ uri, range: { start, end } }, isExported, identifier, type);
   }
 
   function parseFile() {

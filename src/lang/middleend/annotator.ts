@@ -29,6 +29,7 @@ import {
   newInterfaceTypeType,
   ModuleType,
   newEnumTypeType,
+  InterfaceTypeType,
 } from './type';
 import {
   Annotation,
@@ -349,7 +350,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       const result = this.solveStmt(statement);
       if (!(result.ir instanceof ast.EmptyStatement)) irs.push(result.ir);
       if ((statement instanceof ast.Declaration || statement instanceof ast.ClassDefinition ||
-        statement instanceof ast.InterfaceDefinition || statement instanceof ast.EnumDefinition) &&
+        statement instanceof ast.InterfaceDefinition || statement instanceof ast.EnumDefinition ||
+        statement instanceof ast.Typedef) &&
         statement.isExported) {
         const variable = this.scope[statement.identifier.name];
         if (variable) {
@@ -537,9 +539,26 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
     }
 
-    // forward declare classes
+    // forward declare classes, interfaces and process typedefs
     for (const defn of statements) {
-      if (defn instanceof ast.ClassDefinition) {
+      if (defn instanceof ast.Typedef) {
+        const type = this.solveType(defn.type);
+        const interfaceTypeData = type.interfaceTypeData;
+        if (interfaceTypeData) {
+          const interfaceTypeType = interfaceTypeData.typeType;
+          const variable: InterfaceVariable = {
+            identifier: defn.identifier,
+            type: interfaceTypeType,
+            comment: interfaceTypeData.comments,
+          };
+          this.declareVariable(variable);
+        } else if (type.classTypeData) {
+          // For classes, we also need to make sure that actual class object is copied
+          this.error(defn.location, `typedef for classes not yet supported`);
+        } else {
+          this.error(defn.location, `typedefs are only supported for interface types at the moment`);
+        }
+      } else if (defn instanceof ast.ClassDefinition) {
         const superClassType = defn.superClass ? this.solveType(defn.superClass) : undefined;
         const variable: ClassVariable = {
           identifier: defn.identifier,
@@ -551,6 +570,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         this.classMap.set(defn, variable);
         this.declareVariable(variable);
       } else if (defn instanceof ast.InterfaceDefinition) {
+        const comment = getCommentFromInterfaceDefinition(defn);
         const superTypes: InterfaceType[] = [];
         for (const superTypeExpression of defn.superTypes) {
           const superType = this.solveType(superTypeExpression);
@@ -562,8 +582,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
         const variable: InterfaceVariable = {
           identifier: defn.identifier,
-          type: newInterfaceTypeType(defn.identifier, superTypes),
-          comment: getCommentFromInterfaceDefinition(defn),
+          type: newInterfaceTypeType(defn.identifier, superTypes, comment),
+          comment,
         };
         this.interfaceMap.set(defn, variable);
         this.declareVariable(variable);
@@ -689,6 +709,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'return' });
         completions.push({ name: 'interface' });
         completions.push({ name: 'class' });
+        completions.push({ name: 'typedef' });
         completions.push({ name: 'export' });
         completions.push({ name: 'import' });
         return completions;
@@ -1189,6 +1210,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       this.error(n.location, `Import statement is not allowed here`);
     }
     return { status: MaybeJumps, ir: new ast.EmptyStatement(n.location) };
+  }
+  visitTypedef(n: ast.Typedef): SResult {
+    // TODO: make it work for classes too
+    return { status: Continues, ir: new ast.EmptyStatement(n.location) };
   }
 }
 

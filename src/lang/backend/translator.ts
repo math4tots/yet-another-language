@@ -208,6 +208,7 @@ class Translator implements ast.NodeVisitor<string> {
   visitInterfaceDefinition(n: ast.InterfaceDefinition): string { return ''; }
   visitEnumDefinition(n: ast.EnumDefinition): string { return ''; }
   visitImport(n: ast.Import): string { return ''; }
+  visitTypedef(n: ast.Typedef): string { return ''; }
   visitFile(n: ast.File): string {
     return '"use strict";' + n.statements.map(s => s.accept(this)).join('');
   }
