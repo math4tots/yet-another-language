@@ -2,7 +2,15 @@ import * as vscode from 'vscode';
 import * as ast from '../frontend/ast';
 import { Range } from '../frontend/lexer';
 import type { Value } from './value';
-import type { Parameter, Type, ModuleType, ClassTypeType, InterfaceTypeType } from './type';
+import type {
+  Parameter,
+  Type,
+  ModuleType,
+  ClassTypeType,
+  InterfaceTypeType,
+  EnumTypeType,
+  EnumType,
+} from './type';
 
 export type AnnotationError = ast.ParseError;
 
@@ -25,6 +33,15 @@ export type ClassVariable = Variable & {
 
 export type InterfaceVariable = Variable & {
   readonly type: InterfaceTypeType;
+};
+
+export type EnumVariable = Variable & {
+  readonly type: EnumTypeType;
+};
+
+export type EnumConstVariable = Variable & {
+  readonly type: EnumType;
+  readonly value: string;
 };
 
 export type Reference = {

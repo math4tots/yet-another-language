@@ -207,6 +207,15 @@ class Printer implements yal.ast.NodeVisitor<void> {
     }
     this.depth--;
   }
+  visitEnumDefinition(n: yal.ast.EnumDefinition): void {
+    this.indent();
+    this.out += `ENUM DEFINITION`;
+    this.depth++;
+    for (const statement of n.statements) {
+      statement.accept(this);
+    }
+    this.depth--;
+  }
   visitImport(n: yal.ast.Import): void {
     this.indent();
     this.out += `IMPORT ${JSON.stringify(n.path.value)} AS ${n.identifier.name}`;

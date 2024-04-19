@@ -48,6 +48,7 @@ export interface StatementVisitor<R> {
   visitReturn(n: Return): R;
   visitClassDefinition(n: ClassDefinition): R;
   visitInterfaceDefinition(n: InterfaceDefinition): R;
+  visitEnumDefinition(n: EnumDefinition): R;
   visitImport(n: Import): R;
 }
 
@@ -490,6 +491,24 @@ export class InterfaceDefinition implements Statement {
     this.statements = statements;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitInterfaceDefinition(this); }
+}
+
+export class EnumDefinition implements Statement {
+  readonly location: Location;
+  readonly isExported: boolean;
+  readonly identifier: IdentifierNode;
+  readonly statements: Statement[];
+  constructor(
+    location: Location,
+    isExported: boolean,
+    identifier: IdentifierNode,
+    statements: Statement[]) {
+    this.location = location;
+    this.isExported = isExported;
+    this.identifier = identifier;
+    this.statements = statements;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitEnumDefinition(this); }
 }
 
 export class Import implements Statement {

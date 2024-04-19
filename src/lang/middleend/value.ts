@@ -1,5 +1,6 @@
 import type { Annotation } from "./annotation";
 import { printFunction } from "./functions";
+import type { Method } from "./type";
 
 export type Value =
   null |
@@ -39,7 +40,10 @@ export class ModuleValue {
   YAL__repr__() { return '<module>'; }
 }
 
-export function evalMethodCall(owner: any, methodName: string, args: any[]): Value | undefined {
+export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
+  const methodName = method.identifier.name;
+  const endName = method.aliasFor || method.identifier.name;
+  if (args.length === 0 && endName === '__op_noop__') return owner;
   if (owner === printFunction) return;
   if (methodName === '__eq__' && args.length === 1) return owner === args[0];
   if (methodName === '__ne__' && args.length === 1) return owner !== args[0];

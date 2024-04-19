@@ -70,7 +70,7 @@ export function activate(context: vscode.ExtensionContext) {
     newHoverProvider()));
   sub(vscode.languages.registerCompletionItemProvider(
     { language: 'yal' },
-    newCompletionProvider(), '.'));
+    newCompletionProvider(), '.', '"'));
   sub(vscode.languages.registerSignatureHelpProvider(
     { language: 'yal' },
     newSignatureHelpProvider(), '('));

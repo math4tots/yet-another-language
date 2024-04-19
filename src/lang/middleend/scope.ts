@@ -26,12 +26,12 @@ BASE_SCOPE['print'] = {
 
 BASE_SCOPE['repr'] = {
   identifier: { name: 'repr' },
-  type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
+  type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], StringType),
   value: reprFunction,
 };
 
 BASE_SCOPE['str'] = {
   identifier: { name: 'str' },
-  type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], AnyType),
+  type: newLambdaType([{ identifier: { name: 'value' }, type: AnyType }], StringType),
   value: strFunction,
 };

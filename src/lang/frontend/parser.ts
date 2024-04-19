@@ -547,12 +547,14 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('function')) return parseFunctionDefinition(false);
     if (at('class')) return parseClassDefinition(false);
     if (at('interface')) return parseInterfaceDefinition(false);
+    if (at('enum')) return parseEnumDefinition(false);
     if (at('import')) return parseImport();
     if (consume('export')) {
       if (at('native')) return parseNativeFunctionDefinition(true);
       if (at('function')) return parseFunctionDefinition(true);
       if (at('class')) return parseClassDefinition(true);
       if (at('interface')) return parseInterfaceDefinition(true);
+      if (at('enum')) return parseEnumDefinition(true);
       if (at('var') || at('const')) return parseDeclaration(true);
 
       // This is actually an error, but it helps autocomplete to not panic and return
@@ -708,6 +710,21 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.InterfaceDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
       isExported, identifier, extendsFragment, superTypes, body.statements);
+  }
+
+  function parseEnumDefinition(isExported: boolean): ast.EnumDefinition {
+    const startPos = expect('enum').range.start;
+    const identifier = parseIdentifier();
+    if (!at('{')) {
+      errors.push({
+        location: identifier.location,
+        message: `Interface body missing`,
+      });
+    }
+    const body = at('{') ? parseBlock() : new ast.Block(identifier.location, []);
+    return new ast.EnumDefinition(
+      { uri, range: { start: startPos, end: body.location.range.end } },
+      isExported, identifier, body.statements);
   }
 
   function parseStringLiteral(): ast.StringLiteral {

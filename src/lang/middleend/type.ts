@@ -1,6 +1,6 @@
 import { Identifier } from "../frontend/ast";
 import * as ast from "../frontend/ast";
-import type { Annotation, Variable } from "./annotation";
+import type { Annotation, EnumConstVariable, Variable } from "./annotation";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
@@ -13,6 +13,8 @@ type TypeConstructorParameters = {
   readonly classTypeTypeData?: ClassTypeTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
+  readonly enumTypeData?: EnumTypeData;
+  readonly enumTypeTypeData?: EnumTypeTypeData;
 };
 
 type NullableTypeData = {
@@ -38,6 +40,15 @@ type ModuleTypeData = {
   readonly annotation: Annotation;
 };
 
+type ClassTypeData = {
+  readonly superClassType?: ClassType;
+  readonly fields: Field[];
+};
+
+type ClassTypeTypeData = {
+  readonly classType: ClassType;
+};
+
 type InterfaceTypeData = {
   readonly superTypes: InterfaceType[];
   readonly cache: WeakMap<Type, boolean>;
@@ -47,13 +58,12 @@ type InterfaceTypeTypeData = {
   readonly interfaceType: InterfaceType;
 };
 
-type ClassTypeData = {
-  readonly superClassType?: ClassType;
-  readonly fields: Field[];
+type EnumTypeData = {
+  readonly values: Map<string, EnumConstVariable>;
 };
 
-type ClassTypeTypeData = {
-  readonly classType: ClassType;
+type EnumTypeTypeData = {
+  readonly enumType: EnumType;
 };
 
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
@@ -65,6 +75,8 @@ export type ClassType = Type & { readonly classTypeData: ClassTypeData; };
 export type ClassTypeType = Type & { readonly classTypeTypeData: ClassTypeTypeData; };
 export type InterfaceType = Type & { readonly interfaceTypeData: InterfaceTypeData; };
 export type InterfaceTypeType = Type & { readonly interfaceTypeTypeData: InterfaceTypeTypeData; };
+export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
+export type EnumTypeType = Type & { readonly enumTypeTypeData: EnumTypeTypeData; };
 
 export class Type {
   readonly identifier: Identifier;
@@ -79,6 +91,8 @@ export class Type {
   readonly classTypeTypeData?: ClassTypeTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
+  readonly enumTypeData?: EnumTypeData;
+  readonly enumTypeTypeData?: EnumTypeTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method>();
 
@@ -111,6 +125,12 @@ export class Type {
     }
     if (params.interfaceTypeTypeData) {
       this.interfaceTypeTypeData = params.interfaceTypeTypeData;
+    }
+    if (params.enumTypeData) {
+      this.enumTypeData = params.enumTypeData;
+    }
+    if (params.enumTypeTypeData) {
+      this.enumTypeTypeData = params.enumTypeTypeData;
     }
   }
 
@@ -468,6 +488,19 @@ export function newInterfaceTypeType(identifier: Identifier, superTypes: Interfa
   return interfaceTypeType;
 }
 
+export function newEnumTypeType(identifier: Identifier): EnumTypeType {
+  const enumType = new Type({
+    identifier,
+    enumTypeData: { values: new Map() },
+  }) as EnumType;
+  const enumTypeType = new Type({
+    identifier: { location: identifier.location, name: `(enum ${identifier.name})` },
+    enumTypeTypeData: { enumType },
+  }) as EnumTypeType;
+  addEnumMethods(enumType);
+  return enumTypeType;
+}
+
 ////////////////////////
 // BUILTIN TYPE METHODS
 ////////////////////////
@@ -587,5 +620,17 @@ function addListMethods(listType: ListType) {
     ],
     returnType: itemType,
     aliasFor: '__op_setitem__',
+  });
+}
+
+// EnumType
+
+function addEnumMethods(enumType: EnumType) {
+  addEqualityOperatorMethods(enumType);
+  enumType.addMethod({
+    identifier: { name: '__get_value' },
+    parameters: [],
+    returnType: StringType,
+    aliasFor: '__op_noop__',
   });
 }

@@ -17,6 +17,7 @@ const specialUnaryOperatorMap = new Map<string, (e: string) => string>([
   ['__op_isnull__', e => `((${e}??null)===null)`],
   ['__op_hasvalue__', e => `((${e}??null)!==null)`],
   ['__op_nullget__', e => `nullGet(${e})`],
+  ['__op_noop__', e => e],
 ]);
 
 const specialBinaryOperatorMap = new Map([
@@ -205,6 +206,7 @@ class Translator implements ast.NodeVisitor<string> {
     return `class YAL${name}${superClass}{${ctor}${methods.join('')}}`;
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): string { return ''; }
+  visitEnumDefinition(n: ast.EnumDefinition): string { return ''; }
   visitImport(n: ast.Import): string { return ''; }
   visitFile(n: ast.File): string {
     return '"use strict";' + n.statements.map(s => s.accept(this)).join('');

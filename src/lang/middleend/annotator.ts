@@ -4,6 +4,7 @@ import {
   getCommentFromFunctionDisplay,
   getCommentFromClassDefinition,
   getCommentFromInterfaceDefinition,
+  getCommentCommentsFromSeq,
 } from '../frontend/ast-utils';
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
@@ -27,6 +28,7 @@ import {
   newClassTypeType,
   newInterfaceTypeType,
   ModuleType,
+  newEnumTypeType,
 } from './type';
 import {
   Annotation,
@@ -34,6 +36,8 @@ import {
   Variable,
   ClassVariable,
   InterfaceVariable,
+  EnumVariable,
+  EnumConstVariable,
   ModuleVariable,
   AnnotationWithoutIR,
 } from './annotation';
@@ -145,7 +149,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         range: e.identifier.location.range,
         getCompletions() {
           return Array.from(moduleTypeData.annotation.exportMap.values())
-            .filter(v => v.type.classTypeTypeData || v.type.interfaceTypeTypeData)
+            .filter(v => v.type.classTypeTypeData || v.type.interfaceTypeTypeData || v.type.enumTypeTypeData)
             .map(v => ({ name: v.identifier.name }));
         },
       });
@@ -158,9 +162,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
       this.markReference(variable, e.identifier.location.range);
       const type = variable.type.classTypeTypeData?.classType ||
-        variable.type.interfaceTypeTypeData?.interfaceType;
+        variable.type.interfaceTypeTypeData?.interfaceType ||
+        variable.type.enumTypeTypeData?.enumType;
       if (!type) {
-        this.error(e.identifier.location, `${e.identifier.name} is not a class or interface`);
+        this.error(e.identifier.location, `${e.identifier.name} is not a class, interface or enum`);
         return AnyType;
       }
       return type;
@@ -175,7 +180,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         for (const key in scopeAtLocation) {
           const variable = scopeAtLocation[key];
           const type = variable.type;
-          if (type.classTypeTypeData || type.interfaceTypeTypeData || type.moduleTypeData) {
+          if (type.classTypeTypeData ||
+            type.interfaceTypeTypeData ||
+            type.enumTypeTypeData ||
+            type.moduleTypeData) {
             completions.push({ name: key });
           }
         }
@@ -225,9 +233,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
     this.markReference(variable, e.identifier.location.range);
     const type = variable.type.classTypeTypeData?.classType ||
-      variable.type.interfaceTypeTypeData?.interfaceType;
+      variable.type.interfaceTypeTypeData?.interfaceType ||
+      variable.type.enumTypeTypeData?.enumType;
     if (!type) {
-      this.error(e.identifier.location, `${e.identifier.name} is not a class or interface`);
+      this.error(e.identifier.location, `${e.identifier.name} is not a class, interface or enum`);
       return AnyType;
     }
     return type;
@@ -340,7 +349,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       const result = this.solveStmt(statement);
       if (!(result.ir instanceof ast.EmptyStatement)) irs.push(result.ir);
       if ((statement instanceof ast.Declaration || statement instanceof ast.ClassDefinition ||
-        statement instanceof ast.InterfaceDefinition) && statement.isExported) {
+        statement instanceof ast.InterfaceDefinition || statement instanceof ast.EnumDefinition) &&
+        statement.isExported) {
         const variable = this.scope[statement.identifier.name];
         if (variable) {
           this.annotation.exportMap.set(variable.identifier.name, variable);
@@ -485,7 +495,48 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return {};
   }
 
+  private declareEnum(defn: ast.EnumDefinition) {
+    const variable: EnumVariable = {
+      identifier: defn.identifier,
+      type: newEnumTypeType(defn.identifier),
+
+      // NOTE: regular string literal comments aren't really permitted with enum
+      // definitions, because they are indistinguishable from enum entries.
+      comment: getCommentCommentsFromSeq(defn.statements),
+    };
+    const enumType = variable.type.enumTypeTypeData.enumType;
+    this.declareVariable(variable);
+
+    for (const statement of defn.statements) {
+      if (statement instanceof ast.CommentStatement) continue;
+      if (statement instanceof ast.ExpressionStatement) {
+        const expr = statement.expression;
+        if (expr instanceof ast.StringLiteral) {
+          const constVariable: EnumConstVariable = {
+            identifier: new ast.IdentifierNode(expr.location, expr.value),
+            type: enumType,
+            value: expr.value,
+          };
+          this.declareVariable(constVariable, false);
+          enumType.enumTypeData.values.set(expr.value, constVariable);
+          continue;
+        }
+      }
+      this.error(statement.location, `Unexpected statement in enum definition body`);
+    }
+
+  }
+
   private forwardDeclare(statements: ast.Statement[]) {
+
+    // Enum types have no dependency on anything except its definition,
+    // so can be processed before anything else.
+    for (const statement of statements) {
+      if (statement instanceof ast.EnumDefinition) {
+        this.declareEnum(statement);
+      }
+    }
+
     // forward declare classes
     for (const defn of statements) {
       if (defn instanceof ast.ClassDefinition) {
@@ -585,7 +636,38 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return { type: NumberType, value: n.value, ir: n };
   }
   visitStringLiteral(n: ast.StringLiteral): EResult {
-    return { type: StringType, value: n.value, ir: n };
+    let type = StringType;
+    const enumTypeData = this.hint.enumTypeData;
+    if (enumTypeData) {
+      const enumName = this.hint.identifier.name;
+      this.annotation.completionPoints.push({
+        range: {
+          start: {
+            line: n.location.range.start.line,
+            column: n.location.range.start.column + 1,
+            index: n.location.range.start.index + 1,
+          },
+          end: {
+            line: n.location.range.end.line,
+            column: n.location.range.end.column - 1,
+            index: n.location.range.end.index - 1,
+          },
+        },
+        getCompletions() {
+          const completions: Completion[] = [];
+          for (const [value, _] of enumTypeData.values) {
+            completions.push({ name: value, detail: `(enum ${enumName})` });
+          }
+          return completions;
+        },
+      });
+      const enumConstVariable = enumTypeData.values.get(n.value);
+      if (enumConstVariable) {
+        type = this.hint;
+        this.markReference(enumConstVariable, n.location.range);
+      }
+    }
+    return { type, value: n.value, ir: n };
   }
   visitIdentifierNode(n: ast.IdentifierNode): EResult {
     const scope = this.scope;
@@ -786,7 +868,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           value: argValues[0],
         });
       } else {
-        staticValue = evalMethodCall(owner.value, n.identifier.name, argValues);
+        staticValue = evalMethodCall(owner.value, method, argValues);
       }
     }
 
@@ -865,9 +947,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     };
   }
   visitTypeAssertion(n: ast.TypeAssertion): EResult {
-    const value = this.solveExpr(n.value);
+    const startErrorCount = this.annotation.errors.length;
     const type = this.solveType(n.type);
-    return { type, ir: value.ir };
+    const result = this.solveExpr(n.value, type, false);
+    let value = startErrorCount === this.annotation.errors.length ?
+      result.value : undefined;
+    return { type, value, ir: result.ir };
   }
   visitNativeExpression(n: ast.NativeExpression): EResult {
     return { type: AnyType, ir: n };
@@ -1094,6 +1179,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
       this.error(statement.location, `Unexpected statement in interface body`);
     }
+    return { status: Continues, ir: new ast.EmptyStatement(n.location) };
+  }
+  visitEnumDefinition(n: ast.EnumDefinition): SResult {
     return { status: Continues, ir: new ast.EmptyStatement(n.location) };
   }
   visitImport(n: ast.Import): SResult {
