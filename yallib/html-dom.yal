@@ -1,4 +1,3 @@
-import "html-dom-window" as windowmodule
 
 # SOME COMMENTS
 
@@ -46,3 +45,11 @@ export const createElement = native(tagName: String): Element {
 
 export const document = native "document" as Document
 
+
+export interface Window {
+  function requestAnimationFrame(callback: Function[Number, Any]) {
+    aliasFor(__js_requestAnimationFrame)
+  }
+}
+
+export const window = native "window" as Window

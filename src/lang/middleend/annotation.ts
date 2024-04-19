@@ -12,6 +12,7 @@ export type Variable = {
   readonly type: Type;
   readonly comment?: ast.StringLiteral;
   readonly value?: Value;
+  readonly isForwardDeclaration?: boolean,
 };
 
 export type ModuleVariable = Variable & {

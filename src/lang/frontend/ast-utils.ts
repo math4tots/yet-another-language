@@ -6,9 +6,8 @@ export function getCommentFromSeq(stmts: ast.Statement[]): ast.StringLiteral | u
     stmts[0].expression instanceof ast.StringLiteral) ? stmts[0].expression : undefined;
 }
 
-export function getCommentFromFunctionDisplay(fd: ast.Node | null): ast.StringLiteral | undefined {
-  return fd instanceof ast.FunctionDisplay ?
-    getCommentFromSeq(fd.body.statements) : undefined;
+export function getCommentFromFunctionDisplay(fd: ast.FunctionDisplay): ast.StringLiteral | undefined {
+  return getCommentFromSeq(fd.body.statements);
 }
 
 export function getCommentFromClassDefinition(cd: ast.Node | null): ast.StringLiteral | undefined {

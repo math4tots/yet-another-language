@@ -550,6 +550,29 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         this.addMethodsAndFields(interfaceType, defn.statements);
       }
     }
+
+    // forward declare functions
+    for (const defn of statements) {
+      if (defn instanceof ast.Declaration && !defn.isMutable && !defn.type) {
+        const value = defn.value;
+        if (value instanceof ast.FunctionDisplay) {
+          const comments = getCommentFromFunctionDisplay(value);
+          const type = this.solveFunctionDisplayType(value);
+          // We use a temporary forward declared variable -
+          // when we actually reach this location, we will overwrite the existing variable
+          // with the 'real' one
+          // TODO: Find a way to avoid creating potential duplicate variables
+          const variable: Variable = {
+            isMutable: defn.isMutable,
+            identifier: defn.identifier,
+            type,
+            comment: comments,
+            isForwardDeclaration: true,
+          };
+          this.scope[defn.identifier.name] = variable;
+        }
+      }
+    }
   }
 
   visitNullLiteral(n: ast.NullLiteral): EResult {

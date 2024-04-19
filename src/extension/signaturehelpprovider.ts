@@ -19,7 +19,6 @@ export function newSignatureHelpProvider(): vscode.SignatureHelpProvider {
       for (const ci of annotation.callInstances) {
         if (toVSRange(ci.range).contains(position)) {
           callInstance = ci;
-          break;
         }
       }
       const ci = callInstance;
