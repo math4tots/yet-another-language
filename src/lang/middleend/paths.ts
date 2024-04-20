@@ -55,18 +55,6 @@ export async function resolveURI(srcURI: vscode.Uri, rawPath: string): Promise<R
   };
 }
 
-export function formatUriString(uriString: string): string {
-  const roots: string[] = [];
-  vscode.workspace.workspaceFolders?.forEach(root => roots.push(root.uri.toString() + '/'));
-  LIBRARY_URIS.forEach(root => roots.push(root.toString() + '/'));
-  for (const root of roots) {
-    if (uriString.startsWith(root)) {
-      return uriString.substring(root.length);
-    }
-  }
-  return uriString;
-}
-
 function stripYALExtension(s: string): string {
   return s.endsWith('.yal') ? s.substring(0, s.length - 4) : s;
 }

@@ -9,7 +9,7 @@ import {
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
 import { Position, Range } from '../frontend/lexer';
-import { formatUriString, getImportPath, resolveURI } from './paths';
+import { getImportPath, resolveURI } from './paths';
 import {
   AnyType,
   NeverType,

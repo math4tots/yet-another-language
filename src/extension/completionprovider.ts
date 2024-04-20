@@ -1,14 +1,8 @@
 import * as vscode from 'vscode';
 import * as yal from '../lang/yal';
 import { getAnnotationForDocument } from '../lang/middleend/annotator';
-
-function toVSPosition(p: yal.Position): vscode.Position {
-  return new vscode.Position(p.line, p.column);
-}
-
-function toVSRange(range: yal.Range): vscode.Range {
-  return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
-}
+import { getAstForDocument } from '../lang/frontend/parser';
+import { toVSRange } from '../lang/frontend/bridge-utils';
 
 export function newCompletionProvider(): vscode.CompletionItemProvider {
   return {
@@ -24,9 +18,16 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
               item.detail = completion.detail;
             }
             if (completion.importFrom) {
+              const fileNode = await getAstForDocument(document);
+              let position = new vscode.Position(0, 0);
+              for (const statement of fileNode.statements) {
+                if (statement instanceof yal.ast.Import || statement instanceof yal.ast.ImportFrom) {
+                  position = new vscode.Position(statement.location.range.end.line + 1, 0);
+                }
+              }
               item.additionalTextEdits = [
                 new vscode.TextEdit(
-                  new vscode.Range(new vscode.Position(0, 0), new vscode.Position(0, 0)),
+                  new vscode.Range(position, position),
                   `import ${completion.name} from '${completion.importFrom}'\n`)
               ];
             }
