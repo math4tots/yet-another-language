@@ -805,6 +805,10 @@ export async function getAstForDocument(document: vscode.TextDocument): Promise<
   const node = parse(document.uri, document.getText(), document.version);
   removeUriFromSymbolRegistry(key);
   for (const statement of node.statements) {
+    if (statement instanceof ast.ExportAs) {
+      registerSymbol(statement.identifier.name, key);
+      break;
+    }
     if ((statement instanceof ast.InterfaceDefinition ||
       statement instanceof ast.ClassDefinition ||
       statement instanceof ast.EnumDefinition ||
