@@ -21,6 +21,21 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
               const fileNode = await getAstForDocument(document);
               let position = new vscode.Position(0, 0);
               for (const statement of fileNode.statements) {
+                if (statement instanceof yal.ast.CommentStatement) {
+                  // skip comments at the top
+                  position = new vscode.Position(statement.location.range.end.line + 1, 0);
+                  continue;
+                } else if (statement instanceof yal.ast.ExpressionStatement) {
+                  if (statement.expression instanceof yal.ast.StringLiteral) {
+                    // skip string literal comment at the top.
+                    // But after this one, no more skipping
+                    position = new vscode.Position(statement.location.range.end.line + 1, 0);
+                    break;
+                  }
+                }
+                break;
+              }
+              for (const statement of fileNode.statements) {
                 if (
                   // imports should generally come after 'export as' statements
                   statement instanceof yal.ast.ExportAs ||
@@ -28,11 +43,11 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
                   (completion.importAsModule ?
 
                     // 'import as' statements generally come first, and are sorted by path
-                    (statement instanceof yal.ast.Import && statement.path.value < completion.importFrom) :
+                    (statement instanceof yal.ast.ImportAs && statement.path.value < completion.importFrom) :
 
                     // 'import from' statements generally come after 'import as' statements
-                    (statement instanceof yal.ast.Import ||
-                      (statement instanceof yal.ast.ImportFrom &&
+                    (statement instanceof yal.ast.ImportAs ||
+                      (statement instanceof yal.ast.FromImport &&
                         (statement.path.value !== completion.importFrom ?
                           // and are sorted by path
                           statement.path.value < completion.importFrom :
@@ -47,7 +62,7 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
                   new vscode.Range(position, position),
                   completion.importAsModule ?
                     `import '${completion.importFrom}' as ${completion.name}\n` :
-                    `import ${completion.name} from '${completion.importFrom}'\n`)
+                    `from '${completion.importFrom}' import ${completion.name}\n`)
               ];
             }
             item.sortText =

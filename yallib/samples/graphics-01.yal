@@ -1,0 +1,33 @@
+from 'html/document' import document
+from 'html/htmlcanvaselement' import HTMLCanvasElement
+from 'html/window' import window
+
+document.body.innerHTML = """
+<canvas id="canvas" width=400 height=400/>
+"""
+
+const canvas = document.getElementById("canvas").get() as HTMLCanvasElement
+const ctx = canvas.get2DContext()
+ctx.fillStyle = "blue"
+ctx.fillRect(0, 0, canvas.width, canvas.height)
+ctx.fillStyle = "red"
+ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 3, canvas.height / 3)
+
+var i = 0
+var lastTS = 0
+
+function tick(ts: Number) {
+  # Some comments on tick
+  # Some comments on tick2
+  const offset = ts - lastTS
+  lastTS = ts
+  "Some comments for the tick function"
+  ctx.fillStyle = "blue"
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = "red"
+  ctx.fillRect(i % canvas.width, canvas.height / 4, canvas.width / 4, canvas.height / 4)
+  i = i + (offset / 1000) * 400
+  window.requestAnimationFrame(tick)
+}
+
+tick(0)

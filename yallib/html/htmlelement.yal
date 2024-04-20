@@ -1,4 +1,4 @@
-import Element from './element'
+from './element' import Element
 
 
 export interface HTMLElement extends Element {}

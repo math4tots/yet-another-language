@@ -1,10 +1,12 @@
-import HTMLElement from './htmlelement'
-import CanvasRenderingContext2D from './canvasrenderingcontext2d'
+from './htmlelement' import HTMLElement
+from './canvasrenderingcontext2d' import CanvasRenderingContext2D
+
+enum String2D { "2d" }
 
 export interface HTMLCanvasElement extends HTMLElement {
   var width: Number = aliasFor(__js_width)
   var height: Number = aliasFor(__js_height)
-  function get2DContext(contextType: String = "2d"): CanvasRenderingContext2D {
+  function get2DContext(contextType: String2D = "2d"): CanvasRenderingContext2D {
     """
     Calls canvas.getContext() to get the rendering context.
     The default parameter automatically passes "2d" to the method to get the correct

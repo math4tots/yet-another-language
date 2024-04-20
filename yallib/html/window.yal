@@ -5,3 +5,5 @@ export interface Window {
     aliasFor(__js_requestAnimationFrame)
   }
 }
+
+export const window = native "window" as Window

@@ -1,4 +1,4 @@
-import Node from './node'
+from './node' import Node
 
 export interface Element extends Node {
   var id: String = aliasFor(__js_id)

@@ -49,8 +49,8 @@ export interface StatementVisitor<R> {
   visitClassDefinition(n: ClassDefinition): R;
   visitInterfaceDefinition(n: InterfaceDefinition): R;
   visitEnumDefinition(n: EnumDefinition): R;
-  visitImport(n: Import): R;
-  visitImportFrom(n: ImportFrom): R;
+  visitImportAs(n: ImportAs): R;
+  visitFromImport(n: FromImport): R;
   visitExportAs(n: ExportAs): R;
   visitTypedef(n: Typedef): R;
 }
@@ -103,6 +103,7 @@ export class NullLiteral implements Expression {
   constructor(location: Location) {
     this.location = location;
   }
+  withLocation(location: Location) { return new NullLiteral(location); }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNullLiteral(this); }
 }
 
@@ -113,6 +114,7 @@ export class BooleanLiteral implements Expression {
     this.location = location;
     this.value = value;
   }
+  withLocation(location: Location) { return new BooleanLiteral(location, this.value); }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitBooleanLiteral(this); }
 }
 
@@ -123,6 +125,7 @@ export class NumberLiteral implements Expression {
     this.location = location;
     this.value = value;
   }
+  withLocation(location: Location) { return new NumberLiteral(location, this.value); }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNumberLiteral(this); }
 }
 
@@ -133,6 +136,7 @@ export class StringLiteral implements Expression {
     this.location = location;
     this.value = value;
   }
+  withLocation(location: Location) { return new StringLiteral(location, this.value); }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitStringLiteral(this); }
 }
 
@@ -514,7 +518,7 @@ export class EnumDefinition implements Statement {
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitEnumDefinition(this); }
 }
 
-export class Import implements Statement {
+export class ImportAs implements Statement {
   readonly location: Location;
   readonly path: StringLiteral;
   readonly identifier: IdentifierNode;
@@ -523,21 +527,21 @@ export class Import implements Statement {
     this.path = path;
     this.identifier = identifier;
   }
-  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitImport(this); }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitImportAs(this); }
 }
 
-export class ImportFrom implements Statement {
+export class FromImport implements Statement {
   readonly location: Location;
+  readonly path: StringLiteral;
   readonly isExported: boolean;
   readonly identifier: IdentifierNode;
-  readonly path: StringLiteral;
-  constructor(location: Location, isExported: boolean, identifier: IdentifierNode, path: StringLiteral) {
+  constructor(location: Location, path: StringLiteral, isExported: boolean, identifier: IdentifierNode) {
     this.location = location;
+    this.path = path;
     this.isExported = isExported;
     this.identifier = identifier;
-    this.path = path;
   }
-  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitImportFrom(this); }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitFromImport(this); }
 }
 
 export class ExportAs implements Statement {

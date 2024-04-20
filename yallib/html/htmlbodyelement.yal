@@ -1,4 +1,4 @@
-import HTMLElement from './htmlelement'
+from './htmlelement' import HTMLElement
 
 
 export interface HTMLBodyElement extends HTMLElement {}

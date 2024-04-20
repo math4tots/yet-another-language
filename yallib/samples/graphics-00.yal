@@ -1,0 +1,20 @@
+"""
+A graphics demo
+"""
+from 'html/document' import document
+from 'html/htmlcanvaselement' import HTMLCanvasElement
+from 'html/window' import window
+
+document.body.innerHTML = "<canvas id='canvas' height=400 width=400/>"
+
+const canvas = document.getElementById('canvas').get() as HTMLCanvasElement
+const ctx = canvas.get2DContext()
+
+
+function tick(ts: Number) {
+  ctx.fillStyle = 'blue'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  window.requestAnimationFrame(tick)
+}
+
+tick(0)

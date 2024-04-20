@@ -550,7 +550,8 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('interface')) return parseInterfaceDefinition(false);
     if (at('enum')) return parseEnumDefinition(false);
     if (at('typedef')) return parseTypedef(false);
-    if (at('import')) return parseImport(false);
+    if (at('import')) return parseImportAs();
+    if (at('from')) return parseFromImport();
     if (consume('export')) {
       if (at('native')) return parseNativeFunctionDefinition(true);
       if (at('function')) return parseFunctionDefinition(true);
@@ -559,7 +560,6 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       if (at('enum')) return parseEnumDefinition(true);
       if (at('var') || at('const')) return parseDeclaration(true);
       if (at('typedef')) return parseTypedef(true);
-      if (at('IDENTIFIER')) return parseImport(true);
       if (at('as')) return parseExportAs();
 
       // This is actually an error, but it helps autocomplete to not panic and return
@@ -568,7 +568,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const identifier = new ast.IdentifierNode(location, 'export');
       errors.push({
         location,
-        message: `export must be followed by a 'function', 'class', 'interface', 'var' or 'const'`,
+        message: `unrecognized export statement syntax`,
       });
       return new ast.ExpressionStatement(location, identifier);
     }
@@ -738,26 +738,23 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.StringLiteral({ uri, range: stringToken.range }, value);
   }
 
-  function parseImport(isExported: boolean): ast.Import | ast.ImportFrom {
-    const start = isExported ? tokens[i - 1].range.start : expect('import').range.start;
-    if (at('IDENTIFIER')) {
-      const identifier = parseIdentifier();
-      expect('from');
-      const path = parseStringLiteral();
-      const end = path.location.range.end;
-      return new ast.ImportFrom({ uri, range: { start, end } }, isExported, identifier, path);
-    }
-    if (isExported) {
-      errors.push({
-        location: { uri, range: tokens[i - 1].range },
-        message: `export not supported for this style of import`,
-      });
-    }
+  function parseFromImport(): ast.FromImport {
+    const start = expect('from').range.start;
+    const path = parseStringLiteral();
+    const isExported = consume('export');
+    if (!isExported) expect('import');
+    const identifier = parseIdentifier();
+    const end = identifier.location.range.end;
+    return new ast.FromImport({ uri, range: { start, end } }, path, isExported, identifier);
+  }
+
+  function parseImportAs(): ast.ImportAs | ast.FromImport {
+    const start = expect('import').range.start;
     const path = parseStringLiteral();
     expect('as');
     const identifier = parseIdentifier();
     const end = identifier.location.range.end;
-    return new ast.Import({ uri, range: { start, end } }, path, identifier);
+    return new ast.ImportAs({ uri, range: { start, end } }, path, identifier);
   }
 
   function parseTypedef(isExported: boolean): ast.Typedef {

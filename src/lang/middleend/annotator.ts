@@ -107,7 +107,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   private readonly cached?: Annotation;
   private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
   private readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
-  private readonly markedImports = new Set<ast.Import | ast.ImportFrom>();
+  private readonly markedImports = new Set<ast.ImportAs | ast.FromImport>();
   private readonly classMap = new Map<ast.ClassDefinition, ClassVariable>();
   private readonly interfaceMap = new Map<ast.InterfaceDefinition, InterfaceVariable>();
 
@@ -312,7 +312,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const srcURI = n.location.uri;
     let canUseCached = n.documentVersion === this.cached?.documentVersion;
     for (const statement of n.statements) {
-      if (statement instanceof ast.Import || statement instanceof ast.ImportFrom) {
+      if (statement instanceof ast.ImportAs || statement instanceof ast.FromImport) {
         this.markedImports.add(statement);
         const { location, path, identifier } = statement;
         const { uri, error: errMsg } = await resolveURI(srcURI, path.value);
@@ -345,7 +345,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         const moduleVariable = getModuleVariableForModuleType(importModuleType);
         this.markReference(moduleVariable, path.location.range);
 
-        if (statement instanceof ast.ImportFrom) {
+        if (statement instanceof ast.FromImport) {
           const isExported = statement.isExported;
           const memberVariable = importModuleAnnotation.exportMap.get(identifier.name);
           if (memberVariable) {
@@ -365,6 +365,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           this.declareVariable(aliasVariable);
         }
       } else if (
+        statement instanceof ast.ExportAs ||
         statement instanceof ast.CommentStatement ||
         (statement instanceof ast.ExpressionStatement &&
           statement.expression instanceof ast.StringLiteral)) {
@@ -387,7 +388,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       if (!(result.ir instanceof ast.EmptyStatement)) irs.push(result.ir);
       if ((statement instanceof ast.Declaration || statement instanceof ast.ClassDefinition ||
         statement instanceof ast.InterfaceDefinition || statement instanceof ast.EnumDefinition ||
-        statement instanceof ast.Typedef || statement instanceof ast.ImportFrom) &&
+        statement instanceof ast.Typedef || statement instanceof ast.FromImport) &&
         statement.isExported) {
         const variable = this.scope[statement.identifier.name];
         if (variable) {
@@ -902,7 +903,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const argExprs = [...n.args];
     while (argExprs.length < method.parameters.length && method.parameters[argExprs.length].defaultValue) {
       const defaultValue = method.parameters[argExprs.length].defaultValue;
-      if (defaultValue) argExprs.push(defaultValue);
+      if (defaultValue) argExprs.push(defaultValue.withLocation(n.identifier.location));
     }
     if (method.parameters.length !== argExprs.length) {
       for (const arg of n.args) this.solveExpr(arg);
@@ -1243,13 +1244,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   visitEnumDefinition(n: ast.EnumDefinition): SResult {
     return { status: Continues, ir: new ast.EmptyStatement(n.location) };
   }
-  visitImport(n: ast.Import): SResult {
+  visitImportAs(n: ast.ImportAs): SResult {
     if (!this.markedImports.has(n)) {
       this.error(n.location, `Import statement is not allowed here`);
     }
     return { status: MaybeJumps, ir: new ast.EmptyStatement(n.location) };
   }
-  visitImportFrom(n: ast.ImportFrom): SResult {
+  visitFromImport(n: ast.FromImport): SResult {
     if (!this.markedImports.has(n)) {
       this.error(n.location, `Import statement is not allowed here`);
     }

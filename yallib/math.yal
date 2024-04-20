@@ -1,6 +1,6 @@
+export as Math
 
-
-export const PI = 3.14159265358979323846
+export const PI = (native(): Number "Math.PI")()
 export const TAU "Two times PI" = 2 * PI
 
 export native sin "computes sine in radians" (x: Number): Number "Math.sin(x)"
