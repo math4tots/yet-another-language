@@ -810,7 +810,7 @@ export async function getAstForDocument(document: vscode.TextDocument): Promise<
       statement instanceof ast.EnumDefinition ||
       (statement instanceof ast.Declaration && !statement.isMutable)) &&
       statement.isExported) {
-      registerSymbol(statement.identifier.name, key);
+      registerSymbol(statement.identifier.name, key, 'member');
     }
   }
   astCache.set(key, { version, node });

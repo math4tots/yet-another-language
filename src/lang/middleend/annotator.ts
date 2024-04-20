@@ -131,15 +131,20 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
   }
 
-  private addSymbolTableCompletions(completions: Completion[]) {
+  private addSymbolTableCompletions(completions: Completion[], scopeAtLocation: Scope) {
     const startingUriString = this.annotation.uri.toString();
     const symbolTable = getSymbolTable();
-    for (const [symbol, uris] of symbolTable) {
+    for (const [symbolName, uriToSymbols] of symbolTable) {
       // Only include if the symbol is not currently in scope
-      if (!this.scope[symbol]) {
-        for (const uri of uris) {
-          const importPath = getImportPath(uri, startingUriString);
-          completions.push({ name: symbol, detail: importPath, importFrom: importPath });
+      if (!scopeAtLocation[symbolName]) {
+        for (const symbol of uriToSymbols.values()) {
+          const importPath = getImportPath(symbol.uri, startingUriString);
+          completions.push({
+            name: symbol.name,
+            detail: importPath,
+            importFrom: importPath,
+            importAsModule: symbol.kind === 'module',
+          });
         }
       }
     }
@@ -213,7 +218,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'Nullable' });
         completions.push({ name: 'List' });
         completions.push({ name: 'Function' });
-        this.addSymbolTableCompletions(completions);
+        this.addSymbolTableCompletions(completions, scopeAtLocation);
         return completions;
       },
     });
@@ -743,7 +748,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'typedef' });
         completions.push({ name: 'export' });
         completions.push({ name: 'import' });
-        this.addSymbolTableCompletions(completions);
+        this.addSymbolTableCompletions(completions, scope);
         return completions;
       },
     });

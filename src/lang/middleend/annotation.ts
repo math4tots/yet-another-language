@@ -64,6 +64,7 @@ export interface Completion {
   readonly name: string;
   readonly detail?: string;
   readonly importFrom?: string;
+  readonly importAsModule?: boolean;
 }
 
 export interface CompletionPoint {

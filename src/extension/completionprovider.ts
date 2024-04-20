@@ -28,7 +28,9 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
               item.additionalTextEdits = [
                 new vscode.TextEdit(
                   new vscode.Range(position, position),
-                  `import ${completion.name} from '${completion.importFrom}'\n`)
+                  completion.importAsModule ?
+                    `import ${completion.importFrom} as ${completion.name}\n` :
+                    `import ${completion.name} from '${completion.importFrom}'\n`)
               ];
             }
             item.sortText =

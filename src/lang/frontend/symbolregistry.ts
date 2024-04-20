@@ -1,38 +1,47 @@
 
-const symbolToUriSet = new Map<string, Set<string>>();
-const uriToSymbolsSet = new Map<string, Set<string>>();
+type SymbolKind = "module" | "member";
 
-function getSetForSymbol(symbol: string): Set<string> {
-  const cached = symbolToUriSet.get(symbol);
+export type Symbol = {
+  readonly name: string;
+  readonly uri: string;
+  readonly kind: SymbolKind;
+};
+
+const nameToUriToSymbol = new Map<string, Map<string, Symbol>>();
+const uriToNameToSymbol = new Map<string, Map<string, Symbol>>();
+
+function getMapBySymbolName(symbolName: string): Map<string, Symbol> {
+  const cached = nameToUriToSymbol.get(symbolName);
   if (cached) return cached;
-  const set = new Set<string>();
-  symbolToUriSet.set(symbol, set);
-  return set;
+  const map = new Map<string, Symbol>();
+  nameToUriToSymbol.set(symbolName, map);
+  return map;
 }
 
-function getSetForUri(uriString: string): Set<string> {
-  const cached = uriToSymbolsSet.get(uriString);
+function getMapByUri(uriString: string): Map<string, Symbol> {
+  const cached = uriToNameToSymbol.get(uriString);
   if (cached) return cached;
-  const set = new Set<string>();
-  uriToSymbolsSet.set(uriString, set);
-  return set;
+  const map = new Map<string, Symbol>();
+  uriToNameToSymbol.set(uriString, map);
+  return map;
 }
 
-export function registerSymbol(symbol: string, uriString: string) {
-  getSetForSymbol(symbol).add(uriString);
-  getSetForUri(uriString).add(symbol);
+export function registerSymbol(name: string, uri: string, kind: SymbolKind) {
+  const symbol = { name, uri, kind };
+  getMapBySymbolName(name).set(uri, symbol);
+  getMapByUri(uri).set(name, symbol);
 }
 
-export function removeUriFromSymbolRegistry(uriString: string) {
-  const symbols = uriToSymbolsSet.get(uriString);
+export function removeUriFromSymbolRegistry(uri: string) {
+  const symbols = uriToNameToSymbol.get(uri);
   if (symbols) {
-    uriToSymbolsSet.delete(uriString);
-    for (const symbol of symbols) {
-      const uriSet = symbolToUriSet.get(symbol);
-      if (uriSet) {
-        uriSet.delete(uriString);
-        if (uriSet.size === 0) {
-          symbolToUriSet.delete(symbol);
+    uriToNameToSymbol.delete(uri);
+    for (const symbol of symbols.values()) {
+      const uriToSymbol = nameToUriToSymbol.get(symbol.name);
+      if (uriToSymbol) {
+        uriToSymbol.delete(uri);
+        if (uriToSymbol.size === 0) {
+          nameToUriToSymbol.delete(symbol.name);
         }
       }
     }
@@ -41,5 +50,5 @@ export function removeUriFromSymbolRegistry(uriString: string) {
 
 /** Maps symbols to a set containing Uri strings */
 export function getSymbolTable() {
-  return symbolToUriSet;
+  return nameToUriToSymbol;
 }
