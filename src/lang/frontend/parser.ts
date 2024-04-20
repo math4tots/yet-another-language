@@ -560,6 +560,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       if (at('var') || at('const')) return parseDeclaration(true);
       if (at('typedef')) return parseTypedef(true);
       if (at('IDENTIFIER')) return parseImport(true);
+      if (at('as')) return parseExportAs();
 
       // This is actually an error, but it helps autocomplete to not panic and return
       // some sensible values
@@ -768,6 +769,14 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.Typedef({ uri, range: { start, end } }, isExported, identifier, type);
   }
 
+  function parseExportAs(): ast.ExportAs {
+    const start = tokens[i - 1].range.start;
+    expect('as');
+    const identifier = parseIdentifier();
+    const end = identifier.location.range.end;
+    return new ast.ExportAs({ uri, range: { start, end } }, identifier);
+  }
+
   function parseFile() {
     try {
       while (!atEOF()) {
@@ -805,6 +814,11 @@ export async function getAstForDocument(document: vscode.TextDocument): Promise<
   const node = parse(document.uri, document.getText(), document.version);
   removeUriFromSymbolRegistry(key);
   for (const statement of node.statements) {
+    if (statement instanceof ast.ExportAs) {
+      removeUriFromSymbolRegistry(key);
+      registerSymbol(statement.identifier.name, key, 'module');
+      break;
+    }
     if ((statement instanceof ast.InterfaceDefinition ||
       statement instanceof ast.ClassDefinition ||
       statement instanceof ast.EnumDefinition ||

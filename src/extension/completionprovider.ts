@@ -21,7 +21,24 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
               const fileNode = await getAstForDocument(document);
               let position = new vscode.Position(0, 0);
               for (const statement of fileNode.statements) {
-                if (statement instanceof yal.ast.Import || statement instanceof yal.ast.ImportFrom) {
+                if (
+                  // imports should generally come after 'export as' statements
+                  statement instanceof yal.ast.ExportAs ||
+
+                  (completion.importAsModule ?
+
+                    // 'import as' statements generally come first, and are sorted by path
+                    (statement instanceof yal.ast.Import && statement.path.value < completion.importFrom) :
+
+                    // 'import from' statements generally come after 'import as' statements
+                    (statement instanceof yal.ast.Import ||
+                      (statement instanceof yal.ast.ImportFrom &&
+                        (statement.path.value !== completion.importFrom ?
+                          // and are sorted by path
+                          statement.path.value < completion.importFrom :
+                          // and are sorted by member name if the paths are the same
+                          statement.identifier.name < completion.name
+                        ))))) {
                   position = new vscode.Position(statement.location.range.end.line + 1, 0);
                 }
               }
@@ -29,7 +46,7 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
                 new vscode.TextEdit(
                   new vscode.Range(position, position),
                   completion.importAsModule ?
-                    `import ${completion.importFrom} as ${completion.name}\n` :
+                    `import '${completion.importFrom}' as ${completion.name}\n` :
                     `import ${completion.name} from '${completion.importFrom}'\n`)
               ];
             }
