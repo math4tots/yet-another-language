@@ -224,10 +224,6 @@ class Printer implements yal.ast.NodeVisitor<void> {
     this.indent();
     this.out += `IMPORT ${n.identifier.name} FROM ${JSON.stringify(n.path.value)}`;
   }
-  visitExportAs(n: yal.ast.ExportAs): void {
-    this.indent();
-    this.out += `EXPORT AS ${n.identifier.name}`;
-  }
   visitTypedef(n: yal.ast.Typedef): void {
     this.indent();
     this.out += `TYPEDEF ${n.identifier.name} = ${n.type.qualifier?.name}.${n.type.identifier.name}`;

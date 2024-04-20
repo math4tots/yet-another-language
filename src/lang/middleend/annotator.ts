@@ -1250,9 +1250,6 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
     return { status: MaybeJumps, ir: new ast.EmptyStatement(n.location) };
   }
-  visitExportAs(n: ast.ExportAs): SResult {
-    return { status: Continues, ir: new ast.EmptyStatement(n.location) };
-  }
   visitTypedef(n: ast.Typedef): SResult {
     // TODO: make it work for classes too
     return { status: Continues, ir: new ast.EmptyStatement(n.location) };

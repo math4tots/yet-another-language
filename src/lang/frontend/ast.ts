@@ -51,7 +51,6 @@ export interface StatementVisitor<R> {
   visitEnumDefinition(n: EnumDefinition): R;
   visitImport(n: Import): R;
   visitImportFrom(n: ImportFrom): R;
-  visitExportAs(n: ExportAs): R;
   visitTypedef(n: Typedef): R;
 }
 
@@ -538,16 +537,6 @@ export class ImportFrom implements Statement {
     this.path = path;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitImportFrom(this); }
-}
-
-export class ExportAs implements Statement {
-  readonly location: Location;
-  readonly identifier: IdentifierNode;
-  constructor(location: Location, identifier: IdentifierNode) {
-    this.location = location;
-    this.identifier = identifier;
-  }
-  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitExportAs(this); }
 }
 
 export class Typedef implements Statement {
