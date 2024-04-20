@@ -77,6 +77,10 @@
             {
                 "command": "yal.translateToJavascript",
                 "title": "yal: Translate YAL code to Javascript (JS)"
+            },
+            {
+                "command": "yal.index",
+                "title": "yal: Index/re-index all YAL sources"
             }
         ],
         "keybindings": [

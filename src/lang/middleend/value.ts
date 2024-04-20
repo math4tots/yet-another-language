@@ -43,13 +43,21 @@ export class ModuleValue {
 export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
   const methodName = method.identifier.name;
   const endName = method.aliasFor || method.identifier.name;
-  if (endName.startsWith('__js_')) return owner[endName.substring('__js_'.length)](...args);
-  if (args.length === 0 && endName.startsWith('__get___js_')) return owner[endName.substring('__get___js_'.length)];
+  const allDefined = typeof owner !== 'undefined' && args.every(arg => typeof arg !== undefined);
+
   if (args.length === 0 && endName === '__op_noop__') return owner;
   if (owner === printFunction) return;
-  if (methodName === '__eq__' && args.length === 1) return owner === args[0];
-  if (methodName === '__ne__' && args.length === 1) return owner !== args[0];
+
+  if (allDefined) {
+    if (args.length === 0 && endName.startsWith('__get___js_')) {
+      return owner[endName.substring('__get___js_'.length)];
+    }
+    if (endName.startsWith('__js_')) return owner[endName.substring('__js_'.length)](...args);
+    if (methodName === '__eq__' && args.length === 1) return owner === args[0];
+    if (methodName === '__ne__' && args.length === 1) return owner !== args[0];
+  }
   switch (typeof owner) {
+    case 'undefined': return;
     case 'number':
       if (args.length === 0) {
         switch (methodName) {

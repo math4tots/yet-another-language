@@ -11,7 +11,7 @@ import { newCompletionProvider } from './extension/completionprovider';
 import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { getAnnotationForDocument } from './lang/middleend/annotator';
-import { crawlAndIndex } from './lang/middleend/crawler';
+import { indexCommand } from './extension/indexer';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -26,7 +26,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const sub = (item: vscode.Disposable) => context.subscriptions.push(item);
 
-  crawlAndIndex();
+  indexCommand();
+  // crawlAndIndex();
 
   if (vscode.window.activeTextEditor &&
     vscode.window.activeTextEditor.document.languageId === 'yal') {
@@ -63,6 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.commands.registerCommand(
     'yal.translateToJavascript',
     translateToJSCommand));
+  sub(vscode.commands.registerCommand(
+    'yal.index',
+    indexCommand));
 
   sub(vscode.languages.registerDefinitionProvider(
     { language: 'yal' },

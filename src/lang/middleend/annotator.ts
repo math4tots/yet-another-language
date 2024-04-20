@@ -914,7 +914,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
     // If we did not encounter any errors, as a bonus, try computing the static value
     let staticValue: Value | undefined;
-    if (this.annotation.errors.length === startErrorCount && argValues.length === method.parameters.length) {
+    if (this.annotation.errors.length === startErrorCount &&
+      owner.value !== undefined && argValues.length === method.parameters.length) {
       if (owner.value === printFunction && argValues.length === 1) {
         this.annotation.printInstances.push({
           range: n.location.range,
