@@ -34,4 +34,6 @@ const x = Bar.aaa
 print(x)
 print(Bar.ccc)
 
+typedef Go = Foo
 
+const g: Go = "bar"

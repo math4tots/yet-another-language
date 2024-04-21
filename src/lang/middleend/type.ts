@@ -4,7 +4,9 @@ import type { Annotation, EnumConstVariable, Variable } from "./annotation";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
+  readonly comment?: ast.StringLiteral;
   readonly typeTypeData?: TypeTypeData;
+  readonly aliasTypeData?: AliasTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
@@ -16,6 +18,10 @@ type TypeConstructorParameters = {
 };
 
 type TypeTypeData = {
+  readonly type: Type;
+};
+
+type AliasTypeData = {
   readonly type: Type;
 };
 
@@ -50,7 +56,6 @@ type ClassTypeData = {
 type InterfaceTypeData = {
   readonly typeType: InterfaceTypeType;
   readonly superTypes: InterfaceType[];
-  readonly comments: ast.StringLiteral | undefined;
   readonly cache: WeakMap<Type, boolean>;
 };
 
@@ -74,12 +79,15 @@ export type InterfaceType = Type & { readonly interfaceTypeData: InterfaceTypeDa
 export type InterfaceTypeType = Type & { readonly typeTypeData: { readonly type: InterfaceType; }; };
 export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
+export type AliasType = Type & { readonly aliasTypeData: AliasTypeData; };
 
 export class Type {
   readonly identifier: Identifier;
+  readonly comment?: ast.StringLiteral;
   private _list?: ListType;
   private _nullable?: NullableType;
   readonly typeTypeData?: TypeTypeData;
+  readonly aliasTypeData?: AliasTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
@@ -94,8 +102,12 @@ export class Type {
   constructor(parameters: TypeConstructorParameters) {
     const params = parameters;
     this.identifier = params.identifier;
+    this.comment = params.comment;
     if (params.typeTypeData) {
       this.typeTypeData = params.typeTypeData;
+    }
+    if (params.aliasTypeData) {
+      this.aliasTypeData = params.aliasTypeData;
     }
     if (params.nullableTypeData) {
       this.nullableTypeData = params.nullableTypeData;
@@ -471,10 +483,14 @@ function newMethod(params: NewMethodParameters): Method {
   };
 }
 
-export function newClassTypeType(identifier: Identifier, superClassType?: ClassType): ClassTypeType {
+export function newClassTypeType(
+  identifier: Identifier,
+  superClassType: ClassType | undefined,
+  comment: ast.StringLiteral | undefined): ClassTypeType {
   const classType = new Type({
     identifier,
     classTypeData: { superClassType, fields: [] },
+    comment,
   }) as ClassType;
   const classTypeType = new Type({
     identifier: { location: identifier.location, name: `(class ${identifier.name})` },
@@ -486,12 +502,10 @@ export function newClassTypeType(identifier: Identifier, superClassType?: ClassT
 export function newInterfaceTypeType(
   identifier: Identifier,
   superTypes: InterfaceType[],
-  comments: ast.StringLiteral | undefined): InterfaceTypeType {
+  comment: ast.StringLiteral | undefined): InterfaceTypeType {
   const interfaceTypeData: InterfaceTypeDataWIP = {
     superTypes,
     cache: new WeakMap(),
-
-    comments,
 
     // We put an invalid type here first, so that we can have a cyclic reference between
     // InterfaceTypeType and InterfaceType
@@ -500,6 +514,7 @@ export function newInterfaceTypeType(
   const interfaceType = new Type({
     identifier,
     interfaceTypeData,
+    comment,
   }) as InterfaceType;
   const interfaceTypeType = new Type({
     identifier: { location: identifier.location, name: `(interface ${identifier.name})` },
@@ -509,10 +524,14 @@ export function newInterfaceTypeType(
   return interfaceTypeType;
 }
 
-export function newEnumTypeType(identifier: Identifier, underlyingType: Type): EnumTypeType {
+export function newEnumTypeType(
+  identifier: Identifier,
+  underlyingType: Type,
+  comment: ast.StringLiteral | undefined): EnumTypeType {
   const enumType = new Type({
     identifier,
     enumTypeData: { underlyingType, valueToVariableMap: new Map() },
+    comment,
   }) as EnumType;
   const enumTypeType = new Type({
     identifier: { location: identifier.location, name: `(enum ${identifier.name})` },
@@ -520,6 +539,18 @@ export function newEnumTypeType(identifier: Identifier, underlyingType: Type): E
   }) as EnumTypeType;
   addEnumMethods(enumType);
   return enumTypeType;
+}
+
+export function newAliasType(identifier: Identifier, aliasedType: Type): AliasType {
+  const aliasType = new Type({
+    identifier: {
+      location: identifier.location,
+      name: `(typedef ${identifier.name}=${aliasedType.identifier.name})`,
+    },
+    aliasTypeData: { type: aliasedType },
+    comment: aliasedType.comment,
+  }) as AliasType;
+  return aliasType;
 }
 
 ////////////////////////

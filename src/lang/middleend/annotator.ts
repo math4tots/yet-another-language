@@ -30,6 +30,7 @@ import {
   ModuleType,
   newEnumTypeType,
   InterfaceTypeType,
+  newAliasType,
 } from './type';
 import {
   Annotation,
@@ -182,7 +183,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
 
       this.markReference(variable, e.identifier.location.range);
-      const type = variable.type.typeTypeData?.type;
+      const type = variable.type.typeTypeData?.type || variable.type.aliasTypeData?.type;
       if (!type) {
         this.error(e.identifier.location, `${e.identifier.name} is not a type`);
         return AnyType;
@@ -249,7 +250,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       return AnyType;
     }
     this.markReference(variable, e.identifier.location.range);
-    const type = variable.type.typeTypeData?.type;
+    const type = variable.type.typeTypeData?.type || variable.type.aliasTypeData?.type;
     if (!type) {
       this.error(e.identifier.location, `${e.identifier.name} is not a type`);
       return AnyType;
@@ -552,11 +553,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
       }
     }
-    const enumTypeType = newEnumTypeType(defn.identifier, underlyingType);
+    const comment = getCommentFromEnumDefinition(defn);
+    const enumTypeType = newEnumTypeType(defn.identifier, underlyingType, comment);
     const enumTypeVariable: EnumVariable = {
       identifier: defn.identifier,
       type: enumTypeType,
-      comment: getCommentFromEnumDefinition(defn),
+      comment,
     };
     const enumType = enumTypeVariable.type.typeTypeData.type;
     this.declareVariable(enumTypeVariable);
@@ -609,29 +611,23 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     for (const defn of statements) {
       if (defn instanceof ast.Typedef) {
         const type = this.solveType(defn.type);
-        const interfaceTypeData = type.interfaceTypeData;
-        if (interfaceTypeData) {
-          const interfaceTypeType = interfaceTypeData.typeType;
-          const variable: InterfaceVariable = {
-            identifier: defn.identifier,
-            type: interfaceTypeType,
-            comment: interfaceTypeData.comments,
-          };
-          this.declareVariable(variable);
-        } else if (type.classTypeData) {
-          // For classes, we also need to make sure that actual class object is copied
-          this.error(defn.location, `typedef for classes not yet supported`);
-        } else {
-          this.error(defn.location, `typedefs are only supported for interface types at the moment`);
-        }
+        const aliasType = newAliasType(defn.identifier, type);
+        const variable: Variable = {
+          identifier: defn.identifier,
+          type: aliasType,
+          comment: type.comment,
+        };
+        this.declareVariable(variable);
       } else if (defn instanceof ast.ClassDefinition) {
+        const comment = getCommentFromClassDefinition(defn);
         const superClassType = defn.superClass ? this.solveType(defn.superClass) : undefined;
         const variable: ClassVariable = {
           identifier: defn.identifier,
           type: newClassTypeType(
             defn.identifier,
-            superClassType?.classTypeData ? (superClassType as ClassType) : undefined),
-          comment: getCommentFromClassDefinition(defn),
+            superClassType?.classTypeData ? (superClassType as ClassType) : undefined,
+            comment),
+          comment,
         };
         this.classMap.set(defn, variable);
         this.declareVariable(variable);
