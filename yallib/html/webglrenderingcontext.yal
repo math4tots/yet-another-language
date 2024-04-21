@@ -314,9 +314,10 @@ export interface WebGLRenderingContext {
   const UNPACK_PREMULTIPLY_ALPHA_WEBGL: GLenum = aliasFor(__js_UNPACK_PREMULTIPLY_ALPHA_WEBGL)
   const UNPACK_COLORSPACE_CONVERSION_WEBGL: GLenum = aliasFor(__js_UNPACK_COLORSPACE_CONVERSION_WEBGL)
 
-  ## Front face directions
+  # properties
 
-  # Methods
+  const drawingBufferWidth: Number = aliasFor(__js_drawingBufferWidth)
+  const drawingBufferHeight: Number = aliasFor(__js_drawingBufferHeight)
 
   function clearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf) {
     """
