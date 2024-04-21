@@ -281,6 +281,12 @@ export type Method = {
   readonly aliasFor?: string;
 
   /**
+   * If present, means that invocations of this method can be inlined by replacing
+   * them with the given value.
+   */
+  readonly inlineValue?: number | string;
+
+  /**
    * If true, indicates that this is a 'control-flow' method.
    * 
    * That is to say, not actually a method, but more like control flow.
@@ -430,6 +436,12 @@ interface NewMethodParameters {
   readonly aliasFor?: string;
 
   /**
+   * If present, means that invocations of this method can be inlined by replacing
+   * them with the given value.
+   */
+  readonly inlineValue?: number | string;
+
+  /**
    * If true, indicates that this is a 'control-flow' method.
    * 
    * That is to say, not actually a method, but more like control flow.
@@ -454,6 +466,7 @@ function newMethod(params: NewMethodParameters): Method {
     functionType,
     sourceVariable,
     aliasFor: params.aliasFor,
+    inlineValue: params.inlineValue,
     isControlFlow: !!params.isControlFlow,
   };
 }

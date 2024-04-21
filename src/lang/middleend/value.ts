@@ -41,6 +41,7 @@ export class ModuleValue {
 }
 
 export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
+  if (method.inlineValue !== undefined) return method.inlineValue;
   const methodName = method.identifier.name;
   const endName = method.aliasFor || method.identifier.name;
   const allDefined = typeof owner !== 'undefined' && args.every(arg => typeof arg !== undefined);

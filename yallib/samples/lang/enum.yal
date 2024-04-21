@@ -30,3 +30,8 @@ const bar4: Bar = someNumber
 
 print(barValue)
 print(bar4)
+const x = Bar.aaa
+print(x)
+print(Bar.ccc)
+
+

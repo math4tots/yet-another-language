@@ -552,13 +552,14 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
       }
     }
-    const variable: EnumVariable = {
+    const enumTypeType = newEnumTypeType(defn.identifier, underlyingType);
+    const enumTypeVariable: EnumVariable = {
       identifier: defn.identifier,
-      type: newEnumTypeType(defn.identifier, underlyingType),
+      type: enumTypeType,
       comment: getCommentFromEnumDefinition(defn),
     };
-    const enumType = variable.type.typeTypeData.type;
-    this.declareVariable(variable);
+    const enumType = enumTypeVariable.type.typeTypeData.type;
+    this.declareVariable(enumTypeVariable);
 
     for (const statement of defn.statements) {
       if (statement instanceof ast.CommentStatement) continue;
@@ -576,6 +577,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           };
           this.declareVariable(constVariable, false);
           enumType.enumTypeData.valueToVariableMap.set(value.value, constVariable);
+          enumTypeType.addMethod({
+            identifier: {
+              name: `__get_${statement.identifier.name}`,
+              location: statement.identifier.location,
+            },
+            parameters: [],
+            returnType: enumType,
+            inlineValue: value.value,
+            sourceVariable: constVariable,
+          });
           continue;
         }
       }
@@ -934,7 +945,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     if (method.parameters.length !== argExprs.length) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
-      return { type: method.returnType, ir: n };
+      return { type: method.returnType, value: method.inlineValue, ir: n };
     }
     const argValues: Value[] = [];
     const argIRs: ast.Expression[] = [];
@@ -964,8 +975,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
     return {
       type: method.returnType,
-      value: staticValue,
-      ir: new ast.MethodCall(n.location, owner.ir, methodIdentifier, argIRs),
+      value: method.inlineValue !== undefined ? method.inlineValue : staticValue,
+      ir:
+        typeof method.inlineValue === 'string' ?
+          new ast.StringLiteral(n.location, method.inlineValue) :
+          typeof method.inlineValue === 'number' ?
+            new ast.NumberLiteral(n.location, method.inlineValue) :
+            new ast.MethodCall(n.location, owner.ir, methodIdentifier, argIRs),
     };
   }
   visitNew(n: ast.New): EResult {
