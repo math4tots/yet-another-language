@@ -171,7 +171,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         range: e.identifier.location.range,
         getCompletions() {
           return Array.from(moduleTypeData.annotation.exportMap.values())
-            .filter(v => v.type.isClassTypeType() || v.type.isInterfaceTypeType() || v.type.isEnumTypeType())
+            .filter(v => v.type.typeTypeData || v.type.aliasTypeData)
             .map(v => ({ name: v.identifier.name }));
         },
       });
@@ -200,7 +200,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         for (const key in scopeAtLocation) {
           const variable = scopeAtLocation[key];
           const type = variable.type;
-          if (type.typeTypeData || type.moduleTypeData) {
+          if (type.typeTypeData || type.aliasTypeData || type.moduleTypeData) {
             completions.push({ name: key });
           }
         }
@@ -214,6 +214,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'Nullable' });
         completions.push({ name: 'List' });
         completions.push({ name: 'Function' });
+        completions.push({ name: 'Union' });
         this.addSymbolTableCompletions(completions, scopeAtLocation);
         return completions;
       },
@@ -241,6 +242,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       const parameterTypes = argTypes.slice(0, argTypes.length - 1);
       const returnType = argTypes[argTypes.length - 1];
       return newFunctionType(parameterTypes, returnType);
+    }
+    if (e.identifier.name === 'Union') {
+      let type = NeverType;
+      for (const argexpr of e.args) {
+        type = type.getCommonType(this.solveType(argexpr));
+      }
+      return type;
     }
 
     // locally declared class or interface
@@ -275,8 +283,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         // At first glance, the type doesn't seem to fit. But if the statically known value matches
         // the correct enum values for the type, then we don't actually have an error
         const value = info.value;
-        const enumTypeData = hint.enumTypeData;
-        if ((typeof value === 'number' || typeof value === 'string') && enumTypeData?.valueToVariableMap.has(value)) {
+        if ((typeof value === 'number' || typeof value === 'string') && hint.getEnumConstVariableByValue(value)) {
           return { ...info, type: hint };
         }
         if (required) {
@@ -715,19 +722,15 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return { type: BoolType, value: n.value, ir: n };
   }
   visitNumberLiteral(n: ast.NumberLiteral): EResult {
-    const enumTypeData = this.hint.enumTypeData;
-    if (enumTypeData) {
-      const enumConstVariable = enumTypeData.valueToVariableMap.get(n.value);
-      if (enumConstVariable) {
-        this.markReference(enumConstVariable, n.location.range);
-      }
+    const enumConstVariable = this.hint.getEnumConstVariableByValue(n.value);
+    if (enumConstVariable) {
+      this.markReference(enumConstVariable, n.location.range);
     }
     return { type: NumberType, value: n.value, ir: n };
   }
   visitStringLiteral(n: ast.StringLiteral): EResult {
-    const enumTypeData = this.hint.enumTypeData;
-    if (enumTypeData) {
-      const enumName = this.hint.identifier.name;
+    const hint = this.hint;
+    if (hint.mayHaveEnumConstVariables()) {
       this.annotation.completionPoints.push({
         range: {
           start: {
@@ -743,16 +746,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         },
         getCompletions() {
           const completions: Completion[] = [];
-          for (const enumConstVariable of enumTypeData.valueToVariableMap.values()) {
+          for (const enumConstVariable of hint.getEnumConstVariables()) {
             const value = enumConstVariable.value;
             if (typeof value === 'string') {
-              completions.push({ name: value, detail: `(enum ${enumName})` });
+              completions.push({ name: value, detail: `(enum)` });
             }
           }
           return completions;
         },
       });
-      const enumConstVariable = enumTypeData.valueToVariableMap.get(n.value);
+      const enumConstVariable = hint.getEnumConstVariableByValue(n.value);
       if (enumConstVariable) {
         this.markReference(enumConstVariable, n.location.range);
       }

@@ -157,13 +157,25 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     }
     const location: ast.Location = { uri, range: { start, end } };
     const coreExpression = new ast.TypeExpression(location, qualifier, identifier, args);
+    let expression = coreExpression;
     if (at('?')) {
       const nullableIdentifier = new ast.IdentifierNode({ uri, range: next().range }, 'Nullable');
       const nullableRange: Range = { start, end: nullableIdentifier.location.range.end };
       const nullableLocation: ast.Location = { uri, range: nullableRange };
-      return new ast.TypeExpression(nullableLocation, null, nullableIdentifier, [coreExpression]);
+      expression = new ast.TypeExpression(nullableLocation, null, nullableIdentifier, [coreExpression]);
     }
-    return coreExpression;
+    if (at('|')) {
+      const unionIdentifier = new ast.IdentifierNode({ uri, range: next().range }, 'Union');
+      const rhs = parseTypeExpression();
+      const unionRange: Range = { start, end: rhs.location.range.end };
+      const unionLocation: ast.Location = { uri, range: unionRange };
+      if (!rhs.qualifier && rhs.identifier.name === 'Union') { // rhs is also a union (merge them)
+        expression = new ast.TypeExpression(unionLocation, null, unionIdentifier, [expression, ...rhs.args]);
+      } else {
+        expression = new ast.TypeExpression(unionLocation, null, unionIdentifier, [expression, rhs]);
+      }
+    }
+    return expression;
   }
 
   function atFunctionDisplay(): boolean {

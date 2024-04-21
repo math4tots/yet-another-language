@@ -7,6 +7,7 @@ type TypeConstructorParameters = {
   readonly comment?: ast.StringLiteral;
   readonly typeTypeData?: TypeTypeData;
   readonly aliasTypeData?: AliasTypeData;
+  readonly basicTypeData?: BasicTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
@@ -15,6 +16,7 @@ type TypeConstructorParameters = {
   readonly classTypeData?: ClassTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
+  readonly unionTypeData?: UnionTypeData;
 };
 
 type TypeTypeData = {
@@ -24,6 +26,9 @@ type TypeTypeData = {
 type AliasTypeData = {
   readonly type: Type;
 };
+
+/** Bool, Number or String */
+type BasicTypeData = {};
 
 type NullableTypeData = {
   readonly itemType: Type;
@@ -68,6 +73,13 @@ type EnumTypeData = {
   readonly valueToVariableMap: Map<(string | number), EnumConstVariable>;
 };
 
+type UnionTypeData = {
+  readonly types: UnionElementType[];
+};
+
+/** The basic types are Bool, Number and String. Null was intentionally excluded */
+export type BasicType = Type & { readonly basicTypeData: BasicTypeData; };
+
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
 export type ListType = Type & { readonly listTypeData: ListTypeData; };
 export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
@@ -79,7 +91,17 @@ export type InterfaceType = Type & { readonly interfaceTypeData: InterfaceTypeDa
 export type InterfaceTypeType = Type & { readonly typeTypeData: { readonly type: InterfaceType; }; };
 export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
+export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
 export type AliasType = Type & { readonly aliasTypeData: AliasTypeData; };
+
+/**
+ * Types that are allowed to be part of a union type.
+ * 
+ * Null and Nullable types are not allowed.
+ * 
+ * Interface types are allowed because the Null type is not allowed to implement any interface.
+ */
+export type UnionElementType = BasicType | ListType | ClassType | InterfaceType | EnumType;
 
 export class Type {
   readonly identifier: Identifier;
@@ -88,6 +110,7 @@ export class Type {
   private _nullable?: NullableType;
   readonly typeTypeData?: TypeTypeData;
   readonly aliasTypeData?: AliasTypeData;
+  readonly basicTypeData?: BasicTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
@@ -96,6 +119,7 @@ export class Type {
   readonly classTypeData?: ClassTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
+  readonly unionTypeData?: UnionTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method>();
 
@@ -108,6 +132,9 @@ export class Type {
     }
     if (params.aliasTypeData) {
       this.aliasTypeData = params.aliasTypeData;
+    }
+    if (params.basicTypeData) {
+      this.basicTypeData = params.basicTypeData;
     }
     if (params.nullableTypeData) {
       this.nullableTypeData = params.nullableTypeData;
@@ -133,12 +160,24 @@ export class Type {
     if (params.enumTypeData) {
       this.enumTypeData = params.enumTypeData;
     }
+    if (params.unionTypeData) {
+      this.unionTypeData = params.unionTypeData;
+    }
   }
 
   isTypeType(): boolean { return !!this.typeTypeData; }
   isClassTypeType(): boolean { return !!this.typeTypeData?.type.classTypeData; }
   isInterfaceTypeType(): boolean { return !!this.typeTypeData?.type.interfaceTypeData; }
   isEnumTypeType(): boolean { return !!this.typeTypeData?.type.enumTypeData; }
+
+  isUnionElementType(): boolean {
+    return !!(
+      this.basicTypeData ||
+      this.listTypeData ||
+      this.classTypeData ||
+      this.interfaceTypeData ||
+      this.enumTypeData);
+  }
 
   private lambdaErasure(): Type {
     return this.lambdaTypeData?.functionType || this;
@@ -154,7 +193,36 @@ export class Type {
       if (source.nullableTypeData) return source.nullableTypeData.itemType.isAssignableTo(targetCore);
       return source.isAssignableTo(targetCore);
     }
+
+    // Null is treated specially, and cannot implement any interface.
+    // Excluding nullable types, the Any type and the Null type itself, nothing can accept null.
+    // So at this point, if the source type contains null, assignment must fail.
+    if (source === AnyType || source === NullType || source.nullableTypeData) return false;
+
+    // If the source is a union, we should succeed by checking each member of the union
+    // are ok for assignment
+    if (source.unionTypeData) {
+      for (const element of source.unionTypeData.types) {
+        if (!element.isAssignableTo(target)) return false;
+      }
+      return true;
+    }
+
+    // At this point we know that the source cannot be a union because we just tested for it.
+    // So if the target is a union, we should be able to test by checking if source
+    // can be assigned to any of the target's members.
+    if (target.unionTypeData) {
+      for (const element of target.unionTypeData.types) {
+        if (source.isAssignableTo(element)) return true;
+      }
+      return false;
+    }
+
     if (target.interfaceTypeData) {
+
+      // Only unions or types that are allowed as part of unions are allowed to implement interfaces.
+      if (!source.isUnionElementType()) return false;
+
       // if the target is an interface, we need to check if source implements all the methods
       // required by the interface
       const cached = target.interfaceTypeData.cache.get(source);
@@ -173,7 +241,18 @@ export class Type {
       }
       return true;
     }
-    return source.classTypeData?.superClassType?.isAssignableTo(target) || false;
+
+    // If the source and destination are class types, we can check based on
+    // class hierarchy
+    if (source.classTypeData && target.classTypeData) {
+      for (let sup = source.classTypeData.superClassType; sup; sup = sup?.classTypeData.superClassType) {
+        if (sup === target) return true;
+      }
+      return false;
+    }
+
+    // no other claim to assignability
+    return false;
   }
 
   getCommonType(givenRhs: Type): Type {
@@ -190,11 +269,58 @@ export class Type {
         rhs.nullableTypeData?.itemType || rhs).nullable();
     }
 
-    return lhs.isAssignableTo(rhs) ? rhs :
-      rhs.isAssignableTo(lhs) ? lhs : AnyType;
+    // If one is a generalization of the other, return the more general type
+    if (lhs.isAssignableTo(rhs)) return rhs;
+    if (rhs.isAssignableTo(lhs)) return lhs;
+
+    // try to form a union type
+    const unionElements = new Set<UnionElementType>();
+    for (const arg of [lhs, rhs]) {
+      if (arg.isUnionElementType()) {
+        unionElements.add(arg as UnionElementType);
+      } else if (arg.unionTypeData) {
+        for (const member of arg.unionTypeData.types) unionElements.add(member);
+      } else {
+        return AnyType; // not eligible for union
+      }
+    }
+
+    switch (unionElements.size) {
+      case 0: return NeverType;
+      case 1: return [...unionElements][0];
+    }
+    return newUnionType([...unionElements]);
   }
 
   toString(): string { return this.identifier.name; }
+
+  mayHaveEnumConstVariables(): boolean {
+    return !!this.enumTypeData ||
+      this.nullableTypeData?.itemType.mayHaveEnumConstVariables() ||
+      this.unionTypeData?.types.some(t => t.mayHaveEnumConstVariables()) ||
+      false;
+  }
+
+  *getEnumConstVariables(): IterableIterator<EnumConstVariable> {
+    if (this.enumTypeData) yield* this.enumTypeData.valueToVariableMap.values();
+    else if (this.nullableTypeData) yield* this.nullableTypeData.itemType.getEnumConstVariables();
+    else if (this.unionTypeData) {
+      for (const member of this.unionTypeData.types) {
+        yield* member.getEnumConstVariables();
+      }
+    }
+  }
+
+  getEnumConstVariableByValue(value: string | number): EnumConstVariable | undefined {
+    if (this.enumTypeData) return this.enumTypeData.valueToVariableMap.get(value);
+    if (this.nullableTypeData) return this.nullableTypeData.itemType.getEnumConstVariableByValue(value);
+    if (this.unionTypeData) {
+      for (const member of this.unionTypeData.types) {
+        const variable = member.getEnumConstVariableByValue(value);
+        if (variable) return variable;
+      }
+    }
+  }
 
   list(): ListType {
     const cached = this._list;
@@ -313,9 +439,10 @@ export const AnyType = new Type({ identifier: { name: 'Any' } });
 export const NeverType = new Type({ identifier: { name: 'Never' } });
 
 export const NullType = new Type({ identifier: { name: 'Null' } });
-export const BoolType = new Type({ identifier: { name: 'Bool' } });
-export const NumberType = new Type({ identifier: { name: 'Number' } });
-export const StringType = new Type({ identifier: { name: 'String' } });
+
+export const BoolType = new Type({ identifier: { name: 'Bool' }, basicTypeData: {} }) as BasicType;
+export const NumberType = new Type({ identifier: { name: 'Number' }, basicTypeData: {} }) as BasicType;
+export const StringType = new Type({ identifier: { name: 'String' }, basicTypeData: {} }) as BasicType;
 
 type Cache = {
   type?: FunctionType,
@@ -551,6 +678,22 @@ export function newAliasType(identifier: Identifier, aliasedType: Type): AliasTy
     comment: aliasedType.comment,
   }) as AliasType;
   return aliasType;
+}
+
+/**
+ * This function is not public because there's an implicit contract with using this function.
+ * 
+ * The argument `types` must have only unique values and must have length at least 2.
+ */
+function newUnionType(types: UnionElementType[]): UnionType {
+  if (types.length < 1) {
+    throw new Error('newUnionType with fewer than 2 elements');
+  }
+  const unionType = new Type({
+    identifier: { name: `Union[${types.map(t => t.identifier.name).join(',')}]` },
+    unionTypeData: { types: types },
+  }) as UnionType;
+  return unionType;
 }
 
 ////////////////////////

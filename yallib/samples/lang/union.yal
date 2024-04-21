@@ -1,0 +1,31 @@
+
+
+enum SomeEnum {
+  const x = "x"
+  const y = "y"
+  const z = 3333
+}
+
+const enumValue = SomeEnum.y.value
+
+function stringOrNumber(x: String? | Number | List[String]) {
+
+}
+
+
+stringOrNumber(null)
+stringOrNumber("hello")
+stringOrNumber("hello")
+stringOrNumber([1, 2, 3])
+stringOrNumber(["abc", "def"])
+
+typedef Arg = String | SomeEnum
+
+function f2(x: Arg) {
+}
+
+f2(3123123)
+f2("HELLO WORLD")
+f2(3333)
+f2("y")
+
