@@ -1,4 +1,6 @@
 from './htmlelement' import HTMLElement
 
 
-export interface HTMLBodyElement extends HTMLElement {}
+export interface HTMLBodyElement extends HTMLElement {
+  const __marker_HTMLBodyElement: Any
+}

@@ -2,6 +2,8 @@ from 'html/element' import Element
 from 'html/htmlbodyelement' import HTMLBodyElement
 
 export interface Document {
+  const __marker_Document: Any
+  
   const body: HTMLBodyElement = aliasFor(__js_body)
   function getElementById(id: String): Element? { aliasFor(__js_getElementById) }
 }

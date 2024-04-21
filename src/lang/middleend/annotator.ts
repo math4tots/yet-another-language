@@ -900,7 +900,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         const seen = new Set<string>();
         for (const method of owner.type.getAllMethods()) {
           const rawName = method.identifier.name;
-          if (rawName.startsWith('__set_')) {
+          if (rawName.startsWith('__marker_') || rawName.startsWith('__get___marker_')) {
+            // skip the __marker__ field/method - these are used purely for
+            // adding a unique marker to interfaces
+          } else if (rawName.startsWith('__set_')) {
             // skip setters
           } else if (rawName.startsWith('__get_')) {
             // field or property

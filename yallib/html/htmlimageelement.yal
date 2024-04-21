@@ -1,0 +1,18 @@
+from './htmlelement' import HTMLElement
+
+export interface HTMLImageElement extends HTMLElement {
+  """
+  https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement
+
+  The HTMLImageElement interface represents an HTML <img> element,
+  providing the properties and methods used to manipulate image elements.
+  """
+  const __marker_HTMLImageElement: Any
+
+  const complete: Bool """
+    Returns a boolean value that is true if the browser has finished fetching the image,
+    whether successful or not.
+    That means this value is also true if the image has no src value
+    indicating an image to load.
+    """ = aliasFor(__js_complete)
+}

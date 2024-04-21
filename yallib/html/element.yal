@@ -1,6 +1,8 @@
 from './node' import Node
 
 export interface Element extends Node {
+  const __marker_Element: Any
+  
   var id: String = aliasFor(__js_id)
   var innerHTML: String = aliasFor(__js_innerHTML)
   const tagName: String = aliasFor(__js_tagName)

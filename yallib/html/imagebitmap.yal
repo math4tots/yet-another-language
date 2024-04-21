@@ -1,0 +1,8 @@
+
+
+export interface ImageBitmap {
+  const __marker_ImageBitmap: Any
+
+  const height: Number = aliasFor(__js_height)
+  const width: Number = aliasFor(__js_width)
+}

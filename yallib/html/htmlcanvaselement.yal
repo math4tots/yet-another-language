@@ -18,6 +18,7 @@ export interface HTMLCanvasElement extends HTMLElement {
   and presentation of <canvas> elements. The HTMLCanvasElement interface also inherits the
   properties and methods of the HTMLElement interface.
   """
+  const __marker_HTMLCanvasElement: Any
 
   var height: Number """
     The height HTML attribute of the <canvas> element is a non-negative integer reflecting the number

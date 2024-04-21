@@ -1,6 +1,8 @@
 
 
 export interface Node {
+  const __marker_Node: Any
+
   const baseURI: String = aliasFor(__js_baseURI)
   function appendChild(node: Node): Node { aliasFor(__js_appendChild) }
 }
