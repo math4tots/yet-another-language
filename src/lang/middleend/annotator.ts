@@ -782,6 +782,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'return' });
         completions.push({ name: 'interface' });
         completions.push({ name: 'class' });
+        completions.push({ name: 'enum' });
         completions.push({ name: 'typedef' });
         completions.push({ name: 'export' });
         completions.push({ name: 'import' });

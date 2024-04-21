@@ -1,4 +1,35 @@
+from './textmetrics' import TextMetrics
 
+
+enum TextAlign {
+  const left = "left"
+  const right = "right"
+  const center = "center"
+  const start "default" = "start"
+  const end = "end"
+}
+
+enum TextBaseline {
+  const top = "top"
+  const hanging = "hanging"
+  const middle = "middle"
+  const alphabetic "default" = "alphabetic"
+  const ideographic = "ideographic"
+  const bottom = "bottom"
+}
+
+enum FontKerning {
+  const auto "default" = "auto"
+  const normal = "normal"
+  const none = "none"
+}
+
+enum TextRendering {
+  const auto = "auto"
+  const optimizeSpeed = "optimizeSpeed"
+  const optimizeLegibility = "optimizeLegibility"
+  const geometricPrecision = "geometricPrecision"
+}
 
 export interface CanvasRenderingContext2D {
   """
@@ -17,17 +48,11 @@ export interface CanvasRenderingContext2D {
   OffscreenCanvasRenderingContext2D reference page.
   """
 
-  var fillStyle: String """
-    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillStyle
-
-    Color or style to use inside shapes. Default #000 (black).
-    """= aliasFor(__js_fillStyle)
-
-  var fillStyle: String """
-    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/strokeStyle
-
-    Color or style to use for the lines around shapes. Default #000 (black).
-    """= aliasFor(__js_fillStyle)
+  """
+  #################################################################################################
+  Drawing Rectangles
+  #################################################################################################
+  """
 
   function clearRect(x: Number, y: Number, width: Number, height: Number) {
     """
@@ -64,4 +89,143 @@ export interface CanvasRenderingContext2D {
     """
     aliasFor(__js_strokeRect)
   }
+
+  """
+  #################################################################################################
+  Drawing text
+  #################################################################################################
+  """
+
+  function fillText(text: String, x: Number, y: Number) {
+    "Draws (fills) a given text at the given (x, y) position."
+    aliasFor(__js_fillText)
+  }
+
+  function fillTextMaxWidth(text: String, x: Number, y: Number, maxWidth: Number) {
+    "Like fillText, but can specify maxWidth"
+    aliasFor(__js_fillText)
+  }
+
+  function strokeText(text: String, x: Number, y: Number) {
+    "Draws (strokes) a given text at the given (x, y) position."
+    aliasFor(__js_strokeText)
+  }
+
+  function strokeTextMaxWidth(text: String, x: Number, y: Number, maxWidth: Number) {
+    "Like strokeText, but can specify maxWidth"
+    aliasFor(__js_strokeText)
+  }
+
+  function measureText(text: String): TextMetrics {
+    "Returns a TextMetrics object."
+    aliasFor(__js_measureText)
+  }
+
+  """
+  #################################################################################################
+  Line styles
+  #################################################################################################
+  """
+
+  var lineWidth: Number """
+    Width of lines. Default 1.0.
+    """ = aliasFor(__js_lineWidth)
+
+  var lineCap: Number """
+    Type of endings on the end of lines. Possible values: butt (default), round, square.
+    """ = aliasFor(__js_lineCap)
+
+  var lineJoin: Number """
+    Defines the type of corners where two lines meet. Possible values: round, bevel, miter (default).
+    """ = aliasFor(__js_lineJoin)
+
+  var miterLimit: Number """
+    Miter limit ratio. Default 10.
+    """ = aliasFor(__js_miterLimit)
+
+  function getLineDash(): List[Number] {
+    "Returns the current line dash pattern array containing an even number of non-negative numbers."
+    aliasFor(__js_getLineDash)
+  }
+
+  function setLineDash(segments: List[Number]) {
+    "Sets the current line dash pattern."
+    aliasFor(__js_setLineDash)
+  }
+
+  var lineDashOffset: Number """
+    Specifies where to start a dash array on a line.
+    """= aliasFor(__js_lineDashOffset)
+
+  """
+  #################################################################################################
+  Text styles
+  #################################################################################################
+  """
+
+  var font: String """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/font
+
+    The CanvasRenderingContext2D.font property of the Canvas 2D API specifies the current
+    text style to use when drawing text. This string uses the same syntax as the CSS font
+    specifier.
+    """= aliasFor(__js_font)
+
+  var textAlign: TextAlign """
+    Text alignment setting. Possible values: start (default), end, left, right, center.
+    """ = aliasFor(__js_textAlign)
+
+  var textBaseline: TextBaseline """
+    Baseline alignment setting. Possible values: top, hanging, middle, alphabetic (default),
+    ideographic, bottom.
+    """ = aliasFor(__js_textBaseline)
+
+  var direction: String """
+    Directionality. Possible values: ltr, rtl, inherit (default).
+    """ = aliasFor(__js_direction)
+
+  var letterSpacing: String """
+    Letter spacing. Default: 0px.
+    """ = aliasFor(__js_letterSpacing)
+
+  var fontKerning: FontKerning """
+    Font kerning. Possible values: auto (default), normal, none.
+    """ = aliasFor(__js_fontKerning)
+
+  var fontStretch: String """
+    Font stretch. Possible values: ultra-condensed, extra-condensed, condensed, semi-condensed,
+    normal (default), semi-expanded, expanded, extra-expanded, ultra-expanded.
+    """ = aliasFor(__js_fontStretch)
+
+  var fontVariantCaps: String """
+    Font variant caps. Possible values: normal (default), small-caps, all-small-caps, petite-caps,
+    all-petite-caps, unicase, titling-caps.
+    """ = aliasFor(__js_fontVariantCaps)
+
+  var textRendering: TextRendering """
+    Text rendering. Possible values: auto (default), optimizeSpeed, optimizeLegibility,
+    geometricPrecision.
+    """ = aliasFor(__js_textRendering)
+
+  var wordSpacing: String """
+    Word spacing. Default value: 0px
+    """ = aliasFor(__js_wordSpacing)
+
+  """
+  #################################################################################################
+  Fill and stroke styles
+  #################################################################################################
+  """
+
+  var fillStyle: String """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillStyle
+
+    Color or style to use inside shapes. Default #000 (black).
+    """= aliasFor(__js_fillStyle)
+
+  var fillStyle: String """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/strokeStyle
+
+    Color or style to use for the lines around shapes. Default #000 (black).
+    """= aliasFor(__js_fillStyle)
 }
