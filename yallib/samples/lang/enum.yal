@@ -1,0 +1,14 @@
+
+
+enum Foo {
+  """
+  Some comments on Foo
+  """
+  const foo "Some comments on foo discriminant" = "foo"
+  const bar "something about bar" = "bar"
+  const baz "some information on baz" = "baz"
+}
+
+const foo1: Foo = "foo"
+const foo2: Foo = "bar"
+const foo3: Foo = "baz"

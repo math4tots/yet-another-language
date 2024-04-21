@@ -26,12 +26,14 @@ export function getCommentFromFunctionDisplay(fd: ast.FunctionDisplay): ast.Stri
   return getCommentFromSeq(fd.body.statements);
 }
 
-export function getCommentFromClassDefinition(cd: ast.Node | null): ast.StringLiteral | undefined {
-  return cd instanceof ast.ClassDefinition ?
-    getCommentFromSeq(cd.statements) : undefined;
+export function getCommentFromClassDefinition(cd: ast.ClassDefinition): ast.StringLiteral | undefined {
+  return getCommentFromSeq(cd.statements);
 }
 
-export function getCommentFromInterfaceDefinition(cd: ast.Node | null): ast.StringLiteral | undefined {
-  return cd instanceof ast.InterfaceDefinition ?
-    getCommentFromSeq(cd.statements) : undefined;
+export function getCommentFromInterfaceDefinition(cd: ast.InterfaceDefinition): ast.StringLiteral | undefined {
+  return getCommentFromSeq(cd.statements);
+}
+
+export function getCommentFromEnumDefinition(cd: ast.EnumDefinition): ast.StringLiteral | undefined {
+  return getCommentFromSeq(cd.statements);
 }

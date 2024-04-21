@@ -59,7 +59,7 @@ type InterfaceTypeDataWIP = InterfaceTypeData & {
 };
 
 type EnumTypeData = {
-  readonly values: Map<string, EnumConstVariable>;
+  readonly valueToVariableMap: Map<string, EnumConstVariable>;
 };
 
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
@@ -498,7 +498,7 @@ export function newInterfaceTypeType(
 export function newEnumTypeType(identifier: Identifier): EnumTypeType {
   const enumType = new Type({
     identifier,
-    enumTypeData: { values: new Map() },
+    enumTypeData: { valueToVariableMap: new Map() },
   }) as EnumType;
   const enumTypeType = new Type({
     identifier: { location: identifier.location, name: `(enum ${identifier.name})` },

@@ -4,7 +4,7 @@ import {
   getCommentFromFunctionDisplay,
   getCommentFromClassDefinition,
   getCommentFromInterfaceDefinition,
-  getCommentCommentsFromSeq,
+  getCommentFromEnumDefinition,
 } from '../frontend/ast-utils';
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
@@ -531,10 +531,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const variable: EnumVariable = {
       identifier: defn.identifier,
       type: newEnumTypeType(defn.identifier),
-
-      // NOTE: regular string literal comments aren't really permitted with enum
-      // definitions, because they are indistinguishable from enum entries.
-      comment: getCommentCommentsFromSeq(defn.statements),
+      comment: getCommentFromEnumDefinition(defn),
     };
     const enumType = variable.type.typeTypeData.type;
     this.declareVariable(variable);
@@ -542,15 +539,19 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     for (const statement of defn.statements) {
       if (statement instanceof ast.CommentStatement) continue;
       if (statement instanceof ast.ExpressionStatement) {
-        const expr = statement.expression;
-        if (expr instanceof ast.StringLiteral) {
+        if (statement.expression instanceof ast.StringLiteral) continue; // string literal comments
+      }
+      if (statement instanceof ast.Declaration && !statement.isMutable && !statement.isExported) {
+        const value = statement.value;
+        if (value instanceof ast.StringLiteral) {
           const constVariable: EnumConstVariable = {
-            identifier: new ast.IdentifierNode(expr.location, expr.value),
+            identifier: statement.identifier,
             type: enumType,
-            value: expr.value,
+            value: value.value,
+            comment: statement.comment || undefined,
           };
           this.declareVariable(constVariable, false);
-          enumType.enumTypeData.values.set(expr.value, constVariable);
+          enumType.enumTypeData.valueToVariableMap.set(value.value, constVariable);
           continue;
         }
       }
@@ -705,13 +706,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         },
         getCompletions() {
           const completions: Completion[] = [];
-          for (const [value, _] of enumTypeData.values) {
-            completions.push({ name: value, detail: `(enum ${enumName})` });
+          for (const enumConstVariable of enumTypeData.valueToVariableMap.values()) {
+            completions.push({ name: enumConstVariable.value, detail: `(enum ${enumName})` });
           }
           return completions;
         },
       });
-      const enumConstVariable = enumTypeData.values.get(n.value);
+      const enumConstVariable = enumTypeData.valueToVariableMap.get(n.value);
       if (enumConstVariable) {
         type = this.hint;
         this.markReference(enumConstVariable, n.location.range);
