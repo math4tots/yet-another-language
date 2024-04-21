@@ -1,8 +1,67 @@
 
 
 export interface CanvasRenderingContext2D {
-  var fillStyle: String = aliasFor(__js_fillStyle)
+  """
+  https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D
+
+  The CanvasRenderingContext2D interface, part of the Canvas API, provides the 2D rendering
+  context for the drawing surface of a <canvas> element. It is used for drawing shapes,
+  text, images, and other objects.
+
+  The interface's properties and methods are described in the reference section of this page.
+  The Canvas tutorial has more explanation, examples, and resources, as well.
+
+  For OffscreenCanvas, there is an equivalent interface that provides the rendering context.
+  The offscreen rendering context inherits most of the same properties and methods as the
+  CanvasRenderingContext2D and is described in more detail in the
+  OffscreenCanvasRenderingContext2D reference page.
+  """
+
+  var fillStyle: String """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillStyle
+
+    Color or style to use inside shapes. Default #000 (black).
+    """= aliasFor(__js_fillStyle)
+
+  var fillStyle: String """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/strokeStyle
+
+    Color or style to use for the lines around shapes. Default #000 (black).
+    """= aliasFor(__js_fillStyle)
+
+  function clearRect(x: Number, y: Number, width: Number, height: Number) {
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/clearRect
+
+    The CanvasRenderingContext2D.clearRect() method of the Canvas 2D API erases the pixels in
+    a rectangular area by setting them to transparent black.
+    """
+    aliasFor(__js_clearRect)
+  }
+
   function fillRect(x: Number, y: Number, width: Number, height: Number) {
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/fillRect
+
+    The CanvasRenderingContext2D.fillRect() method of the Canvas 2D API draws a rectangle that
+    is filled according to the current fillStyle.
+
+    This method draws directly to the canvas without modifying the current path, so any
+    subsequent fill() or stroke() calls will have no effect on it.
+    """
     aliasFor(__js_fillRect)
+  }
+
+  function strokeRect(x: Number, y: Number, width: Number, height: Number) {
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/strokeRect
+
+    The CanvasRenderingContext2D.strokeRect() method of the Canvas 2D API draws a rectangle
+    that is stroked (outlined) according to the current strokeStyle and other context settings.
+
+    This method draws directly to the canvas without modifying the current path, so any subsequent
+    fill() or stroke() calls will have no effect on it.
+    """
+    aliasFor(__js_strokeRect)
   }
 }
