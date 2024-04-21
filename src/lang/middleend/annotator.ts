@@ -483,7 +483,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             });
           }
         } else {
-          this.error(declaration.location, `Invalid class member declaration`);
+          this.error(declaration.location, `Invalid class or interface member declaration`);
         }
       }
     }

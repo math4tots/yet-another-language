@@ -1,0 +1,50 @@
+
+typedef GLenum = Number
+typedef GLclampf = Number
+
+
+export interface WebGLRenderingContext {
+  """
+  https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext
+
+  The WebGLRenderingContext interface provides an interface to the OpenGL ES 2.0
+  graphics rendering context for the drawing surface of an HTML <canvas> element.
+  """
+
+  # Constants
+
+  const COLOR_BUFFER_BIT: GLenum = aliasFor(__js_COLOR_BUFFER_BIT)
+  const DEPTH_BUFFER_BIT: GLenum = aliasFor(__js_DEPTH_BUFFER_BIT)
+  const STENCIL_BUFFER_BIT: GLenum = aliasFor(__js_STENCIL_BUFFER_BIT)
+
+  # methods
+
+  function clearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf) {
+    """
+    Specifies the color values used when clearing color buffers.
+    """
+    aliasFor(__js_clearColor)
+  }
+
+  # Drawing buffers
+
+  function clear(mask: Number) {
+    """
+    The WebGLRenderingContext.clear() method of the WebGL API clears buffers
+    to preset values.
+
+    The preset values can be set by clearColor(), clearDepth() or clearStencil().
+
+    The scissor box, dithering, and buffer writemasks can affect the clear() method.
+
+    * Parameters
+      * `mask`
+        A GLbitfield bitwise OR mask that indicates the buffers to be cleared.
+        Possible values are:
+        * gl.COLOR_BUFFER_BIT
+        * gl.DEPTH_BUFFER_BIT
+        * gl.STENCIL_BUFFER_BIT
+    """
+    aliasFor(__js_clear)
+  }
+}

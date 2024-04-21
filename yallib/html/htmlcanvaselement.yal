@@ -1,8 +1,13 @@
 from './htmlelement' import HTMLElement
 from './canvasrenderingcontext2d' import CanvasRenderingContext2D
+from './webglrenderingcontext' import WebGLRenderingContext
 
 enum String2D {
   const value = "2d"
+}
+
+enum StringWebGL {
+  const value = "webgl"
 }
 
 export interface HTMLCanvasElement extends HTMLElement {
@@ -34,8 +39,19 @@ export interface HTMLCanvasElement extends HTMLElement {
     """
     https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext
 
-    Calls canvas.getContext() to get the rendering context.
+    Calls canvas.getContext() to get the 2D rendering context.
     The default parameter automatically passes "2d" to the method to get the correct
+    context type.
+    """
+    aliasFor(__js_getContext)
+  }
+
+  function getWebGLContext(contextType: StringWebGL = "webgl"): WebGLRenderingContext? {
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext
+
+    Calls canvas.getContext() to get a WebGL rendering context.
+    The default parameter automatically passes "webgl" to the method to get the correct
     context type.
     """
     aliasFor(__js_getContext)
