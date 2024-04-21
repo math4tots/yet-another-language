@@ -340,9 +340,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
 
         const cachedImportModuleAnnotation = this.cached?.importMap.get(uriString);
-        const importModuleAnnotation =
-          this.annotation.importMap.get(uriString) ||
-          await getAnnotationForURI(uri, this.stack);
+        const importModuleAnnotation = await getAnnotationForURI(uri, this.stack);
         this.annotation.importMap.set(uriString, importModuleAnnotation);
         if (cachedImportModuleAnnotation !== importModuleAnnotation) {
           canUseCached = false;
@@ -1366,7 +1364,7 @@ export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<strin
       ir: new ast.File(LOC, -1, [], []),
     };
   }
-  return await getAnnotationForDocument(await vscode.workspace.openTextDocument(uri), stack);
+  return await getAnnotationForDocument(document, stack);
 }
 
 const annotationCache = new Map<string, Annotation>();
