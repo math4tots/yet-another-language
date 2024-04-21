@@ -1,5 +1,6 @@
 from 'html/document' import document
 from 'html/htmlcanvaselement' import HTMLCanvasElement
+from 'samples/a' import SomeClass
 
 
 document.body.innerHTML = "<canvas id='canvas' height=400 width=400/>"
@@ -12,4 +13,4 @@ ctx.fillRect(0, 0, canvas.width, canvas.height)
 ctx.fillStyle = "black"
 ctx.font = "50px serif"
 ctx.fillText("Hello world", 50, 90)
-ctx.__x
+

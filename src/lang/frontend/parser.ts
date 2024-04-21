@@ -813,6 +813,20 @@ type AstCacheEntry = {
 
 const astCache = new Map<string, AstCacheEntry>();
 
+export async function getAstForUri(uri: vscode.Uri): Promise<ast.File> {
+  let maybeDocument: vscode.TextDocument | undefined;
+  try {
+    maybeDocument = await vscode.workspace.openTextDocument(uri);
+  } catch (e) { }
+  const document = maybeDocument;
+  if (document) return await getAstForDocument(document);
+  const position: Position = { line: 0, column: 0, index: 0 };
+  const range: Range = { start: position, end: position };
+  const location: ast.Location = { uri, range };
+  return document ? getAstForDocument(document) : new ast.File(
+    location, -1, [], [{ location, message: `module not found` }]);
+}
+
 export async function getAstForDocument(document: vscode.TextDocument): Promise<ast.File> {
   const key = document.uri.toString();
   const version = document.version;

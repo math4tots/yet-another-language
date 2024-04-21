@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { getAstForDocument } from '../lang/frontend/parser';
+import { getAstForUri } from '../lang/frontend/parser';
 import { LIBRARY_URIS } from '../lang/yal';
 
 export async function indexCommand() {
@@ -27,21 +27,13 @@ export async function indexCommand() {
     let processCount = 0;
     if (token.isCancellationRequested) return;
     for (const uri of uris) {
-      let maybeDocument: vscode.TextDocument | undefined;
-      try {
-        maybeDocument = await vscode.workspace.openTextDocument(uri);
-        if (token.isCancellationRequested) return;
-      } catch (e) { }
+      await getAstForUri(uri);
+      if (token.isCancellationRequested) return;
       processCount++;
       progress.report({
         message: `inspecting ${uri}`,
         increment: (processCount / uriCount) * 100
       });
-      const document = maybeDocument;
-      if (document) {
-        await getAstForDocument(document);
-        if (token.isCancellationRequested) return;
-      }
     }
   });
 }
