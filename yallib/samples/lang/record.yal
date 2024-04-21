@@ -1,0 +1,12 @@
+
+
+
+typedef SomeRecord = Record[
+  someField[Number]
+]
+
+
+const x = native "{}" as SomeRecord
+
+x.someField
+

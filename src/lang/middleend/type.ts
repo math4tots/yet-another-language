@@ -651,6 +651,34 @@ export function newInterfaceTypeType(
   return interfaceTypeType;
 }
 
+export type RecordEntry = {
+  readonly identifier: Identifier;
+  readonly type: Type;
+  readonly isMutable: boolean;
+};
+
+export function newRecordType(identifier: Identifier, entryVariables: Variable[]) {
+  const typeType = newInterfaceTypeType(identifier, [], undefined);
+  const type = typeType.typeTypeData.type;
+  for (const variable of entryVariables) {
+    type.addMethod({
+      identifier: { name: `__get_${variable.identifier.name}`, location: variable.identifier.location },
+      parameters: [],
+      returnType: variable.type,
+      sourceVariable: variable,
+    });
+    if (variable.isMutable) {
+      type.addMethod({
+        identifier: { name: `__set_${variable.identifier.name}`, location: variable.identifier.location },
+        parameters: [{ identifier: { name: 'value' }, type: variable.type }],
+        returnType: variable.type,
+        sourceVariable: variable,
+      });
+    }
+  }
+  return type;
+}
+
 export function newEnumTypeType(
   identifier: Identifier,
   underlyingType: Type,

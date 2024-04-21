@@ -31,6 +31,7 @@ import {
   newEnumTypeType,
   InterfaceTypeType,
   newAliasType,
+  newRecordType,
 } from './type';
 import {
   Annotation,
@@ -215,6 +216,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'List' });
         completions.push({ name: 'Function' });
         completions.push({ name: 'Union' });
+        completions.push({ name: 'Record' });
         this.addSymbolTableCompletions(completions, scopeAtLocation);
         return completions;
       },
@@ -249,6 +251,28 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         type = type.getCommonType(this.solveType(argexpr));
       }
       return type;
+    }
+    if (e.identifier.name === 'Record') {
+      // TODO: more thorough error handling here
+      const memberVariables: Variable[] = [];
+      for (const memberDescriptor of e.args) {
+        if (memberDescriptor.args.length < 1) {
+          this.error(memberDescriptor.location, `invalid Record member descriptor`);
+        }
+        const memberIdentifier = memberDescriptor.identifier;
+        const memberType = this.solveType(memberDescriptor.args[0]);
+        const isMutable = memberDescriptor.args.length > 1 &&
+          // TODO: check no arguments, etc
+          memberDescriptor.args[1].identifier.name === 'mutable';
+        const variable: Variable = {
+          identifier: memberIdentifier,
+          type: memberType,
+          isMutable,
+        };
+        this.declareVariable(variable, false);
+        memberVariables.push(variable);
+      }
+      return newRecordType(e.identifier, memberVariables);
     }
 
     // locally declared class or interface
