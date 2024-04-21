@@ -1,7 +1,9 @@
 from './htmlelement' import HTMLElement
 from './canvasrenderingcontext2d' import CanvasRenderingContext2D
 
-enum String2D { "2d" }
+enum String2D {
+  const value = "2d"
+}
 
 export interface HTMLCanvasElement extends HTMLElement {
   """

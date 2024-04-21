@@ -24,3 +24,9 @@ const bar1: Bar = 1
 const bar2: Bar = 2
 const bar3: Bar = 2
 const barValue = bar3.value
+
+const someNumber = 3
+const bar4: Bar = someNumber
+
+print(barValue)
+print(bar4)

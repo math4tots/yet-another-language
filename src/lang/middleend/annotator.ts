@@ -269,11 +269,23 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const oldHint = this.hint;
     this.hint = hint;
     const info = e.accept(this);
-    if (required && !info.type.isAssignableTo(hint)) {
-      this.error(e.location, `Expected expression of type ${hint} but got expression of type ${info.type}`);
+    try {
+      if (!info.type.isAssignableTo(hint)) {
+        // At first glance, the type doesn't seem to fit. But if the statically known value matches
+        // the correct enum values for the type, then we don't actually have an error
+        const value = info.value;
+        const enumTypeData = hint.enumTypeData;
+        if ((typeof value === 'number' || typeof value === 'string') && enumTypeData?.valueToVariableMap.has(value)) {
+          return { ...info, type: hint };
+        }
+        if (required) {
+          this.error(e.location, `Expected expression of type ${hint} but got expression of type ${info.type}`);
+        }
+      }
+      return info;
+    } finally {
+      this.hint = oldHint;
     }
-    this.hint = oldHint;
-    return info;
   }
 
   private solveStmt(s: ast.Statement): SResult {
@@ -696,19 +708,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return { type: BoolType, value: n.value, ir: n };
   }
   visitNumberLiteral(n: ast.NumberLiteral): EResult {
-    let type = NumberType;
     const enumTypeData = this.hint.enumTypeData;
     if (enumTypeData) {
       const enumConstVariable = enumTypeData.valueToVariableMap.get(n.value);
       if (enumConstVariable) {
-        type = this.hint;
         this.markReference(enumConstVariable, n.location.range);
       }
     }
-    return { type, value: n.value, ir: n };
+    return { type: NumberType, value: n.value, ir: n };
   }
   visitStringLiteral(n: ast.StringLiteral): EResult {
-    let type = StringType;
     const enumTypeData = this.hint.enumTypeData;
     if (enumTypeData) {
       const enumName = this.hint.identifier.name;
@@ -738,11 +747,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       });
       const enumConstVariable = enumTypeData.valueToVariableMap.get(n.value);
       if (enumConstVariable) {
-        type = this.hint;
         this.markReference(enumConstVariable, n.location.range);
       }
     }
-    return { type, value: n.value, ir: n };
+    return { type: StringType, value: n.value, ir: n };
   }
   visitIdentifierNode(n: ast.IdentifierNode): EResult {
     const scope = this.scope;
