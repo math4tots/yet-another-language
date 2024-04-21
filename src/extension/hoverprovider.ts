@@ -17,7 +17,7 @@ function formatComment(s: string): string {
   let i = 0;
   while (i < s.length && (s[i] === '\n' || s[i] === ' ')) i++;
   const prefix = s.substring(0, i);
-  return s.replaceAll(prefix, '\n');
+  return s.replaceAll(prefix, '\n').trim();
 }
 
 export function newHoverProvider(): vscode.HoverProvider {

@@ -12,12 +12,155 @@ export interface WebGLRenderingContext {
   """
 
   # Constants
+  # https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Constants
 
+  ## Clearing buffers
   const COLOR_BUFFER_BIT: GLenum = aliasFor(__js_COLOR_BUFFER_BIT)
   const DEPTH_BUFFER_BIT: GLenum = aliasFor(__js_DEPTH_BUFFER_BIT)
   const STENCIL_BUFFER_BIT: GLenum = aliasFor(__js_STENCIL_BUFFER_BIT)
 
-  # methods
+  ## Rendering primitives
+  const POINTS: GLenum = aliasFor(__js_POINTS)
+  const LINES: GLenum = aliasFor(__js_LINES)
+  const LINE_LOOP: GLenum = aliasFor(__js_LINE_LOOP)
+  const LINE_STRIP: GLenum = aliasFor(__js_LINE_STRIP)
+  const TRIANGLES: GLenum = aliasFor(__js_TRIANGLES)
+  const TRIANGLE_STRIP: GLenum = aliasFor(__js_TRIANGLE_STRIP)
+  const TRIANGLE_FAN: GLenum = aliasFor(__js_TRIANGLE_FAN)
+
+  ## Blending modes
+  const ZERO: GLenum = aliasFor(__js_ZERO)
+  const ONE: GLenum = aliasFor(__js_ONE)
+  const SRC_COLOR: GLenum = aliasFor(__js_SRC_COLOR)
+  const ONE_MINUS_SRC_COLOR: GLenum = aliasFor(__js_ONE_MINUS_SRC_COLOR)
+  const SRC_ALPHA: GLenum = aliasFor(__js_SRC_ALPHA)
+  const ONE_MINUS_SRC_ALPHA: GLenum = aliasFor(__js_ONE_MINUS_SRC_ALPHA)
+  const DST_ALPHA: GLenum = aliasFor(__js_DST_ALPHA)
+  const ONE_MINUS_DST_ALPHA: GLenum = aliasFor(__js_ONE_MINUS_DST_ALPHA)
+  const DST_COLOR: GLenum = aliasFor(__js_DST_COLOR)
+  const ONE_MINUS_DST_COLOR: GLenum = aliasFor(__js_ONE_MINUS_DST_COLOR)
+  const SRC_ALPHA_SATURATE: GLenum = aliasFor(__js_SRC_ALPHA_SATURATE)
+  const CONSTANT_COLOR: GLenum = aliasFor(__js_CONSTANT_COLOR)
+  const ONE_MINUS_CONSTANT_COLOR: GLenum = aliasFor(__js_ONE_MINUS_CONSTANT_COLOR)
+  const CONSTANT_ALPHA: GLenum = aliasFor(__js_CONSTANT_ALPHA)
+  const ONE_MINUS_CONSTANT_ALPHA: GLenum = aliasFor(__js_ONE_MINUS_CONSTANT_ALPHA)
+
+  ## Blending equations
+  const FUNC_ADD: GLenum = aliasFor(__js_FUNC_ADD)
+  const FUNC_SUBTRACT: GLenum = aliasFor(__js_FUNC_SUBTRACT)
+  const FUNC_REVERSE_SUBTRACT: GLenum = aliasFor(__js_FUNC_REVERSE_SUBTRACT)
+
+  ## Getting GL parameter information
+  const BLEND_EQUATION: GLenum = aliasFor(__js_BLEND_EQUATION)
+  const BLEND_EQUATION_RGB: GLenum = aliasFor(__js_BLEND_EQUATION_RGB)
+  const BLEND_EQUATION_ALPHA: GLenum = aliasFor(__js_BLEND_EQUATION_ALPHA)
+  const BLEND_DST_RGB: GLenum = aliasFor(__js_BLEND_DST_RGB)
+  const BLEND_SRC_RGB: GLenum = aliasFor(__js_BLEND_SRC_RGB)
+  const BLEND_DST_ALPHA: GLenum = aliasFor(__js_BLEND_DST_ALPHA)
+  const BLEND_SRC_ALPHA: GLenum = aliasFor(__js_BLEND_SRC_ALPHA)
+  const BLEND_COLOR: GLenum = aliasFor(__js_BLEND_COLOR)
+  const ARRAY_BUFFER_BINDING: GLenum = aliasFor(__js_ARRAY_BUFFER_BINDING)
+  const ELEMENT_ARRAY_BUFFER_BINDING: GLenum = aliasFor(__js_ELEMENT_ARRAY_BUFFER_BINDING)
+  const LINE_WIDTH: GLenum = aliasFor(__js_LINE_WIDTH)
+  const ALIASED_POINT_SIZE_RANGE: GLenum = aliasFor(__js_ALIASED_POINT_SIZE_RANGE)
+  const ALIASED_LINE_WIDTH_RANGE: GLenum = aliasFor(__js_ALIASED_LINE_WIDTH_RANGE)
+  const CULL_FACE_MODE: GLenum = aliasFor(__js_CULL_FACE_MODE)
+  const FRONT_FACE: GLenum = aliasFor(__js_FRONT_FACE)
+  const DEPTH_RANGE: GLenum = aliasFor(__js_DEPTH_RANGE)
+  const DEPTH_WRITEMASK: GLenum = aliasFor(__js_DEPTH_WRITEMASK)
+  const DEPTH_CLEAR_VALUE: GLenum = aliasFor(__js_DEPTH_CLEAR_VALUE)
+  const DEPTH_FUNC: GLenum = aliasFor(__js_DEPTH_FUNC)
+  const STENCIL_CLEAR_VALUE: GLenum = aliasFor(__js_STENCIL_CLEAR_VALUE)
+  const STENCIL_FUNC: GLenum = aliasFor(__js_STENCIL_FUNC)
+  const STENCIL_FAIL: GLenum = aliasFor(__js_STENCIL_FAIL)
+  const STENCIL_PASS_DEPTH_FAIL: GLenum = aliasFor(__js_STENCIL_PASS_DEPTH_FAIL)
+  const STENCIL_PASS_DEPTH_PASS: GLenum = aliasFor(__js_STENCIL_PASS_DEPTH_PASS)
+  const STENCIL_REF: GLenum = aliasFor(__js_STENCIL_REF)
+  const STENCIL_VALUE_MASK: GLenum = aliasFor(__js_STENCIL_VALUE_MASK)
+  const STENCIL_WRITEMASK: GLenum = aliasFor(__js_STENCIL_WRITEMASK)
+  const STENCIL_BACK_FUNC: GLenum = aliasFor(__js_STENCIL_BACK_FUNC)
+  const STENCIL_BACK_FAIL: GLenum = aliasFor(__js_STENCIL_BACK_FAIL)
+  const STENCIL_BACK_PASS_DEPTH_FAIL: GLenum = aliasFor(__js_STENCIL_BACK_PASS_DEPTH_FAIL)
+  const STENCIL_BACK_PASS_DEPTH_PASS: GLenum = aliasFor(__js_STENCIL_BACK_PASS_DEPTH_PASS)
+  const STENCIL_BACK_REF: GLenum = aliasFor(__js_STENCIL_BACK_REF)
+  const STENCIL_BACK_VALUE_MASK: GLenum = aliasFor(__js_STENCIL_BACK_VALUE_MASK)
+  const STENCIL_BACK_WRITEMASK: GLenum = aliasFor(__js_STENCIL_BACK_WRITEMASK)
+  const VIEWPORT: GLenum = aliasFor(__js_VIEWPORT)
+  const SCISSOR_BOX: GLenum = aliasFor(__js_SCISSOR_BOX)
+  const COLOR_CLEAR_VALUE: GLenum = aliasFor(__js_COLOR_CLEAR_VALUE)
+  const COLOR_WRITEMASK: GLenum = aliasFor(__js_COLOR_WRITEMASK)
+  const UNPACK_ALIGNMENT: GLenum = aliasFor(__js_UNPACK_ALIGNMENT)
+  const PACK_ALIGNMENT: GLenum = aliasFor(__js_PACK_ALIGNMENT)
+  const MAX_TEXTURE_SIZE: GLenum = aliasFor(__js_MAX_TEXTURE_SIZE)
+  const MAX_VIEWPORT_DIMS: GLenum = aliasFor(__js_MAX_VIEWPORT_DIMS)
+  const SUBPIXEL_BITS: GLenum = aliasFor(__js_SUBPIXEL_BITS)
+  const RED_BITS: GLenum = aliasFor(__js_RED_BITS)
+  const GREEN_BITS: GLenum = aliasFor(__js_GREEN_BITS)
+  const BLUE_BITS: GLenum = aliasFor(__js_BLUE_BITS)
+  const ALPHA_BITS: GLenum = aliasFor(__js_ALPHA_BITS)
+  const DEPTH_BITS: GLenum = aliasFor(__js_DEPTH_BITS)
+  const STENCIL_BITS: GLenum = aliasFor(__js_STENCIL_BITS)
+  const POLYGON_OFFSET_UNITS: GLenum = aliasFor(__js_POLYGON_OFFSET_UNITS)
+  const POLYGON_OFFSET_FACTOR: GLenum = aliasFor(__js_POLYGON_OFFSET_FACTOR)
+  const TEXTURE_BINDING_2D: GLenum = aliasFor(__js_TEXTURE_BINDING_2D)
+  const SAMPLE_BUFFERS: GLenum = aliasFor(__js_SAMPLE_BUFFERS)
+  const SAMPLES: GLenum = aliasFor(__js_SAMPLES)
+  const SAMPLE_COVERAGE_VALUE: GLenum = aliasFor(__js_SAMPLE_COVERAGE_VALUE)
+  const SAMPLE_COVERAGE_INVERT: GLenum = aliasFor(__js_SAMPLE_COVERAGE_INVERT)
+  const COMPRESSED_TEXTURE_FORMATS: GLenum = aliasFor(__js_COMPRESSED_TEXTURE_FORMATS)
+  const VENDOR: GLenum = aliasFor(__js_VENDOR)
+  const RENDERER: GLenum = aliasFor(__js_RENDERER)
+  const VERSION: GLenum = aliasFor(__js_VERSION)
+  const IMPLEMENTATION_COLOR_READ_TYPE: GLenum = aliasFor(__js_IMPLEMENTATION_COLOR_READ_TYPE)
+  const IMPLEMENTATION_COLOR_READ_FORMAT: GLenum = aliasFor(__js_IMPLEMENTATION_COLOR_READ_FORMAT)
+  const BROWSER_DEFAULT_WEBGL: GLenum = aliasFor(__js_BROWSER_DEFAULT_WEBGL)
+
+  ## Buffers
+  const STATIC_DRAW: GLenum = aliasFor(__js_STATIC_DRAW)
+  const STREAM_DRAW: GLenum = aliasFor(__js_STREAM_DRAW)
+  const DYNAMIC_DRAW: GLenum = aliasFor(__js_DYNAMIC_DRAW)
+  const ARRAY_BUFFER: GLenum = aliasFor(__js_ARRAY_BUFFER)
+  const ELEMENT_ARRAY_BUFFER: GLenum = aliasFor(__js_ELEMENT_ARRAY_BUFFER)
+  const BUFFER_SIZE: GLenum = aliasFor(__js_BUFFER_SIZE)
+  const BUFFER_USAGE: GLenum = aliasFor(__js_BUFFER_USAGE)
+
+  ## Vertex attributes
+  const CURRENT_VERTEX_ATTRIB: GLenum = aliasFor(__js_CURRENT_VERTEX_ATTRIB)
+  const VERTEX_ATTRIB_ARRAY_ENABLED: GLenum = aliasFor(__js_VERTEX_ATTRIB_ARRAY_ENABLED)
+  const VERTEX_ATTRIB_ARRAY_SIZE: GLenum = aliasFor(__js_VERTEX_ATTRIB_ARRAY_SIZE)
+  const VERTEX_ATTRIB_ARRAY_STRIDE: GLenum = aliasFor(__js_VERTEX_ATTRIB_ARRAY_STRIDE)
+  const VERTEX_ATTRIB_ARRAY_TYPE: GLenum = aliasFor(__js_VERTEX_ATTRIB_ARRAY_TYPE)
+  const VERTEX_ATTRIB_ARRAY_NORMALIZED: GLenum = aliasFor(__js_VERTEX_ATTRIB_ARRAY_NORMALIZED)
+  const VERTEX_ATTRIB_ARRAY_POINTER: GLenum = aliasFor(__js_VERTEX_ATTRIB_ARRAY_POINTER)
+  const VERTEX_ATTRIB_ARRAY_BUFFER_BINDING: GLenum = aliasFor(__js_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING)
+
+  ## Culling
+  const CULL_FACE: GLenum = aliasFor(__js_CULL_FACE)
+  const FRONT: GLenum = aliasFor(__js_FRONT)
+  const BACK: GLenum = aliasFor(__js_BACK)
+  const FRONT_AND_BACK: GLenum = aliasFor(__js_FRONT_AND_BACK)
+
+  ## Enabling and disabling
+  const BLEND: GLenum = aliasFor(__js_BLEND)
+  const DEPTH_TEST: GLenum = aliasFor(__js_DEPTH_TEST)
+  const DITHER: GLenum = aliasFor(__js_DITHER)
+  const POLYGON_OFFSET_FILL: GLenum = aliasFor(__js_POLYGON_OFFSET_FILL)
+  const SAMPLE_ALPHA_TO_COVERAGE: GLenum = aliasFor(__js_SAMPLE_ALPHA_TO_COVERAGE)
+  const SAMPLE_COVERAGE: GLenum = aliasFor(__js_SAMPLE_COVERAGE)
+  const SCISSOR_TEST: GLenum = aliasFor(__js_SCISSOR_TEST)
+  const STENCIL_TEST: GLenum = aliasFor(__js_STENCIL_TEST)
+
+  ## Errors
+  const NO_ERROR: GLenum = aliasFor(__js_NO_ERROR)
+  const INVALID_ENUM: GLenum = aliasFor(__js_INVALID_ENUM)
+  const INVALID_VALUE: GLenum = aliasFor(__js_INVALID_VALUE)
+  const INVALID_OPERATION: GLenum = aliasFor(__js_INVALID_OPERATION)
+  const OUT_OF_MEMORY: GLenum = aliasFor(__js_OUT_OF_MEMORY)
+  const CONTEXT_LOST_WEBGL: GLenum = aliasFor(__js_CONTEXT_LOST_WEBGL)
+
+  ## Front face directions
+
+  # Methods
 
   function clearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf) {
     """
