@@ -7,3 +7,6 @@ export interface ImageBitmap extends DrawImageSource {
   const height: Number = aliasFor(__js_height)
   const width: Number = aliasFor(__js_width)
 }
+
+export const createImageBitmap =
+  native createImageBitmap(image: DrawImageSource): ImageBitmap "createImageBitmap(image)"

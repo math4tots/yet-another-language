@@ -1,0 +1,10 @@
+from './canvasrenderingcontext2d' import CanvasRenderingContext2D
+
+
+export interface OffscreenCanvasRenderingContext2D extends CanvasRenderingContext2D {
+  """
+  https://developer.mozilla.org/en-US/docs/Web/API/OffscreenCanvasRenderingContext2D
+  """
+
+  function commit() { aliasFor(__js_commit) }
+}

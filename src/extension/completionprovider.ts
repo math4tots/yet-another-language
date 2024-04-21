@@ -66,7 +66,11 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
               ];
             }
             item.sortText =
-              (completion.name.startsWith('_') ? '~' : '5') + completion.name;
+              // underscore methods are 'private' so should have lower priority
+              (completion.name.startsWith('_') ? '~' :
+                // You almost never need to explicitly specify 'Null' - especially compared to 'Number'
+                completion.name === 'Null' ? '9' :
+                  '5') + completion.name;
             items.push(item);
           }
         }
