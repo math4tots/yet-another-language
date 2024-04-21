@@ -1,8 +1,5 @@
-from './htmlimageelement' import HTMLImageElement
-from './imagebitmap' import ImageBitmap
+from './helpertypes/drawimagesource' import DrawImageSource
 from './textmetrics' import TextMetrics
-
-typedef Image = ImageBitmap | HTMLImageElement
 
 enum TextAlign {
   const left = "left"
@@ -270,7 +267,7 @@ export interface CanvasRenderingContext2D {
   #################################################################################################
   """
 
-  function drawImage(image: Image, dx: Number, dy: Number) {
+  function drawImage(image: DrawImageSource, dx: Number, dy: Number) {
     """
     https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
 

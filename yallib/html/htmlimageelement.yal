@@ -1,6 +1,7 @@
+from './helpertypes/drawimagesource' import DrawImageSource
 from './htmlelement' import HTMLElement
 
-export interface HTMLImageElement extends HTMLElement {
+export interface HTMLImageElement extends HTMLElement, DrawImageSource {
   """
   https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement
 
