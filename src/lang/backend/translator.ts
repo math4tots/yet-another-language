@@ -262,7 +262,7 @@ export async function getTranslationForDocument(
     for (const { isExported, moduleVariable, memberVariable } of ann.memberImports) {
       // If the member is an enum or interface type, the variable exists only at compile time
       // and the translator does not have to emit anything for this import.
-      if (memberVariable.type.enumTypeTypeData || memberVariable.type.interfaceTypeTypeData) {
+      if (memberVariable.type.isEnumTypeType() || memberVariable.type.isInterfaceTypeType()) {
         continue;
       }
       const importAnnotation = moduleVariable.type.moduleTypeData.annotation;

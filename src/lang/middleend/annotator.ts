@@ -170,7 +170,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         range: e.identifier.location.range,
         getCompletions() {
           return Array.from(moduleTypeData.annotation.exportMap.values())
-            .filter(v => v.type.classTypeTypeData || v.type.interfaceTypeTypeData || v.type.enumTypeTypeData)
+            .filter(v => v.type.isClassTypeType() || v.type.isInterfaceTypeType() || v.type.isEnumTypeType())
             .map(v => ({ name: v.identifier.name }));
         },
       });
@@ -182,11 +182,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
 
       this.markReference(variable, e.identifier.location.range);
-      const type = variable.type.classTypeTypeData?.classType ||
-        variable.type.interfaceTypeTypeData?.interfaceType ||
-        variable.type.enumTypeTypeData?.enumType;
+      const type = variable.type.typeTypeData?.type;
       if (!type) {
-        this.error(e.identifier.location, `${e.identifier.name} is not a class, interface or enum`);
+        this.error(e.identifier.location, `${e.identifier.name} is not a type`);
         return AnyType;
       }
       return type;
@@ -201,10 +199,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         for (const key in scopeAtLocation) {
           const variable = scopeAtLocation[key];
           const type = variable.type;
-          if (type.classTypeTypeData ||
-            type.interfaceTypeTypeData ||
-            type.enumTypeTypeData ||
-            type.moduleTypeData) {
+          if (type.typeTypeData || type.moduleTypeData) {
             completions.push({ name: key });
           }
         }
@@ -254,11 +249,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       return AnyType;
     }
     this.markReference(variable, e.identifier.location.range);
-    const type = variable.type.classTypeTypeData?.classType ||
-      variable.type.interfaceTypeTypeData?.interfaceType ||
-      variable.type.enumTypeTypeData?.enumType;
+    const type = variable.type.typeTypeData?.type;
     if (!type) {
-      this.error(e.identifier.location, `${e.identifier.name} is not a class, interface or enum`);
+      this.error(e.identifier.location, `${e.identifier.name} is not a type`);
       return AnyType;
     }
     return type;
@@ -543,7 +536,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       // definitions, because they are indistinguishable from enum entries.
       comment: getCommentCommentsFromSeq(defn.statements),
     };
-    const enumType = variable.type.enumTypeTypeData.enumType;
+    const enumType = variable.type.typeTypeData.type;
     this.declareVariable(variable);
 
     for (const statement of defn.statements) {
@@ -632,7 +625,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       if (defn instanceof ast.ClassDefinition) {
         const classTypeType = this.classMap.get(defn);
         if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
-        const classType = classTypeType.type.classTypeTypeData.classType;
+        const classType = classTypeType.type.typeTypeData.type;
 
         // inherit from super class
         const superClassType = classType.classTypeData.superClassType;
@@ -646,7 +639,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       } else if (defn instanceof ast.InterfaceDefinition) {
         const interfaceTypeType = this.interfaceMap.get(defn);
         if (!interfaceTypeType) throw new Error(`FUBAR interface ${interfaceTypeType}`);
-        const interfaceType = interfaceTypeType.type.interfaceTypeTypeData.interfaceType;
+        const interfaceType = interfaceTypeType.type.typeTypeData.type;
 
         // inherit from all the super interfaces
         for (const superType of interfaceType.interfaceTypeData.superTypes) {
@@ -1137,7 +1130,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     // a lot is already handled by `forwardDeclare`
     const classTypeType = this.classMap.get(n);
     if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
-    const classType = classTypeType.type.classTypeTypeData.classType;
+    const classType = classTypeType.type.typeTypeData.type;
     const bodyIR: ast.Statement[] = [];
     if (n.extendsFragment) {
       this.annotation.completionPoints.push({

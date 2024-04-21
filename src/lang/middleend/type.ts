@@ -4,17 +4,19 @@ import type { Annotation, EnumConstVariable, Variable } from "./annotation";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
+  readonly typeTypeData?: TypeTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
   readonly moduleTypeData?: ModuleTypeData;
   readonly classTypeData?: ClassTypeData;
-  readonly classTypeTypeData?: ClassTypeTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
-  readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
   readonly enumTypeData?: EnumTypeData;
-  readonly enumTypeTypeData?: EnumTypeTypeData;
+};
+
+type TypeTypeData = {
+  readonly type: Type;
 };
 
 type NullableTypeData = {
@@ -45,10 +47,6 @@ type ClassTypeData = {
   readonly fields: Field[];
 };
 
-type ClassTypeTypeData = {
-  readonly classType: ClassType;
-};
-
 type InterfaceTypeData = {
   readonly typeType: InterfaceTypeType;
   readonly superTypes: InterfaceType[];
@@ -60,16 +58,8 @@ type InterfaceTypeDataWIP = InterfaceTypeData & {
   typeType: InterfaceTypeType;
 };
 
-type InterfaceTypeTypeData = {
-  readonly interfaceType: InterfaceType;
-};
-
 type EnumTypeData = {
   readonly values: Map<string, EnumConstVariable>;
-};
-
-type EnumTypeTypeData = {
-  readonly enumType: EnumType;
 };
 
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
@@ -78,33 +68,34 @@ export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
 export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData; };
 export type ModuleType = Type & { readonly moduleTypeData: ModuleTypeData; };
 export type ClassType = Type & { readonly classTypeData: ClassTypeData; };
-export type ClassTypeType = Type & { readonly classTypeTypeData: ClassTypeTypeData; };
+export type ClassTypeType = Type & { readonly typeTypeData: { readonly type: ClassType; }; };
 export type InterfaceType = Type & { readonly interfaceTypeData: InterfaceTypeData; };
-export type InterfaceTypeType = Type & { readonly interfaceTypeTypeData: InterfaceTypeTypeData; };
+export type InterfaceTypeType = Type & { readonly typeTypeData: { readonly type: InterfaceType; }; };
 export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
-export type EnumTypeType = Type & { readonly enumTypeTypeData: EnumTypeTypeData; };
+export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
 
 export class Type {
   readonly identifier: Identifier;
   private _list?: ListType;
   private _nullable?: NullableType;
+  readonly typeTypeData?: TypeTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
   readonly moduleTypeData?: ModuleTypeData;
   readonly classTypeData?: ClassTypeData;
-  readonly classTypeTypeData?: ClassTypeTypeData;
   readonly interfaceTypeData?: InterfaceTypeData;
-  readonly interfaceTypeTypeData?: InterfaceTypeTypeData;
   readonly enumTypeData?: EnumTypeData;
-  readonly enumTypeTypeData?: EnumTypeTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method>();
 
   constructor(parameters: TypeConstructorParameters) {
     const params = parameters;
     this.identifier = params.identifier;
+    if (params.typeTypeData) {
+      this.typeTypeData = params.typeTypeData;
+    }
     if (params.nullableTypeData) {
       this.nullableTypeData = params.nullableTypeData;
     }
@@ -123,22 +114,18 @@ export class Type {
     if (params.classTypeData) {
       this.classTypeData = params.classTypeData;
     }
-    if (params.classTypeTypeData) {
-      this.classTypeTypeData = params.classTypeTypeData;
-    }
     if (params.interfaceTypeData) {
       this.interfaceTypeData = params.interfaceTypeData;
-    }
-    if (params.interfaceTypeTypeData) {
-      this.interfaceTypeTypeData = params.interfaceTypeTypeData;
     }
     if (params.enumTypeData) {
       this.enumTypeData = params.enumTypeData;
     }
-    if (params.enumTypeTypeData) {
-      this.enumTypeTypeData = params.enumTypeTypeData;
-    }
   }
+
+  isTypeType(): boolean { return !!this.typeTypeData; }
+  isClassTypeType(): boolean { return !!this.typeTypeData?.type.classTypeData; }
+  isInterfaceTypeType(): boolean { return !!this.typeTypeData?.type.interfaceTypeData; }
+  isEnumTypeType(): boolean { return !!this.typeTypeData?.type.enumTypeData; }
 
   private lambdaErasure(): Type {
     return this.lambdaTypeData?.functionType || this;
@@ -477,7 +464,7 @@ export function newClassTypeType(identifier: Identifier, superClassType?: ClassT
   }) as ClassType;
   const classTypeType = new Type({
     identifier: { location: identifier.location, name: `(class ${identifier.name})` },
-    classTypeTypeData: { classType },
+    typeTypeData: { type: classType },
   }) as ClassTypeType;
   return classTypeType;
 }
@@ -502,7 +489,7 @@ export function newInterfaceTypeType(
   }) as InterfaceType;
   const interfaceTypeType = new Type({
     identifier: { location: identifier.location, name: `(interface ${identifier.name})` },
-    interfaceTypeTypeData: { interfaceType },
+    typeTypeData: { type: interfaceType },
   }) as InterfaceTypeType;
   interfaceTypeData.typeType = interfaceTypeType;
   return interfaceTypeType;
@@ -515,7 +502,7 @@ export function newEnumTypeType(identifier: Identifier): EnumTypeType {
   }) as EnumType;
   const enumTypeType = new Type({
     identifier: { location: identifier.location, name: `(enum ${identifier.name})` },
-    enumTypeTypeData: { enumType },
+    typeTypeData: { type: enumType },
   }) as EnumTypeType;
   addEnumMethods(enumType);
   return enumTypeType;
