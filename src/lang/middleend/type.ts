@@ -59,7 +59,8 @@ type InterfaceTypeDataWIP = InterfaceTypeData & {
 };
 
 type EnumTypeData = {
-  readonly valueToVariableMap: Map<string, EnumConstVariable>;
+  readonly underlyingType: Type;
+  readonly valueToVariableMap: Map<(string | number), EnumConstVariable>;
 };
 
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
@@ -495,10 +496,10 @@ export function newInterfaceTypeType(
   return interfaceTypeType;
 }
 
-export function newEnumTypeType(identifier: Identifier): EnumTypeType {
+export function newEnumTypeType(identifier: Identifier, underlyingType: Type): EnumTypeType {
   const enumType = new Type({
     identifier,
-    enumTypeData: { valueToVariableMap: new Map() },
+    enumTypeData: { underlyingType, valueToVariableMap: new Map() },
   }) as EnumType;
   const enumTypeType = new Type({
     identifier: { location: identifier.location, name: `(enum ${identifier.name})` },
@@ -633,11 +634,12 @@ function addListMethods(listType: ListType) {
 // EnumType
 
 function addEnumMethods(enumType: EnumType) {
+  const underlyingType = enumType.enumTypeData.underlyingType;
   addEqualityOperatorMethods(enumType);
   enumType.addMethod({
     identifier: { name: '__get_value' },
     parameters: [],
-    returnType: StringType,
+    returnType: underlyingType,
     aliasFor: '__op_noop__',
   });
 }

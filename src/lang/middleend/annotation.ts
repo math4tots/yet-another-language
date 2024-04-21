@@ -41,7 +41,7 @@ export type EnumVariable = Variable & {
 
 export type EnumConstVariable = Variable & {
   readonly type: EnumType;
-  readonly value: string;
+  readonly value: string | number;
 };
 
 export type Reference = {

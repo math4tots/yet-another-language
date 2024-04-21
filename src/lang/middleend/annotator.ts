@@ -528,9 +528,21 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
 
   private declareEnum(defn: ast.EnumDefinition) {
+    let underlyingType = NeverType;
+    for (const statement of defn.statements) {
+      if (statement instanceof ast.Declaration && statement.value) {
+        if (statement.value instanceof ast.StringLiteral) {
+          underlyingType = underlyingType.getCommonType(StringType);
+        } else if (statement.value instanceof ast.NumberLiteral) {
+          underlyingType = underlyingType.getCommonType(NumberType);
+        } else {
+          underlyingType = underlyingType.getCommonType(AnyType);
+        }
+      }
+    }
     const variable: EnumVariable = {
       identifier: defn.identifier,
-      type: newEnumTypeType(defn.identifier),
+      type: newEnumTypeType(defn.identifier, underlyingType),
       comment: getCommentFromEnumDefinition(defn),
     };
     const enumType = variable.type.typeTypeData.type;
@@ -541,9 +553,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       if (statement instanceof ast.ExpressionStatement) {
         if (statement.expression instanceof ast.StringLiteral) continue; // string literal comments
       }
-      if (statement instanceof ast.Declaration && !statement.isMutable && !statement.isExported) {
+      if (statement instanceof ast.Declaration && statement.value && !statement.isMutable && !statement.isExported) {
         const value = statement.value;
-        if (value instanceof ast.StringLiteral) {
+        if (value instanceof ast.StringLiteral || value instanceof ast.NumberLiteral) {
           const constVariable: EnumConstVariable = {
             identifier: statement.identifier,
             type: enumType,
@@ -684,7 +696,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return { type: BoolType, value: n.value, ir: n };
   }
   visitNumberLiteral(n: ast.NumberLiteral): EResult {
-    return { type: NumberType, value: n.value, ir: n };
+    let type = NumberType;
+    const enumTypeData = this.hint.enumTypeData;
+    if (enumTypeData) {
+      const enumConstVariable = enumTypeData.valueToVariableMap.get(n.value);
+      if (enumConstVariable) {
+        type = this.hint;
+        this.markReference(enumConstVariable, n.location.range);
+      }
+    }
+    return { type, value: n.value, ir: n };
   }
   visitStringLiteral(n: ast.StringLiteral): EResult {
     let type = StringType;
@@ -707,7 +728,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         getCompletions() {
           const completions: Completion[] = [];
           for (const enumConstVariable of enumTypeData.valueToVariableMap.values()) {
-            completions.push({ name: enumConstVariable.value, detail: `(enum ${enumName})` });
+            const value = enumConstVariable.value;
+            if (typeof value === 'string') {
+              completions.push({ name: value, detail: `(enum ${enumName})` });
+            }
           }
           return completions;
         },
