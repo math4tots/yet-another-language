@@ -6,7 +6,6 @@ type TypeConstructorParameters = {
   readonly identifier: Identifier;
   readonly comment?: ast.StringLiteral;
   readonly typeTypeData?: TypeTypeData;
-  readonly aliasTypeData?: AliasTypeData;
   readonly basicTypeData?: BasicTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
@@ -21,10 +20,19 @@ type TypeConstructorParameters = {
 
 type TypeTypeData = {
   readonly type: Type;
-};
 
-type AliasTypeData = {
-  readonly type: Type;
+  /**
+   * Indicates whether this TypeType is compile time only or actually has a runtime value.
+   * 
+   * Currently, classes are the only TypeTypes that have runtime values.
+   * This runtime value is required when calling the constructor for a class.
+   * 
+   * interfaces, enums, and all other TypeTypes currently do not have runtime values.
+   * 
+   * NOTE: this is false for type aliases - so an alias of a class type cannot be
+   * used to construct instances of a class.
+   */
+  readonly isCompileTimeOnly: boolean;
 };
 
 /** Bool, Number or String */
@@ -80,6 +88,7 @@ type UnionTypeData = {
 /** The basic types are Bool, Number and String. Null was intentionally excluded */
 export type BasicType = Type & { readonly basicTypeData: BasicTypeData; };
 
+export type TypeType = Type & { readonly typeTypeData: TypeTypeData; };
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
 export type ListType = Type & { readonly listTypeData: ListTypeData; };
 export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
@@ -92,7 +101,6 @@ export type InterfaceTypeType = Type & { readonly typeTypeData: { readonly type:
 export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
 export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
-export type AliasType = Type & { readonly aliasTypeData: AliasTypeData; };
 
 /**
  * Types that are allowed to be part of a union type.
@@ -109,7 +117,6 @@ export class Type {
   private _list?: ListType;
   private _nullable?: NullableType;
   readonly typeTypeData?: TypeTypeData;
-  readonly aliasTypeData?: AliasTypeData;
   readonly basicTypeData?: BasicTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
@@ -129,9 +136,6 @@ export class Type {
     this.comment = params.comment;
     if (params.typeTypeData) {
       this.typeTypeData = params.typeTypeData;
-    }
-    if (params.aliasTypeData) {
-      this.aliasTypeData = params.aliasTypeData;
     }
     if (params.basicTypeData) {
       this.basicTypeData = params.basicTypeData;
@@ -621,7 +625,7 @@ export function newClassTypeType(
   }) as ClassType;
   const classTypeType = new Type({
     identifier: { location: identifier.location, name: `(class ${identifier.name})` },
-    typeTypeData: { type: classType },
+    typeTypeData: { type: classType, isCompileTimeOnly: false },
   }) as ClassTypeType;
   return classTypeType;
 }
@@ -645,7 +649,7 @@ export function newInterfaceTypeType(
   }) as InterfaceType;
   const interfaceTypeType = new Type({
     identifier: { location: identifier.location, name: `(interface ${identifier.name})` },
-    typeTypeData: { type: interfaceType },
+    typeTypeData: { type: interfaceType, isCompileTimeOnly: true },
   }) as InterfaceTypeType;
   interfaceTypeData.typeType = interfaceTypeType;
   return interfaceTypeType;
@@ -691,21 +695,21 @@ export function newEnumTypeType(
   }) as EnumType;
   const enumTypeType = new Type({
     identifier: { location: identifier.location, name: `(enum ${identifier.name})` },
-    typeTypeData: { type: enumType },
+    typeTypeData: { type: enumType, isCompileTimeOnly: true },
   }) as EnumTypeType;
   addEnumMethods(enumType);
   return enumTypeType;
 }
 
-export function newAliasType(identifier: Identifier, aliasedType: Type): AliasType {
+export function newAliasType(identifier: Identifier, aliasedType: Type): TypeType {
   const aliasType = new Type({
     identifier: {
       location: identifier.location,
       name: `(typedef ${identifier.name}=${aliasedType.identifier.name})`,
     },
-    aliasTypeData: { type: aliasedType },
+    typeTypeData: { type: aliasedType, isCompileTimeOnly: true },
     comment: aliasedType.comment,
-  }) as AliasType;
+  }) as TypeType;
   return aliasType;
 }
 

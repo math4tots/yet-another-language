@@ -172,7 +172,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         range: e.identifier.location.range,
         getCompletions() {
           return Array.from(moduleTypeData.annotation.exportMap.values())
-            .filter(v => v.type.typeTypeData || v.type.aliasTypeData)
+            .filter(v => v.type.typeTypeData)
             .map(v => ({ name: v.identifier.name }));
         },
       });
@@ -184,7 +184,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
 
       this.markReference(variable, e.identifier.location.range);
-      const type = variable.type.typeTypeData?.type || variable.type.aliasTypeData?.type;
+      const type = variable.type.typeTypeData?.type;
       if (!type) {
         this.error(e.identifier.location, `${e.identifier.name} is not a type`);
         return AnyType;
@@ -201,7 +201,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         for (const key in scopeAtLocation) {
           const variable = scopeAtLocation[key];
           const type = variable.type;
-          if (type.typeTypeData || type.aliasTypeData || type.moduleTypeData) {
+          if (type.typeTypeData || type.moduleTypeData) {
             completions.push({ name: key });
           }
         }
@@ -282,7 +282,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       return AnyType;
     }
     this.markReference(variable, e.identifier.location.range);
-    const type = variable.type.typeTypeData?.type || variable.type.aliasTypeData?.type;
+    const type = variable.type.typeTypeData?.type;
     if (!type) {
       this.error(e.identifier.location, `${e.identifier.name} is not a type`);
       return AnyType;
