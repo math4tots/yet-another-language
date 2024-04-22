@@ -309,6 +309,21 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const end = expect(']').range.end;
       return new ast.ListDisplay({ uri, range: { start, end } }, elements);
     }
+    if (peek.type === '{') {
+      i++;
+      const start = peek.range.start;
+      const entries: ast.RecordDisplayEntry[] = [];
+      while (!atEOF() && !at('}')) {
+        const isMutable = consume('var');
+        const identifier = parseIdentifier();
+        expect(':');
+        const value = parseExpression();
+        entries.push({ isMutable, identifier, value });
+        if (!consume(',')) break;
+      }
+      const end = expect('}').range.end;
+      return new ast.RecordDisplay({ uri, range: { start, end } }, entries);
+    }
     if (consume('new')) {
       const start = peek.range.start;
       const type = parseTypeExpression();

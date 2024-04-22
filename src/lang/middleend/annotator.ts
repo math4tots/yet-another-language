@@ -857,6 +857,30 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       ir: new ast.ListDisplay(n.location, irs),
     };
   }
+  visitRecordDisplay(n: ast.RecordDisplay): EResult {
+    const memberVariables: Variable[] = [];
+    const newEntries: ast.RecordDisplayEntry[] = [];
+    for (const entry of n.entries) {
+      // TODO: immutable member entries
+      const memberResult = this.solveExpr(entry.value);
+      newEntries.push({
+        isMutable: entry.isMutable,
+        identifier: entry.identifier,
+        value: memberResult.ir,
+      });
+      const memberVariable: Variable = {
+        isMutable: entry.isMutable,
+        identifier: entry.identifier,
+        type: memberResult.type,
+        value: entry.isMutable ? undefined : memberResult.value,
+      };
+      memberVariables.push(memberVariable);
+    }
+    return {
+      type: newRecordType({ name: 'Record' }, memberVariables),
+      ir: new ast.RecordDisplay(n.location, newEntries),
+    };
+  }
   private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
     const cached = this.lambdaTypeCache.get(n);
     if (cached) return cached;

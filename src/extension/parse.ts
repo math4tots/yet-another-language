@@ -88,6 +88,11 @@ class Printer implements yal.ast.NodeVisitor<void> {
     }
     this.depth--;
   }
+  visitRecordDisplay(n: yal.ast.RecordDisplay): void {
+    this.indent();
+    this.out += `RECORD DISPLAY`;
+    // TODO
+  }
   visitFunctionDisplay(n: yal.ast.FunctionDisplay): void {
     this.indent();
     this.out += `FUNCTION DISPLAY (${n.parameters.map(p => p.identifier.name).join(', ')})`;

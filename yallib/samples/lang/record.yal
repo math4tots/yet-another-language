@@ -10,3 +10,9 @@ const x = native "{}" as SomeRecord
 
 x.someField
 
+const record = {
+  someField: 3
+}
+
+const sr: SomeRecord = record
+const v = sr.someField

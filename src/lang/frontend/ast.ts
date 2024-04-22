@@ -25,6 +25,7 @@ export interface ExpressionVisitor<R> {
   visitIdentifierNode(n: IdentifierNode): R;
   visitAssignment(n: Assignment): R;
   visitListDisplay(n: ListDisplay): R;
+  visitRecordDisplay(n: RecordDisplay): R;
   visitFunctionDisplay(n: FunctionDisplay): R;
   visitMethodCall(n: MethodCall): R;
   visitNew(n: New): R;
@@ -170,6 +171,22 @@ export class ListDisplay implements Expression {
     this.values = values;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitListDisplay(this); }
+}
+
+export type RecordDisplayEntry = {
+  readonly isMutable: boolean;
+  readonly identifier: IdentifierNode;
+  readonly value: Expression;
+};
+
+export class RecordDisplay implements Expression {
+  readonly location: Location;
+  readonly entries: RecordDisplayEntry[];
+  constructor(location: Location, entries: RecordDisplayEntry[]) {
+    this.location = location;
+    this.entries = entries;
+  }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitRecordDisplay(this); }
 }
 
 export class Parameter {

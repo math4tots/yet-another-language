@@ -81,7 +81,11 @@ class Translator implements ast.NodeVisitor<string> {
     return `(${translateVariableName(n.identifier.name)} = ${n.value.accept(this)})`;
   }
   visitListDisplay(n: ast.ListDisplay): string {
-    return `[${n.values.map(e => e.accept(this))}]`;
+    return `[${n.values.map(e => e.accept(this)).join(',')}]`;
+  }
+  visitRecordDisplay(n: ast.RecordDisplay): string {
+    return `{${n.entries.map(e =>
+      translateVariableName(e.identifier.name) + ':' + e.value.accept(this)).join(',')}}`;
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): string {
     const parameters = n.parameters.map(p => translateVariableName(p.identifier.name));
