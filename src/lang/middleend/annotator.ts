@@ -261,9 +261,19 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
         const memberIdentifier = memberDescriptor.identifier;
         const memberType = this.solveType(memberDescriptor.args[0]);
-        const isMutable = memberDescriptor.args.length > 1 &&
-          // TODO: check no arguments, etc
-          memberDescriptor.args[1].identifier.name === 'mutable';
+        let isMutable = false;
+        for (let i = 1; i < memberDescriptor.args.length; i++) {
+          const arg = memberDescriptor.args[i];
+          this.annotation.completionPoints.push({
+            range: arg.identifier.location.range,
+            getCompletions() { return [{ name: 'mutable' }]; },
+          });
+          if (arg.identifier.name === 'mutable') {
+            isMutable = true;
+          } else {
+            this.error(arg.location, 'Unrecognized record type descriptor');
+          }
+        }
         const variable: Variable = {
           identifier: memberIdentifier,
           type: memberType,

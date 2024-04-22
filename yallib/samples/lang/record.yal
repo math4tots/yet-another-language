@@ -2,18 +2,24 @@
 
 
 typedef SomeRecord = Record[
-  someField[String | Number]
+  someField[Number],
+  someField2[Number | String],
+  someMutableField[String | Number, mutable],
 ]
 
 
 const x = native "{}" as SomeRecord
 
-x.someField
+x.someMutableField
 
 const record = {
-  someField: 3
+  someField: 123,
+  someField2: 'hello',
+  var someMutableField: 3 as Union[String, Number],
 }
 
-const k = record.someField
+const xx = record.someField
+const k = record.someMutableField
 const sr: SomeRecord = record
-const v = sr.someField
+const vv = sr.someField
+const v = sr.someMutableField
