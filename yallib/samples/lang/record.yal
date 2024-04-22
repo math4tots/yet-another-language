@@ -2,7 +2,7 @@
 
 
 typedef SomeRecord = Record[
-  someField[Number]
+  someField[String | Number]
 ]
 
 
@@ -14,5 +14,6 @@ const record = {
   someField: 3
 }
 
+const k = record.someField
 const sr: SomeRecord = record
 const v = sr.someField

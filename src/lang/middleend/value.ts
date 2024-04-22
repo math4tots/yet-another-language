@@ -9,7 +9,8 @@ export type Value =
   string |
   Value[] |
   ModuleValue |
-  Function;
+  Function |
+  RecordValue;
 
 
 /**
@@ -38,6 +39,18 @@ export class ModuleValue {
   }
   toString() { return '<module>'; }
   YAL__repr__() { return '<module>'; }
+}
+
+export class RecordValue {
+  toJSON() {
+    const object: { [key: string]: any; } = {};
+    for (const key in this) {
+      if (key.startsWith('YAL')) {
+        object[key.substring('YAL'.length)] = this[key];
+      }
+    }
+    return object;
+  }
 }
 
 export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
@@ -108,7 +121,7 @@ export function evalMethodCall(owner: any, method: Method, args: any[]): Value |
             return owner[arg0];
           }
         }
-      } else if (owner instanceof ModuleValue) {
+      } else if (owner instanceof ModuleValue || owner instanceof RecordValue) {
         if (methodName.startsWith('__get_')) {
           const fieldName = methodName.substring('__get_'.length);
           const modifiedFieldName = translateVariableName(fieldName);

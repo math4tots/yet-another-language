@@ -45,7 +45,7 @@ import {
   AnnotationWithoutIR,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
-import { ModuleValue, Value, evalMethodCall, translateVariableName } from './value';
+import { ModuleValue, RecordValue, Value, evalMethodCall, translateVariableName } from './value';
 import { printFunction } from './functions';
 import { getSymbolTable } from '../frontend/symbolregistry';
 
@@ -860,6 +860,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   visitRecordDisplay(n: ast.RecordDisplay): EResult {
     const memberVariables: Variable[] = [];
     const newEntries: ast.RecordDisplayEntry[] = [];
+    const value = new RecordValue();
     for (const entry of n.entries) {
       // TODO: immutable member entries
       const memberResult = this.solveExpr(entry.value);
@@ -872,13 +873,17 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         isMutable: entry.isMutable,
         identifier: entry.identifier,
         type: memberResult.type,
-        value: entry.isMutable ? undefined : memberResult.value,
+        value: memberResult.value,
       };
+      this.declareVariable(memberVariable, false);
       memberVariables.push(memberVariable);
+      (value as any)[translateVariableName(entry.identifier.name)] = memberResult.value;
     }
+    value;
     return {
       type: newRecordType({ name: 'Record' }, memberVariables),
       ir: new ast.RecordDisplay(n.location, newEntries),
+      value,
     };
   }
   private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
