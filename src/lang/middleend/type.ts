@@ -16,7 +16,7 @@ type TypeConstructorParameters = {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
-  readonly genericTypeData?: GenericTypeData;
+  readonly typeParameterTypeData?: TypeParameterTypeData;
 };
 
 type TypeTypeData = {
@@ -86,7 +86,7 @@ type UnionTypeData = {
   readonly types: UnionElementType[];
 };
 
-type GenericTypeData = {};
+type TypeParameterTypeData = {};
 
 /** The basic types are Bool, Number and String. Null was intentionally excluded */
 export type BasicType = Type & { readonly basicTypeData: BasicTypeData; };
@@ -105,8 +105,8 @@ export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
 export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
 
-export type GenericType = Type & { readonly genericTypeData: GenericTypeData; };
-export type GenericTypeType = Type & { readonly typeTypeData: { readonly type: GenericTypeType; }; };
+export type TypeParameterType = Type & { readonly typeParameterTypeData: TypeParameterTypeData; };
+export type TypeParameterTypeType = Type & { readonly typeTypeData: { readonly type: TypeParameterTypeType; }; };
 
 /**
  * Types that are allowed to be part of a union type.
@@ -133,7 +133,7 @@ export class Type {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
-  readonly genericTypeData?: GenericTypeData;
+  readonly typeParameterTypeData?: TypeParameterTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method>();
 
@@ -174,8 +174,8 @@ export class Type {
     if (params.unionTypeData) {
       this.unionTypeData = params.unionTypeData;
     }
-    if (params.genericTypeData) {
-      this.genericTypeData = params.genericTypeData;
+    if (params.typeParameterTypeData) {
+      this.typeParameterTypeData = params.typeParameterTypeData;
     }
   }
 
@@ -704,16 +704,16 @@ export function newEnumTypeType(
   return enumTypeType;
 }
 
-export function newGenericTypeType(identifier: Identifier): GenericTypeType {
-  const genericType = new Type({
+export function newTypeParameterTypeType(identifier: Identifier): TypeParameterTypeType {
+  const typeParameterType = new Type({
     identifier,
-    genericTypeData: {},
-  }) as GenericType;
-  const genericTypeType = new Type({
+    typeParameterTypeData: {},
+  }) as TypeParameterType;
+  const typeParameterTypeType = new Type({
     identifier: { name: `(typevar ${identifier.name})`, location: identifier.location },
-    typeTypeData: { type: genericType, isCompileTimeOnly: true },
-  }) as GenericTypeType;
-  return genericTypeType;
+    typeTypeData: { type: typeParameterType, isCompileTimeOnly: true },
+  }) as TypeParameterTypeType;
+  return typeParameterTypeType;
 }
 
 export function newAliasType(identifier: Identifier, aliasedType: Type): TypeType {
