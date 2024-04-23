@@ -136,7 +136,7 @@ export class Type {
   readonly unionTypeData?: UnionTypeData;
   readonly typeParameterTypeData?: TypeParameterTypeData;
   private readonly _methods: Method[] = [];
-  private readonly _methodMap = new Map<string, Method>();
+  private readonly _methodMap = new Map<string, Method[]>();
 
   constructor(parameters: TypeConstructorParameters) {
     const params = parameters;
@@ -392,9 +392,61 @@ export class Type {
     }
   }
 
-  getMethod(key: string): Method | null {
+  /**
+   * Find and return the first method that can handle the given number of
+   * arguments. The actual method might have more than the given arguments
+   * but still be able to handle the given number of arguments due to default
+   * parameters.
+   * 
+   * If you need a method that has exactly the given number of parameters,
+   * use the method 'getMethodWithExactParameterCount' instead.
+   */
+  getMethodHandlingArgumentCount(methodName: string, argumentCount: number): Method | undefined {
     this.prepareMethods();
-    return this._methodMap.get(key) || null;
+    const methods = this._methodMap.get(methodName);
+    if (methods) {
+      for (const method of methods) {
+        let argc = method.parameters.length;
+        while (argc > argumentCount && method.parameters[argc - 1].defaultValue) {
+          argc--;
+        }
+        if (argc === argumentCount) return method;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Find and return the first method with exactly the given parameter count.
+   * 
+   * This does not take into account default parameters, so a method that could potentially
+   * handle the given number of arguments may be passed over because it does not match
+   * exactly the given number of arguments.
+   * 
+   * If you need any method that can handle the given number of arguments even
+   * if the parameter count does not match exactly, use the method
+   * 'getMethodHandlingArgumentCount' instead.
+   */
+  getMethodWithExactParameterCount(methodName: string, parameterCount: number): Method | undefined {
+    this.prepareMethods();
+    const methods = this._methodMap.get(methodName);
+    if (methods) {
+      for (const method of methods) {
+        if (method.parameters.length === parameterCount) return method;
+      }
+    }
+    return undefined;
+  }
+
+  getAnyMethodWithName(methodName: string): Method | undefined {
+    this.prepareMethods();
+    const methods = this._methodMap.get(methodName);
+    return methods?.length ? methods[0] : undefined;
+  }
+
+  getAllMethodsWithName(methodName: string): Method[] {
+    this.prepareMethods();
+    return this._methodMap.get(methodName) || [];
   }
 
   /** Returns all methods of this type, including those inherited from super class or interfaces */
@@ -406,19 +458,32 @@ export class Type {
   addMethod(params: NewMethodParameters) {
     const method = newMethod(params);
     this._methods.push(method);
-    this._methodMap.set(method.identifier.name, method);
+    const methods = this._methodMap.get(method.identifier.name);
+    if (methods) {
+      methods.push(method);
+    } else {
+      this._methodMap.set(method.identifier.name, [method]);
+    }
   }
 
   implementsMethod(targetMethod: Method): boolean {
-    const method = this.getMethod(targetMethod.identifier.name);
+    // template methods cannot be implemented (yet)
+    if (targetMethod.typeParameters) return false;
+
+    // Due to the way default parameters work, when implementing methods,
+    // exact parameter count match is required.
+    const method = this.getMethodWithExactParameterCount(
+      targetMethod.identifier.name, targetMethod.parameters.length);
     if (!method) return false;
+
+    // template methods cannot implement interface methods (yet)
+    if (method.typeParameters) return false;
 
     // If there is any sort of method aliasing going on, the methods must match exactly.
     // Otherwise, there could be strange errors at runtime.
     if (method.aliasFor !== targetMethod.aliasFor) return false;
 
-    if (method.parameters.length !== targetMethod.parameters.length) return false;
-    for (let i = 0; i < method.parameters.length; i++) {
+    for (let i = 0; i < targetMethod.parameters.length; i++) {
       if (!targetMethod.parameters[i].type.isAssignableTo(method.parameters[i].type)) return false;
     }
     return method.returnType.isAssignableTo(targetMethod.returnType);

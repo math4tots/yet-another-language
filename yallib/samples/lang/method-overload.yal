@@ -1,0 +1,18 @@
+
+
+class SomeClass {
+  function overloadedMethod(): String {
+    return "overloadedMethod - zero arguments"
+  }
+  function overloadedMethod(a: Number): String {
+    return "overloadedMethod - one argument " + str(a)
+  }
+  function overloadedMethod(a: String, b: String): String {
+    return "overloadedMethod - two arguments"
+  }
+}
+
+const instance = new SomeClass()
+print(instance.overloadedMethod())
+print(instance.overloadedMethod(0x35))
+print(instance.overloadedMethod("a", "b"))

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as ast from '../frontend/ast';
-import { translateVariableName } from '../middleend/value';
+import { translateMethodName, translateVariableName } from '../middleend/value';
 import { getAnnotationForDocument } from '../middleend/annotator';
 import { Annotation } from '../middleend/annotation';
 import {
@@ -112,7 +112,7 @@ class Translator implements ast.NodeVisitor<string> {
       if (name === '__op_setitem__') return `(${owner}[${args[0]}]=${args[1]})`;
     }
     if (name.startsWith('__js_')) return `${owner}.${name.substring(5)}(${args.join(',')})`;
-    return `${owner}.YAL${name}(${args.join(',')})`;
+    return `${owner}.${translateMethodName(name, args.length)}(${args.join(',')})`;
   }
   visitNew(n: ast.New): string {
     const te = n.type;
@@ -201,7 +201,7 @@ class Translator implements ast.NodeVisitor<string> {
             if (name.startsWith('__set_')) return `set YAL${name.substring(6)}${suffix}`;
           }
           if (name.startsWith('__js_')) return `${name.substring(5)}${suffix}`;
-          return `YAL${name}${suffix}`;
+          return `${translateMethodName(name, parameters.length)}${suffix}`;
         }
       }
       return [];
@@ -286,7 +286,8 @@ export async function getTranslationForDocument(
     parts.push(`return {`);
     for (const statement of ann.ir.statements) {
       if (statement instanceof ast.Declaration && statement.isExported) {
-        parts.push(`${translateVariableName(statement.identifier.name)},`);
+        const jsVariableName = translateVariableName(statement.identifier.name);
+        parts.push(`${jsVariableName},`);
       }
     }
     for (const exportImport of exportImports) {

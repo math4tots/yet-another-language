@@ -21,8 +21,16 @@ export type Value =
  */
 export function translateVariableName(name: string): string {
   if (name === 'this') return 'this';
-  if (name.startsWith('__js_')) return name.substring(5);
+  if (name.startsWith('__js_')) return name.substring('__js_'.length);
   return 'YAL' + name;
+}
+
+export function translateMethodName(name: string, argc: number): string {
+  if (name.startsWith('__js_')) return name.substring('__js_'.length);
+
+  // There's no need for a separator character between argc and name
+  // because argc is an integer and name cannot start with a digit.
+  return `YAL${argc}${name}`;
 }
 
 export class ModuleValue {
@@ -56,17 +64,17 @@ export class RecordValue {
 export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
   if (method.inlineValue !== undefined) return method.inlineValue;
   const methodName = method.identifier.name;
-  const endName = method.aliasFor || method.identifier.name;
+  const resolvedMethodName = method.aliasFor || method.identifier.name;
   const allDefined = typeof owner !== 'undefined' && args.every(arg => typeof arg !== undefined);
 
-  if (args.length === 0 && endName === '__op_noop__') return owner;
+  if (args.length === 0 && resolvedMethodName === '__op_noop__') return owner;
   if (owner === printFunction) return;
 
   if (allDefined) {
-    if (args.length === 0 && endName.startsWith('__get___js_')) {
-      return owner[endName.substring('__get___js_'.length)];
+    if (args.length === 0 && resolvedMethodName.startsWith('__get___js_')) {
+      return owner[resolvedMethodName.substring('__get___js_'.length)];
     }
-    if (endName.startsWith('__js_')) return owner[endName.substring('__js_'.length)](...args);
+    if (resolvedMethodName.startsWith('__js_')) return owner[resolvedMethodName.substring('__js_'.length)](...args);
     if (methodName === '__eq__' && args.length === 1) return owner === args[0];
     if (methodName === '__ne__' && args.length === 1) return owner !== args[0];
   }
@@ -129,9 +137,13 @@ export function evalMethodCall(owner: any, method: Method, args: any[]): Value |
         } else if (methodName.startsWith('__set_')) {
           // setters... ignore
         } else {
+          if (owner instanceof ModuleValue) {
+            const jsName = translateVariableName(methodName);
+            if ((owner as any)[jsName]) return (owner as any)[jsName](...args);
+          }
           // NOTE: this may not correctly handle aliasing methods
-          const modifiedMethodName = translateVariableName(methodName);
-          if ((owner as any)[modifiedMethodName]) return (owner as any)[modifiedMethodName](...args);
+          const jsMethodName = translateMethodName(methodName, method.parameters.length);
+          if ((owner as any)[jsMethodName]) return (owner as any)[jsMethodName](...args);
         }
       } else {
         // Some other kind of object

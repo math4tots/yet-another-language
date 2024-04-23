@@ -981,8 +981,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       getCompletions(): Completion[] {
         const completions: Completion[] = [];
         const seen = new Set<string>();
-        for (const method of owner.type.getAllMethods()) {
-          const rawName = method.identifier.name;
+        for (const rawName of new Set(owner.type.getAllMethods().map(m => m.identifier.name))) {
           if (rawName.startsWith('__marker_') || rawName.startsWith('__get___marker_')) {
             // skip the __marker__ field/method - these are used purely for
             // adding a unique marker to interfaces
@@ -1011,16 +1010,21 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         return completions;
       },
     });
-    const method = owner.type.getMethod(n.identifier.name);
+    const method = owner.type.getMethodHandlingArgumentCount(n.identifier.name, n.args.length);
     if (!method) {
       for (const arg of n.args) this.solveExpr(arg);
-      this.error(n.location, `Method ${n.identifier.name} not found on type ${owner.type}`);
+      const method = owner.type.getAnyMethodWithName(n.identifier.name);
+      if (method) {
+        this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
+      } else {
+        this.error(n.location, `Method ${n.identifier.name} not found on type ${owner.type}`);
+      }
       return { type: AnyType, ir: n };
     }
     this.annotation.callInstances.push({
       range: n.location.range,
       args: n.args.map(arg => arg.location.range),
-      parameters: method.parameters,
+      overloads: owner.type.getAllMethodsWithName(n.identifier.name),
     });
     this.markReference(method.sourceVariable, n.identifier.location.range);
 
@@ -1029,13 +1033,6 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     while (argExprs.length < method.parameters.length && method.parameters[argExprs.length].defaultValue) {
       const defaultValue = method.parameters[argExprs.length].defaultValue;
       if (defaultValue) argExprs.push(defaultValue.withLocation(n.identifier.location));
-    }
-
-    // check agument count equals parameter count
-    if (method.parameters.length !== argExprs.length) {
-      for (const arg of n.args) this.solveExpr(arg);
-      this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
-      return { type: method.returnType, value: method.inlineValue, ir: n };
     }
 
     // solve the argument expressions
@@ -1055,6 +1052,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       };
       const bindings = new Map<TypeParameterType, Binding>(
         method.typeParameters.map(tp => [tp.typeTypeData.type, { typeParameter: tp }]));
+      const saveBindings = () => new Map(Array.from(bindings).map(([k, v]) => [k, { ...v }]));
+      const restoreBindings = (savedBindings: Map<TypeParameterType, Binding>) => {
+        for (const [key, value] of savedBindings) {
+          bindings.set(key, value);
+        }
+      };
       const bind = (rawTypeTemplate: Type, rawActualType: Type, variance: TypeVariance): boolean => {
         const typeTemplate = rawTypeTemplate.lambdaErasure();
         const actualType = rawActualType.lambdaErasure();
@@ -1075,21 +1078,63 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             return true;
           }
         }
+
+        // If the types satisfy the requirements of the variance without any further binding,
+        // there isn't any binding that is needed.
+        // Similarly, if the requirements are the variance cannot be satisfied due to the
+        // limited ways it can happen, we can determine quickly whether the binding will fail.
+        switch (variance) {
+          case COVARIANT:
+            if (typeTemplate.isAssignableTo(actualType)) return true;
+            if (typeTemplate === AnyType || actualType === NeverType) return false;
+            if (typeTemplate === NullType) return !!actualType.nullableTypeData;
+            if (typeTemplate.unionTypeData) {
+              const saved = saveBindings();
+              for (const memberType of typeTemplate.unionTypeData.types) {
+                if (!bind(memberType, actualType, variance)) {
+                  restoreBindings(saved);
+                  return false;
+                }
+              }
+              return true;
+            }
+            break;
+          case CONTRAVARIANT:
+            if (actualType.isAssignableTo(typeTemplate)) return true;
+            if (typeTemplate === NeverType || actualType === AnyType) return false;
+            if (actualType === NullType) return !!typeTemplate.nullableTypeData;
+            if (actualType.unionTypeData) {
+              const saved = saveBindings();
+              for (const memberType of actualType.unionTypeData.types) {
+                if (!bind(typeTemplate, memberType, variance)) {
+                  restoreBindings(saved);
+                  return false;
+                }
+              }
+              return true;
+            }
+            break;
+          default:
+            if (typeTemplate.isAssignableTo(actualType) && actualType.isAssignableTo(typeTemplate)) return true;
+            if (typeTemplate === AnyType || actualType === NeverType) return false;
+            if (typeTemplate === NeverType || actualType === AnyType) return false;
+            if (typeTemplate === NullType || actualType === NullType) return false;
+            if (typeTemplate.unionTypeData || actualType.unionTypeData) {
+              // NOTE: technically we sould try every permutation against every permutation in
+              // both directions. But that seemse excessive...
+              // For now let's assume that this always fails
+              return false;
+            }
+            break;
+        }
+
         if (typeTemplate.nullableTypeData && actualType.nullableTypeData) {
           return bind(typeTemplate.nullableTypeData.itemType, actualType.nullableTypeData.itemType, variance);
         }
         if (typeTemplate.listTypeData && actualType.listTypeData) {
           return bind(typeTemplate.listTypeData.itemType, actualType.listTypeData.itemType, variance);
         }
-        if (typeTemplate.unionTypeData && actualType.unionTypeData) {
-          const templateTypes = typeTemplate.unionTypeData.types;
-          const actualTypes = actualType.unionTypeData.types;
-          if (templateTypes.length !== actualTypes.length) return false;
-          for (let i = 0; i < actualTypes.length; i++) {
-            if (bind(templateTypes[i], actualTypes[i], variance)) return true;
-          }
-          return actualTypes.length === 0;
-        }
+
         if (typeTemplate.functionTypeData && actualType.functionTypeData) {
           const templateData = typeTemplate.functionTypeData;
           const actualData = actualType.functionTypeData;
@@ -1101,17 +1146,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           }
           return true;
         }
-        // If the patterns don't match, it's difficult to infer anymore.
-        // But the binding may still succeed depending on variance and
-        // what we can determine about assignability.
-        switch (variance) {
-          case COVARIANT:
-            return typeTemplate.isAssignableTo(actualType);
-          case CONTRAVARIANT:
-            return actualType.isAssignableTo(typeTemplate);
-          default:
-        }
-        return actualType.isAssignableTo(typeTemplate) && typeTemplate.isAssignableTo(actualType);
+
+        // once we have exhausted all possible ways unification can happen, we return failure.
+        return false;
       };
       const substitute = (rawType: Type, variance: TypeVariance): Type => {
         const type = rawType.lambdaErasure();
@@ -1157,17 +1194,25 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         if (!bind(method.returnType, this.hint, COVARIANT)) {
           return failBinding('incompatible return type');
         }
+        const boundParameters: Parameter[] = [];
         for (let i = 0; i < method.parameters.length; i++) {
           const priorParameterType = substitute(method.parameters[i].type, CONTRAVARIANT);
           const info = this.solveExpr(argExprs[i], priorParameterType);
           if (!bind(method.parameters[i].type, info.type, CONTRAVARIANT)) {
             return failBinding(`incompatible parameter ${i}`);
           }
+          boundParameters.push({ identifier: method.parameters[i].identifier, type: info.type });
           if (info.value !== undefined) argValues.push(info.value);
           argIRs.push(info.ir);
         }
         const returnType = substitute(method.returnType, COVARIANT);
         maybeReturnType = returnType;
+
+        // If we have a successful binding, it can be useful to show the user what
+        // the bound method signature looks like
+        this.markReference(
+          { identifier: method.identifier, type: newLambdaType(boundParameters, returnType) },
+          n.identifier.location.range);
       } catch (e) {
         if (e === SUBSTITUTION_FAILURE) return failBinding('substitution failure');
         throw e;
@@ -1196,9 +1241,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
     }
 
-    const methodIdentifier = method.aliasFor ?
-      new ast.IdentifierNode(n.identifier.location, method.aliasFor) :
-      n.identifier;
+    const methodIdentifier =
+      method.aliasFor ?
+        new ast.IdentifierNode(n.identifier.location, method.aliasFor) :
+        (method.identifier.name.startsWith('__')) ? n.identifier :
+          owner.type.moduleTypeData ?
+            new ast.IdentifierNode(n.identifier.location, `__js_${translateVariableName(n.identifier.name)}`) :
+            n.identifier;
 
     return {
       type: returnType,
@@ -1222,7 +1271,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     this.annotation.callInstances.push({
       range: n.location.range,
       args: n.args.map(arg => arg.location.range),
-      parameters: fields,
+      overloads: [{ parameters: fields }],
     });
     if (fields.length !== n.args.length) {
       for (const arg of n.args) this.solveExpr(arg);

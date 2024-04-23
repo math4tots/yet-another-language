@@ -61,10 +61,14 @@ export interface PrintInstance {
   readonly value: Value;
 }
 
+export interface Overload {
+  readonly parameters: Parameter[];
+}
+
 export interface CallInstance {
   readonly range: Range; // range of entire call
   readonly args: Range[]; // range of individual arguments
-  readonly parameters: Parameter[];
+  readonly overloads: Overload[];
 }
 
 export interface Completion {

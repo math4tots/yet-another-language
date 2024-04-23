@@ -1,0 +1,9 @@
+
+
+class SomeClass {
+  function someMethod(): Number {
+    return 123
+  }
+}
+
+print(new SomeClass().someMethod())

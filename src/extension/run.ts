@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as yal from '../lang/yal';
 import { writeToNewEditor } from './utils';
 import { getTranslationForDocument } from '../lang/backend/translator';
+import { strFunction } from '../lang/middleend/functions';
 
 export async function runCommand() {
   const editor = vscode.window.activeTextEditor;
@@ -23,7 +24,7 @@ export async function runCommand() {
   }
   if (printValues.length > 0) {
     await writeToNewEditor(emit => {
-      for (const value of printValues) emit(`${value}\n`);
+      for (const value of printValues) emit(`${strFunction(value)}\n`);
     });
   }
 }
