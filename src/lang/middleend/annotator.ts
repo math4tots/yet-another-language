@@ -473,7 +473,6 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             identifier: declaration.identifier,
             parameters: funcdispType.lambdaTypeData.parameters,
             returnType: funcdispType.lambdaTypeData.returnType,
-            functionType: funcdispType.lambdaTypeData.functionType,
             sourceVariable: variable,
             aliasFor,
           });

@@ -16,6 +16,7 @@ type TypeConstructorParameters = {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
+  readonly genericTypeData?: GenericTypeData;
 };
 
 type TypeTypeData = {
@@ -85,6 +86,8 @@ type UnionTypeData = {
   readonly types: UnionElementType[];
 };
 
+type GenericTypeData = {};
+
 /** The basic types are Bool, Number and String. Null was intentionally excluded */
 export type BasicType = Type & { readonly basicTypeData: BasicTypeData; };
 
@@ -101,6 +104,9 @@ export type InterfaceTypeType = Type & { readonly typeTypeData: { readonly type:
 export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
 export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
+
+export type GenericType = Type & { readonly genericTypeData: GenericTypeData; };
+export type GenericTypeType = Type & { readonly typeTypeData: { readonly type: GenericTypeType; }; };
 
 /**
  * Types that are allowed to be part of a union type.
@@ -127,6 +133,7 @@ export class Type {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
+  readonly genericTypeData?: GenericTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method>();
 
@@ -166,6 +173,9 @@ export class Type {
     }
     if (params.unionTypeData) {
       this.unionTypeData = params.unionTypeData;
+    }
+    if (params.genericTypeData) {
+      this.genericTypeData = params.genericTypeData;
     }
   }
 
@@ -606,7 +616,6 @@ function newMethod(params: NewMethodParameters): Method {
     identifier: params.identifier,
     parameters: params.parameters,
     returnType: params.returnType,
-    functionType,
     sourceVariable,
     aliasFor: params.aliasFor,
     inlineValue: params.inlineValue,
@@ -700,6 +709,18 @@ export function newEnumTypeType(
   }) as EnumTypeType;
   addEnumMethods(enumType);
   return enumTypeType;
+}
+
+export function newGenericTypeType(identifier: Identifier): GenericTypeType {
+  const genericType = new Type({
+    identifier,
+    genericTypeData: {},
+  }) as GenericType;
+  const genericTypeType = new Type({
+    identifier: { name: `(typevar ${identifier.name})`, location: identifier.location },
+    typeTypeData: { type: genericType, isCompileTimeOnly: true },
+  }) as GenericTypeType;
+  return genericTypeType;
 }
 
 export function newAliasType(identifier: Identifier, aliasedType: Type): TypeType {
