@@ -276,4 +276,27 @@ export interface CanvasRenderingContext2D {
     """
     aliasFor(__js_drawImage)
   }
+
+  function drawImage(image: DrawImageSource, dx: Number, dy: Number, dWidth: Number, dHeight: Number) {
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
+
+    The CanvasRenderingContext2D.drawImage() method of the Canvas 2D API provides different ways to
+    draw an image onto the canvas.
+    """
+    aliasFor(__js_drawImage)
+  }
+
+  function drawImage(
+      image: DrawImageSource,
+      sx: Number, sy: Number, sWidth: Number, sHeight: Number,
+      dx: Number, dy: Number, dWidth: Number, dHeight: Number) {
+    """
+    https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/drawImage
+
+    The CanvasRenderingContext2D.drawImage() method of the Canvas 2D API provides different ways to
+    draw an image onto the canvas.
+    """
+    aliasFor(__js_drawImage)
+  }
 }

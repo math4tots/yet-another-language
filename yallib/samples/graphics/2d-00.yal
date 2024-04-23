@@ -12,6 +12,6 @@ ctx.fillRect(0, 0, canvas.width, canvas.height)
 
 ctx.fillStyle = "black"
 ctx.font = "50px serif"
-ctx.fillText("Hello world", 10, 10)
+ctx.fillText("Hello world", 40, 50)
 ctx.drawImage(canvas, 100, 100)
 ctx.drawImage(canvas, 0, 150)
