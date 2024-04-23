@@ -480,7 +480,10 @@ export function newFunctionType(parameterTypes: Type[], returnType: Type): Funct
     identifier: { name: '__call__' },
     parameters: parameterTypes.map((ptype, i) => ({ identifier: { name: `arg${i}` }, type: ptype })),
     returnType,
-    functionType,
+
+    // newFunctionType must provide a source variable - otherwise newMethod will create
+    // a source variable and call newFunctionType
+    sourceVariable: { identifier: { name }, type: functionType },
   });
   c.type = functionType;
   return functionType;
@@ -500,7 +503,7 @@ export function newLambdaType(parameters: Parameter[], returnType: Type): Lambda
     identifier: { name: '__call__' },
     parameters: [...parameters],
     returnType: returnType,
-    functionType,
+    sourceVariable: { identifier: { name: '__call__' }, type: functionType },
   });
   return lambdaType as LambdaType;
 }
@@ -542,7 +545,6 @@ export function newModuleType(annotation: Annotation): ModuleType {
           identifier: variable.identifier,
           parameters: [...parameters],
           returnType,
-          functionType: lambdaTypeData.functionType,
           sourceVariable: variable,
         });
       }
@@ -555,13 +557,6 @@ interface NewMethodParameters {
   readonly identifier: Identifier;
   readonly parameters: Parameter[];
   readonly returnType: Type;
-
-  /**
-   * Type of this method, if this method were a function.
-   * This can be reconstructed from `parameters` and `returnType`,
-   * but is provided here so that it doesn't always have to be reconstructed
-   */
-  readonly functionType?: FunctionType;
 
   /**
    * The "source" variable associated with this method.
@@ -599,11 +594,9 @@ interface NewMethodParameters {
 };
 
 function newMethod(params: NewMethodParameters): Method {
-  const functionType: FunctionType =
-    params.functionType || newFunctionType(params.parameters.map(p => p.type), params.returnType);
   const sourceVariable: Variable = params.sourceVariable || {
     identifier: params.identifier,
-    type: functionType,
+    type: newFunctionType(params.parameters.map(p => p.type), params.returnType),
   };
   return {
     identifier: params.identifier,
