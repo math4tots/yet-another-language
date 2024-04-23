@@ -408,13 +408,6 @@ export type Method = {
   readonly returnType: Type;
 
   /**
-   * Type of this method, if this method were a function.
-   * This can be reconstructed from `parameters` and `returnType`,
-   * but is provided here so that it doesn't always have to be reconstructed
-   */
-  readonly functionType: FunctionType;
-
-  /**
    * The "source" variable associated with this method.
    * 
    * This is the Variable that this method "comes from".
