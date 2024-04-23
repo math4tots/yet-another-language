@@ -106,7 +106,7 @@ export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: Enum
 export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
 
 export type TypeParameterType = Type & { readonly typeParameterTypeData: TypeParameterTypeData; };
-export type TypeParameterTypeType = Type & { readonly typeTypeData: { readonly type: TypeParameterTypeType; }; };
+export type TypeParameterTypeType = Type & { readonly typeTypeData: { readonly type: TypeParameterType; }; };
 
 /**
  * Types that are allowed to be part of a union type.
@@ -122,6 +122,7 @@ export class Type {
   readonly comment?: ast.StringLiteral;
   private _list?: ListType;
   private _nullable?: NullableType;
+  private _addMethods?: (() => void);
   readonly typeTypeData?: TypeTypeData;
   readonly basicTypeData?: BasicTypeData;
   readonly nullableTypeData?: NullableTypeData;
@@ -193,7 +194,16 @@ export class Type {
       this.enumTypeData);
   }
 
-  private lambdaErasure(): Type {
+  hasTypeVariable(): boolean {
+    return !!(this.typeParameterTypeData ||
+      this.listTypeData?.itemType.hasTypeVariable() ||
+      this.nullableTypeData?.itemType.hasTypeVariable() ||
+      this.unionTypeData?.types.some(t => t.hasTypeVariable()) ||
+      this.functionTypeData?.returnType.hasTypeVariable() ||
+      this.functionTypeData?.parameterTypes.some(p => p.hasTypeVariable()));
+  }
+
+  lambdaErasure(): Type {
     return this.lambdaTypeData?.functionType || this;
   }
 
@@ -263,6 +273,19 @@ export class Type {
         if (sup === target) return true;
       }
       return false;
+    }
+
+    if (source.functionTypeData && target.functionTypeData) {
+      const sourceParameterTypes = source.functionTypeData.parameterTypes;
+      const sourceReturnType = source.functionTypeData.returnType;
+      const targetParameterTypes = target.functionTypeData.parameterTypes;
+      const targetReturnType = target.functionTypeData.returnType;
+      if (sourceParameterTypes.length !== targetParameterTypes.length) return false;
+      if (!sourceReturnType.isAssignableTo(targetReturnType)) return false;
+      for (let i = 0; i < targetParameterTypes.length; i++) {
+        if (!targetParameterTypes[i].isAssignableTo(sourceParameterTypes[i])) return false;
+      }
+      return true;
     }
 
     // no other claim to assignability
@@ -343,7 +366,7 @@ export class Type {
       identifier: { name: `List[${this.identifier.name}]` },
       listTypeData: { itemType: this },
     }) as ListType;
-    addListMethods(listType);
+    listType._addMethods = () => addListMethods(listType);
     this._list = listType;
     return listType;
   }
@@ -362,10 +385,23 @@ export class Type {
     return nullableType;
   }
 
-  getMethod(key: string): Method | null { return this._methodMap.get(key) || null; }
+  private prepareMethods() {
+    if (this._addMethods) {
+      this._addMethods();
+      this._addMethods = undefined;
+    }
+  }
+
+  getMethod(key: string): Method | null {
+    this.prepareMethods();
+    return this._methodMap.get(key) || null;
+  }
 
   /** Returns all methods of this type, including those inherited from super class or interfaces */
-  getAllMethods(): Method[] { return [...this._methods]; }
+  getAllMethods(): Method[] {
+    this.prepareMethods();
+    return [...this._methods];
+  }
 
   addMethod(params: NewMethodParameters) {
     const method = newMethod(params);
@@ -404,6 +440,7 @@ export type Parameter = {
 
 export type Method = {
   readonly identifier: Identifier;
+  readonly typeParameters?: TypeParameterTypeType[];
   readonly parameters: Parameter[];
   readonly returnType: Type;
 
@@ -555,6 +592,7 @@ export function newModuleType(annotation: Annotation): ModuleType {
 
 interface NewMethodParameters {
   readonly identifier: Identifier;
+  readonly typeParameters?: TypeParameterTypeType[];
   readonly parameters: Parameter[];
   readonly returnType: Type;
 
@@ -600,6 +638,7 @@ function newMethod(params: NewMethodParameters): Method {
   };
   return {
     identifier: params.identifier,
+    typeParameters: params.typeParameters,
     parameters: params.parameters,
     returnType: params.returnType,
     sourceVariable,
@@ -841,6 +880,7 @@ function addListMethods(listType: ListType) {
     parameters: [],
     returnType: NumberType,
     aliasFor: '__get___js_length',
+    sourceVariable: { identifier: { name: 'size' }, type: NumberType },
   });
   listType.addMethod({
     identifier: { name: '__getitem__' },
@@ -857,6 +897,19 @@ function addListMethods(listType: ListType) {
     returnType: itemType,
     aliasFor: '__op_setitem__',
   });
+  {
+    const RType = newTypeParameterTypeType({ name: 'R' });
+    const R = RType.typeTypeData.type;
+    listType.addMethod({
+      identifier: { name: 'map' },
+      typeParameters: [RType],
+      parameters: [
+        { identifier: { name: 'f' }, type: newFunctionType([itemType], R) },
+      ],
+      returnType: R.list(),
+      aliasFor: '__js_map',
+    });
+  }
 }
 
 // EnumType

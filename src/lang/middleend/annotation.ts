@@ -23,6 +23,13 @@ export type Variable = {
   readonly isForwardDeclaration?: boolean,
 };
 
+export const COVARIANT = 1;
+export const CONTRAVARIANT = -1;
+export const INVARIANT = 0;
+export type TypeVariance = typeof COVARIANT | typeof CONTRAVARIANT | typeof INVARIANT;
+
+export const flipVariance = (v: TypeVariance) => ((-v) as TypeVariance);
+
 export type ModuleVariable = Variable & {
   readonly type: ModuleType;
 };

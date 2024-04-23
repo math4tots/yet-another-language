@@ -37,3 +37,8 @@ export function getCommentFromInterfaceDefinition(cd: ast.InterfaceDefinition): 
 export function getCommentFromEnumDefinition(cd: ast.EnumDefinition): ast.StringLiteral | undefined {
   return getCommentFromSeq(cd.statements);
 }
+
+export function getBodyIfFunctionHasSimpleBody(fd: ast.FunctionDisplay): ast.Expression | undefined {
+  return (fd.body.statements.length === 1 && fd.body.statements[0] instanceof ast.Return) ?
+    fd.body.statements[0].value : undefined;
+}

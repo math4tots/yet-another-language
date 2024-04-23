@@ -5,6 +5,7 @@ import {
   getCommentFromClassDefinition,
   getCommentFromInterfaceDefinition,
   getCommentFromEnumDefinition,
+  getBodyIfFunctionHasSimpleBody,
 } from '../frontend/ast-utils';
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
@@ -32,6 +33,8 @@ import {
   InterfaceTypeType,
   newAliasType,
   newRecordType,
+  TypeParameterTypeType,
+  TypeParameterType,
 } from './type';
 import {
   Annotation,
@@ -43,6 +46,10 @@ import {
   EnumConstVariable,
   ModuleVariable,
   AnnotationWithoutIR,
+  TypeVariance,
+  COVARIANT,
+  CONTRAVARIANT,
+  flipVariance,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
 import { ModuleValue, RecordValue, Value, evalMethodCall, translateVariableName } from './value';
@@ -98,6 +105,8 @@ type InterfaceMethodBodyContents = {
 type InterfaceFieldValueContents = {
   readonly aliasFor?: ast.Identifier;
 };
+
+const SUBSTITUTION_FAILURE = Symbol('Substitution Failure');
 
 class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
   readonly annotation: AnnotationWithoutIR;
@@ -450,10 +459,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     for (const declaration of bodyStatements) {
       if (declaration instanceof ast.Declaration) {
         const value = declaration.value;
-        if (!declaration.isMutable && value instanceof ast.FunctionDisplay) {
+        if (!declaration.isMutable && !declaration.type && value instanceof ast.FunctionDisplay) {
           // normal method definition
           const funcdisp = value;
-          const funcdispType = this.solveFunctionDisplayType(funcdisp);
+          const funcdispType = this.solveFunctionDisplayType(funcdisp, AnyType);
           const variable: Variable = {
             identifier: declaration.identifier,
             type: funcdispType,
@@ -725,10 +734,18 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     // forward declare functions
     for (const defn of statements) {
       if (defn instanceof ast.Declaration && !defn.isMutable && !defn.type) {
+        // NOTE: we do not forward declare the function when 'defn.type' is explicitly provided.
+        // This is because if the type is provided, we would expect solveFunctionDisplayType
+        // to use the provided type as a hint. But because we are forward declaring, the
+        // we do not have access to the solved type yet.
+        // And this use case is actually very unlikely anyway, since, if you were going to
+        // provide the explicit types, you might as well provide them on the function display while
+        // using the function statement syntax, where you can't explicitly provide the variable
+        // type anyway.
         const value = defn.value;
         if (value instanceof ast.FunctionDisplay) {
           const comments = getCommentFromFunctionDisplay(value);
-          const type = this.solveFunctionDisplayType(value);
+          const type = this.solveFunctionDisplayType(value, AnyType);
           // We use a temporary forward declared variable -
           // when we actually reach this location, we will overwrite the existing variable
           // with the 'real' one
@@ -895,14 +912,15 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       value,
     };
   }
-  private solveFunctionDisplayType(n: ast.FunctionDisplay): LambdaType {
+  private solveFunctionDisplayType(n: ast.FunctionDisplay, rawHint: Type): LambdaType {
     const cached = this.lambdaTypeCache.get(n);
     if (cached) return cached;
-    const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
-    const parameters: Parameter[] = n.parameters.map(p => ({
+    const hint = rawHint.lambdaErasure().functionTypeData;
+    const returnType = n.returnType ? this.solveType(n.returnType) : (hint?.returnType || AnyType);
+    const parameters: Parameter[] = n.parameters.map((p, i) => ({
       isMutable: p.isMutable,
       identifier: p.identifier,
-      type: (p.type ? this.solveType(p.type) : null) || AnyType,
+      type: (p.type ? this.solveType(p.type) : null) || (hint?.parameterTypes[i] || AnyType),
       defaultValue: p.value || undefined,
     }));
     const lambdaType = newLambdaType(parameters, returnType);
@@ -911,13 +929,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): EResult {
     const startErrorCount = this.annotation.errors.length;
-    const lambdaType = this.solveFunctionDisplayType(n);
+    const lambdaType = this.solveFunctionDisplayType(n, this.hint);
     return this.scoped(() => {
       const parameters = lambdaType.lambdaTypeData.parameters;
-      const returnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
+      const tentativeReturnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
       const outerReturnType = this.currentReturnType;
       try {
-        this.currentReturnType = returnType;
+        this.currentReturnType = tentativeReturnType;
         for (const parameter of parameters) {
           const variable: Variable = {
             isMutable: parameter.isMutable,
@@ -926,24 +944,29 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           };
           this.declareVariable(variable);
         }
-        const result = this.solveBlock(n.body);
-        if (result.status !== Jumps && !NullType.isAssignableTo(returnType)) {
-          this.error(
-            n.location, `This function cannot return null and this function might not return`);
+        const simpleBody = getBodyIfFunctionHasSimpleBody(n);
+        if (simpleBody && !n.returnType) {
+          // if the function display's body is just a single return statement, we can
+          // try and infer the return type based on the return expression.
+          const bodyResult = this.solveExpr(simpleBody);
+          return {
+            type: newLambdaType(lambdaType.lambdaTypeData.parameters, bodyResult.type),
+            ir: new ast.FunctionDisplay(
+              n.location, n.parameters, n.returnType,
+              new ast.Block(n.body.location, [new ast.Return(n.body.statements[0].location, bodyResult.ir)])),
+          };
+        } else {
+          const result = this.solveBlock(n.body);
+          if (result.status !== Jumps && !NullType.isAssignableTo(tentativeReturnType)) {
+            this.error(
+              n.location, `A function that cannot return null must always explicitly return`);
+          }
+          return {
+            type: lambdaType,
+            ir: new ast.FunctionDisplay(
+              n.location, n.parameters, n.returnType, result.ir),
+          };
         }
-        return {
-          type: lambdaType,
-
-          // Only bother with even trying to create a pure function if processing the
-          // entire function display produced no errors
-          value: startErrorCount === this.annotation.errors.length ?
-            undefined : // TODO
-            undefined,
-          // newPureFunctionValue(n, this.scope) : undefined
-
-          ir: new ast.FunctionDisplay(
-            n.location, n.parameters, n.returnType, result.ir),
-        };
       } finally {
         this.currentReturnType = outerReturnType;
       }
@@ -1000,23 +1023,164 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       parameters: method.parameters,
     });
     this.markReference(method.sourceVariable, n.identifier.location.range);
+
+    // account for default parameters
     const argExprs = [...n.args];
     while (argExprs.length < method.parameters.length && method.parameters[argExprs.length].defaultValue) {
       const defaultValue = method.parameters[argExprs.length].defaultValue;
       if (defaultValue) argExprs.push(defaultValue.withLocation(n.identifier.location));
     }
+
+    // check agument count equals parameter count
     if (method.parameters.length !== argExprs.length) {
       for (const arg of n.args) this.solveExpr(arg);
       this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
       return { type: method.returnType, value: method.inlineValue, ir: n };
     }
+
+    // solve the argument expressions
     const argValues: Value[] = [];
     const argIRs: ast.Expression[] = [];
-    for (let i = 0; i < method.parameters.length; i++) {
-      const info = this.solveExpr(argExprs[i], method.parameters[i].type);
-      if (info.value !== undefined) argValues.push(info.value);
-      argIRs.push(info.ir);
+    let maybeReturnType: Type | undefined;
+    if (method.typeParameters) {
+      // If the method has type parameters, for the best effect, we need to handle type parameter
+      // inference as we solve the expressions
+      type Binding = {
+        readonly typeParameter: TypeParameterTypeType;
+        type?: Type;
+      };
+      const failBinding = (message?: string): EResult => {
+        this.error(n.location, `Failed to infer type parameters` + (message ? ` (${message})` : ''));
+        return { type: maybeReturnType || AnyType, ir: n };
+      };
+      const bindings = new Map<TypeParameterType, Binding>(
+        method.typeParameters.map(tp => [tp.typeTypeData.type, { typeParameter: tp }]));
+      const bind = (rawTypeTemplate: Type, rawActualType: Type, variance: TypeVariance): boolean => {
+        const typeTemplate = rawTypeTemplate.lambdaErasure();
+        const actualType = rawActualType.lambdaErasure();
+        const binding = bindings.get(typeTemplate as TypeParameterType);
+        if (binding) {
+          const boundType = binding.type;
+          if (boundType) {
+            switch (variance) {
+              case COVARIANT:
+                return actualType.isAssignableTo(boundType);
+              case CONTRAVARIANT:
+                return boundType.isAssignableTo(actualType);
+              default:
+                return actualType.isAssignableTo(boundType) && boundType.isAssignableTo(actualType);
+            }
+          } else {
+            binding.type = actualType;
+            return true;
+          }
+        }
+        if (typeTemplate.nullableTypeData && actualType.nullableTypeData) {
+          return bind(typeTemplate.nullableTypeData.itemType, actualType.nullableTypeData.itemType, variance);
+        }
+        if (typeTemplate.listTypeData && actualType.listTypeData) {
+          return bind(typeTemplate.listTypeData.itemType, actualType.listTypeData.itemType, variance);
+        }
+        if (typeTemplate.unionTypeData && actualType.unionTypeData) {
+          const templateTypes = typeTemplate.unionTypeData.types;
+          const actualTypes = actualType.unionTypeData.types;
+          if (templateTypes.length !== actualTypes.length) return false;
+          for (let i = 0; i < actualTypes.length; i++) {
+            if (bind(templateTypes[i], actualTypes[i], variance)) return true;
+          }
+          return actualTypes.length === 0;
+        }
+        if (typeTemplate.functionTypeData && actualType.functionTypeData) {
+          const templateData = typeTemplate.functionTypeData;
+          const actualData = actualType.functionTypeData;
+          if (templateData.parameterTypes.length !== actualData.parameterTypes.length) return false;
+          if (!bind(templateData.returnType, actualData.returnType, variance)) return false;
+          const flippedVariance = flipVariance(variance);
+          for (let i = 0; i < actualData.parameterTypes.length; i++) {
+            if (!bind(templateData.parameterTypes[i], actualData.parameterTypes[i], flippedVariance)) return false;
+          }
+          return true;
+        }
+        // If the patterns don't match, it's difficult to infer anymore.
+        // But the binding may still succeed depending on variance and
+        // what we can determine about assignability.
+        switch (variance) {
+          case COVARIANT:
+            return typeTemplate.isAssignableTo(actualType);
+          case CONTRAVARIANT:
+            return actualType.isAssignableTo(typeTemplate);
+          default:
+        }
+        return actualType.isAssignableTo(typeTemplate) && typeTemplate.isAssignableTo(actualType);
+      };
+      const substitute = (rawType: Type, variance: TypeVariance): Type => {
+        const type = rawType.lambdaErasure();
+        const binding = bindings.get(type as TypeParameterType);
+        if (binding) {
+          const boundType = binding.type;
+          if (boundType) {
+            return boundType;
+          } else {
+            // If don't (yet) know the type, we pick the maximally optimistic type.
+            // This depends on the variance.
+            switch (variance) {
+              case COVARIANT: return NeverType;
+              case CONTRAVARIANT: return AnyType;
+              default:
+                // If the binding is invariant, there is no maximally optimistic type.
+                // When the binding is invariant, the substitution must be exact.
+                // The substitution cannot succeed.
+                throw SUBSTITUTION_FAILURE;
+            }
+          }
+        }
+        if (type.nullableTypeData) {
+          return substitute(type.nullableTypeData.itemType, variance).nullable();
+        }
+        if (type.listTypeData) {
+          return substitute(type.listTypeData.itemType, variance).list();
+        }
+        if (type.unionTypeData) {
+          return type.unionTypeData.types.map(
+            t => substitute(t, variance)).reduce((lhs, rhs) => lhs.getCommonType(rhs));
+        }
+        if (type.functionTypeData) {
+          const flippedVariance = flipVariance(variance);
+          return newFunctionType(
+            type.functionTypeData.parameterTypes.map(pt => substitute(pt, flippedVariance)),
+            substitute(type.functionTypeData.returnType, variance));
+        }
+        if (type.hasTypeVariable()) throw SUBSTITUTION_FAILURE;
+        return type;
+      };
+      try {
+        if (!bind(method.returnType, this.hint, COVARIANT)) {
+          return failBinding('incompatible return type');
+        }
+        for (let i = 0; i < method.parameters.length; i++) {
+          const priorParameterType = substitute(method.parameters[i].type, CONTRAVARIANT);
+          const info = this.solveExpr(argExprs[i], priorParameterType);
+          if (!bind(method.parameters[i].type, info.type, CONTRAVARIANT)) {
+            return failBinding(`incompatible parameter ${i}`);
+          }
+          if (info.value !== undefined) argValues.push(info.value);
+          argIRs.push(info.ir);
+        }
+        const returnType = substitute(method.returnType, COVARIANT);
+        maybeReturnType = returnType;
+      } catch (e) {
+        if (e === SUBSTITUTION_FAILURE) return failBinding('substitution failure');
+        throw e;
+      }
+    } else {
+      maybeReturnType = method.returnType;
+      for (let i = 0; i < method.parameters.length; i++) {
+        const info = this.solveExpr(argExprs[i], method.parameters[i].type);
+        if (info.value !== undefined) argValues.push(info.value);
+        argIRs.push(info.ir);
+      }
     }
+    const returnType = maybeReturnType || AnyType;
 
     // If we did not encounter any errors, as a bonus, try computing the static value
     let staticValue: Value | undefined;
@@ -1037,7 +1201,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       n.identifier;
 
     return {
-      type: method.returnType,
+      type: returnType,
       value: method.inlineValue !== undefined ? method.inlineValue : staticValue,
       ir:
         typeof method.inlineValue === 'string' ?
