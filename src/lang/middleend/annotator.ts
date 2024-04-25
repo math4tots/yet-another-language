@@ -66,7 +66,10 @@ type AnnotatorParameters = {
 /** Result of annotating an expression */
 type EResult = {
   readonly type: Type;
+
   readonly value?: Value;
+
+  readonly thunk?: (scope: Scope) => Value | undefined;
 
   /**
    * Intermediate Representation
@@ -107,7 +110,16 @@ type InterfaceFieldValueContents = {
   readonly aliasFor?: ast.Identifier;
 };
 
+
 const SUBSTITUTION_FAILURE = Symbol('Substitution Failure');
+
+function hasThunkOrValue(result: EResult): boolean {
+  return result.value !== undefined || result.thunk !== undefined;
+}
+
+function getValue(scope: Scope, result: EResult): Value | undefined {
+  return result.value !== undefined ? result.value : result.thunk ? result.thunk(scope) : undefined;
+}
 
 class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
   readonly annotation: AnnotationWithoutIR;
@@ -845,7 +857,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       return { type: AnyType, ir: n };
     }
     this.markReference(variable, n.location.range);
-    return { type: variable.type, value: variable.value, ir: n };
+    return {
+      type: variable.type,
+      value: variable.value,
+      thunk: (variable.value === undefined && !variable.isMutable) ?
+        (scope: Scope): Value | undefined => {
+          const evalTimeVariable = scope[variable.identifier.name];
+          return evalTimeVariable.value;
+        } : undefined,
+      ir: n
+    };
   }
   visitAssignment(n: ast.Assignment): EResult {
     const rhs = this.solveExpr(n.value);
@@ -931,12 +952,14 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   visitFunctionDisplay(n: ast.FunctionDisplay): EResult {
     const startErrorCount = this.annotation.errors.length;
     const lambdaType = this.solveFunctionDisplayType(n, this.hint);
+    const outerScope = this.scope;
     return this.scoped(() => {
       const parameters = lambdaType.lambdaTypeData.parameters;
       const tentativeReturnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
       const outerReturnType = this.currentReturnType;
       try {
         this.currentReturnType = tentativeReturnType;
+        const hasMutableParameters = parameters.some(p => p.isMutable);
         for (const parameter of parameters) {
           const variable: Variable = {
             isMutable: parameter.isMutable,
@@ -946,12 +969,31 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           this.declareVariable(variable);
         }
         const simpleBody = getBodyIfFunctionHasSimpleBody(n);
-        if (simpleBody && !n.returnType) {
+        if (simpleBody) {
           // if the function display's body is just a single return statement, we can
           // try and infer the return type based on the return expression.
           const bodyResult = this.solveExpr(simpleBody);
+          const value = bodyResult.value;
+          const thunk = bodyResult.thunk;
           return {
-            type: newLambdaType(lambdaType.lambdaTypeData.parameters, bodyResult.type),
+            type: n.returnType ? lambdaType : newLambdaType(lambdaType.lambdaTypeData.parameters, bodyResult.type),
+            value: value !== undefined ?
+              () => value :
+              (!hasMutableParameters && thunk) ?
+                (...args: Value[]) => {
+                  const staticEvalScope: Scope = Object.create(outerScope);
+                  for (let i = 0; i < parameters.length; i++) {
+                    const parameter = parameters[i];
+                    const variable: Variable = {
+                      identifier: parameter.identifier,
+                      type: parameter.type,
+                      value: args[i],
+                    };
+                    staticEvalScope[parameter.identifier.name] = variable;
+                  }
+                  return thunk(staticEvalScope);
+                } :
+                undefined,
             ir: new ast.FunctionDisplay(
               n.location, n.parameters, n.returnType,
               new ast.Block(n.body.location, [new ast.Return(n.body.statements[0].location, bodyResult.ir)])),
@@ -1037,6 +1079,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
 
     // solve the argument expressions
+    const argResults: EResult[] = [];
     const argValues: Value[] = [];
     const argIRs: ast.Expression[] = [];
     let maybeReturnType: Type | undefined;
@@ -1199,6 +1242,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         for (let i = 0; i < method.parameters.length; i++) {
           const priorParameterType = substitute(method.parameters[i].type, CONTRAVARIANT);
           const info = this.solveExpr(argExprs[i], priorParameterType);
+          argResults.push(info);
           if (!bind(method.parameters[i].type, info.type, CONTRAVARIANT)) {
             return failBinding(`incompatible parameter ${i}`);
           }
@@ -1222,6 +1266,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       maybeReturnType = method.returnType;
       for (let i = 0; i < method.parameters.length; i++) {
         const info = this.solveExpr(argExprs[i], method.parameters[i].type);
+        argResults.push(info);
         if (info.value !== undefined) argValues.push(info.value);
         argIRs.push(info.ir);
       }
@@ -1245,14 +1290,21 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const methodIdentifier =
       method.aliasFor ?
         new ast.IdentifierNode(n.identifier.location, method.aliasFor) :
-        (method.identifier.name.startsWith('__')) ? n.identifier :
-          owner.type.moduleTypeData ?
-            new ast.IdentifierNode(n.identifier.location, `__js_${translateVariableName(n.identifier.name)}`) :
-            n.identifier;
+        method.identifier.name.startsWith('__') ? n.identifier :
+          n.identifier;
+
+    const value = method.inlineValue !== undefined ? method.inlineValue : staticValue;
 
     return {
       type: returnType,
-      value: method.inlineValue !== undefined ? method.inlineValue : staticValue,
+      value,
+      thunk:
+        (value == undefined && hasThunkOrValue(owner) && argResults.every(e => hasThunkOrValue(owner))) ?
+          (staticEvalScope: Scope): Value | undefined => {
+            const ownerValue = getValue(staticEvalScope, owner);
+            const argValues = argResults.map(arg => getValue(staticEvalScope, arg));
+            return evalMethodCall(ownerValue, method, argValues);
+          } : undefined,
       ir:
         typeof method.inlineValue === 'string' ?
           new ast.StringLiteral(n.location, method.inlineValue) :

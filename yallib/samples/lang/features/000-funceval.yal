@@ -1,0 +1,18 @@
+
+
+function getSomeConstantValue1(): Number { return 5 + 7 }
+
+const someValue = "world"
+
+function getSomeConstantValue2() { return "hello " + someValue }
+
+const value1 = getSomeConstantValue1()
+const value2 = getSomeConstantValue2()
+
+function withArg(x: Number) { return x * x + x + 1 }
+const value3 = withArg(3)
+
+function getLen(x: List[String]): Number { return x.size }
+
+const someLen = getLen(["a", "b", "c"])
+print(someLen)

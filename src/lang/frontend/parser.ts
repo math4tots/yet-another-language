@@ -216,6 +216,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   }
 
   function parseParameter(): ast.Parameter {
+    const isMutable = consume('var');
     const identifier = parseIdentifier();
     const type = consume(':') ? parseTypeExpression() : null;
     const value = consume('=') ? parseLiteral() : null;
@@ -229,7 +230,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
               identifier.location.range.end,
       }
     };
-    return new ast.Parameter(location, true, identifier, type, null, value);
+    return new ast.Parameter(location, isMutable, identifier, type, null, value);
   }
 
   function parseParameters(): ast.Parameter[] {
