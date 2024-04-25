@@ -23,3 +23,7 @@ const k = record.someMutableField
 const sr: SomeRecord = record
 const vv = sr.someField
 const v = sr.someMutableField
+print("xx = " + str(xx))
+print("someMutableField = " + str(record.someMutableField))
+record.someMutableField = "new value"
+print("someMutableField = " + str(record.someMutableField))

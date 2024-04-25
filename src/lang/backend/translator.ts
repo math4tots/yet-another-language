@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as ast from '../frontend/ast';
-import { translateMethodName, translateVariableName } from '../middleend/value';
+import { translateFieldName, translateMethodName, translateVariableName } from '../middleend/value';
 import { getAnnotationForDocument } from '../middleend/annotator';
 import { Annotation } from '../middleend/annotation';
 import {
@@ -9,6 +9,7 @@ import {
   REPR_FUNCTION_DEFINITION,
   STR_FUNCTION_DEFINITION,
   PRINT_FUNCTION_DEFINITION,
+  NULL_MAP_FUNCTION_DEFINITION,
 } from '../middleend/shared-functions';
 
 const specialUnaryOperatorMap = new Map<string, (e: string) => string>([
@@ -20,20 +21,21 @@ const specialUnaryOperatorMap = new Map<string, (e: string) => string>([
   ['__op_noop__', e => e],
 ]);
 
-const specialBinaryOperatorMap = new Map([
-  ['__op_eq__', '==='],
-  ['__op_ne__', '!=='],
-  ['__op_lt__', '<'],
-  ['__op_le__', '<='],
-  ['__op_gt__', '>'],
-  ['__op_ge__', '>='],
-  ['__op_add__', '+'],
-  ['__op_sub__', '-'],
-  ['__op_mul__', '*'],
-  ['__op_div__', '/'],
-  ['__op_mod__', '%'],
-  ['__op_pow__', '**'],
-  ['__op_nullish_coalescing__', '??'],
+const specialBinaryOperatorMap = new Map<string, (a: string, b: string) => string>([
+  ['__op_eq__', (a, b) => `(${a}===${b})`],
+  ['__op_ne__', (a, b) => `(${a}!==${b})`],
+  ['__op_lt__', (a, b) => `(${a}<${b})`],
+  ['__op_le__', (a, b) => `(${a}<=${b})`],
+  ['__op_gt__', (a, b) => `(${a}>${b})`],
+  ['__op_ge__', (a, b) => `(${a}>=${b})`],
+  ['__op_add__', (a, b) => `(${a}+${b})`],
+  ['__op_sub__', (a, b) => `(${a}-${b})`],
+  ['__op_mul__', (a, b) => `(${a}*${b})`],
+  ['__op_div__', (a, b) => `(${a}/${b})`],
+  ['__op_mod__', (a, b) => `(${a}%${b})`],
+  ['__op_pow__', (a, b) => `(${a}**${b})`],
+  ['__op_nullish_coalescing__', (a, b) => `(${a}??${b})`],
+  ['__op_nullmap__', (a, b) => `nullMap(${a},${b})`],
 ]);
 
 const builtinOnlyMethodNames = new Set([
@@ -99,15 +101,12 @@ class Translator implements ast.NodeVisitor<string> {
     if (args.length === 0) {
       const applyOperator = specialUnaryOperatorMap.get(name);
       if (applyOperator) return applyOperator(owner);
-      if (name === '__get___size') return `${owner}.length`;
-      if (name.startsWith('__get___js_')) return `${owner}.${name.substring(11)}`;
-      if (name.startsWith('__get_')) return `${owner}.YAL${name.substring(6)}`;
+      if (name.startsWith('__get_')) return `${owner}.${translateFieldName(name.substring(6))}`;
     } else if (args.length === 1) {
       if (name === '__op_getitem__') return `${owner}[${args[0]}]`;
       const op = specialBinaryOperatorMap.get(name);
-      if (op) return `(${owner}${op}${args[0]})`;
-      if (name.startsWith('__set___js_')) return `(${owner}.${name.substring(11)}=${args[0]})`;
-      if (name.startsWith('__set_')) return `(${owner}.YAL${name.substring(6)}=${args[0]})`;
+      if (op) return op(owner, args[0]);
+      if (name.startsWith('__set_')) return `(${owner}.${translateFieldName(name.substring(6))}=${args[0]})`;
     } else if (args.length === 2) {
       if (name === '__op_setitem__') return `(${owner}[${args[0]}]=${args[1]})`;
     }
@@ -240,6 +239,7 @@ export async function getTranslationForDocument(
     '(()=>{',
     RAISE_FUNCTION_DEFINITION,
     NULL_GET_FUNCTION_DEFINITION,
+    NULL_MAP_FUNCTION_DEFINITION,
     REPR_FUNCTION_DEFINITION,
     STR_FUNCTION_DEFINITION,
   ];

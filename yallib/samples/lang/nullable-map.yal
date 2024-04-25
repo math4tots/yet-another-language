@@ -1,0 +1,21 @@
+
+
+
+if (true) {
+  const foo: Number? = null
+
+  print(foo.map(x => x + 2))
+  print(foo.flatMap(x => x + 2))
+
+  const a1 = foo.map(x => x + 2)
+  const a2 = foo.flatMap(x => x + 2)
+}
+
+if (true) {
+  const foo: Number? = 17
+  print(foo.map(x => x + 2))
+  print(foo.flatMap(x => x + 2))
+
+  const b1 = foo.map(x => x + 2)
+  const b2 = foo.flatMap(x => x + 2)
+}

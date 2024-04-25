@@ -380,7 +380,7 @@ export class Type {
       identifier: { name: `Nullable[${this.identifier.name}]` },
       nullableTypeData: { itemType: this },
     }) as NullableType;
-    addNullableMethods(nullableType);
+    nullableType._addMethods = () => addNullableMethods(nullableType);
     this._nullable = nullableType;
     return nullableType;
   }
@@ -913,6 +913,18 @@ function addNullableMethods(nullableType: NullableType) {
     parameters: [],
     returnType: itemType,
     aliasFor: '__op_nullget__',
+  });
+  nullableType.addMethod({
+    identifier: { name: 'map' },
+    parameters: [{ identifier: { name: 'f' }, type: newFunctionType([itemType], itemType) }],
+    returnType: nullableType,
+    aliasFor: '__op_nullmap__',
+  });
+  nullableType.addMethod({
+    identifier: { name: 'flatMap' },
+    parameters: [{ identifier: { name: 'f' }, type: newFunctionType([itemType], nullableType) }],
+    returnType: nullableType,
+    aliasFor: '__op_nullmap__',
   });
   nullableType.addMethod({
     identifier: { name: 'getOrElse' },

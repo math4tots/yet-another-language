@@ -7,6 +7,8 @@ export const RAISE_FUNCTION_DEFINITION = `function raise(x) { throw new Error(x)
 
 export const NULL_GET_FUNCTION_DEFINITION = `function nullGet(x) { return x ?? raise('nullish value error'); }`;
 
+export const NULL_MAP_FUNCTION_DEFINITION = `function nullMap(x, f) { return ((x ?? null) === null) ? x : f(x); }`;
+
 export const REPR_FUNCTION_DEFINITION = `function YALrepr(x) {
   switch (typeof x) {
     case 'undefined': return 'undefined';

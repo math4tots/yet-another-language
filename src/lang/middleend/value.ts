@@ -1,5 +1,5 @@
 import type { Annotation } from "./annotation";
-import { printFunction } from "./functions";
+import { nullGetFunction, nullMapFunction, printFunction } from "./functions";
 import type { Method } from "./type";
 
 export type Value =
@@ -33,6 +33,11 @@ export function translateMethodName(name: string, argc: number): string {
   return `YAL${argc}${name}`;
 }
 
+export function translateFieldName(name: string): string {
+  if (name.startsWith('__js_')) return name.substring('__js_'.length);
+  return `YAL${name}`;
+}
+
 export class ModuleValue {
   constructor(annotation: Annotation) {
     for (const variable of annotation.exportMap.values()) {
@@ -63,95 +68,63 @@ export class RecordValue {
 
 export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
   if (method.inlineValue !== undefined) return method.inlineValue;
-  const methodName = method.identifier.name;
   const resolvedMethodName = method.aliasFor || method.identifier.name;
-  const allDefined = typeof owner !== 'undefined' && args.every(arg => typeof arg !== undefined);
 
-  if (args.length === 0 && resolvedMethodName === '__op_noop__') return owner;
+  if (resolvedMethodName === '__op_noop__') return owner;
   if (owner === printFunction) return;
 
-  if (allDefined) {
-    if (args.length === 0 && resolvedMethodName.startsWith('__get___js_')) {
-      return owner[resolvedMethodName.substring('__get___js_'.length)];
+  // Beyond this point, we assume all values are available and parameter count matches
+  if (owner === undefined ||
+    args.some(arg => arg === undefined) ||
+    method.parameters.length !== args.length) return;
+
+  if (resolvedMethodName === '__call__') return owner(...args);
+  if (resolvedMethodName.startsWith('__set_')) return;
+  if (resolvedMethodName.startsWith('__op_setitem__')) return;
+
+  switch (args.length) {
+    case 0:
+      if (resolvedMethodName.startsWith('__get_')) {
+        const translatedFieldName = translateFieldName(resolvedMethodName.substring('__get_'.length));
+        return owner[translatedFieldName];
+      }
+      switch (resolvedMethodName) {
+        case '__op_neg__': return -owner;
+        case '__op_pos__': return +owner;
+        case '__op_isnull__': return (owner ?? null) === null;
+        case '__op_hasvalue__': return (owner ?? null) !== null;
+        case '__op_nullget__': return nullGetFunction(owner);
+        case '__op_noop__': return owner;
+      }
+      break;
+    case 1: {
+      const arg = args[0];
+      switch (resolvedMethodName) {
+        case '__op_eq__': return owner === arg;
+        case '__op_ne__': return owner !== arg;
+        case '__op_lt__': return owner < arg;
+        case '__op_le__': return owner <= arg;
+        case '__op_gt__': return owner > arg;
+        case '__op_ge__': return owner >= arg;
+        case '__op_add__': return owner + arg;
+        case '__op_sub__': return owner - arg;
+        case '__op_mul__': return owner * arg;
+        case '__op_div__': return owner / arg;
+        case '__op_mod__': return owner % arg;
+        case '__op_pow__': return owner ** arg;
+        case '__op_nullish_coalescing__': return owner ?? arg;
+        case '__op_nullmap__': return nullMapFunction(owner, arg);
+        case '__op_getitem__': return owner[arg];
+      }
+      break;
     }
-    if (resolvedMethodName.startsWith('__js_')) return owner[resolvedMethodName.substring('__js_'.length)](...args);
-    if (methodName === '__eq__' && args.length === 1) return owner === args[0];
-    if (methodName === '__ne__' && args.length === 1) return owner !== args[0];
   }
-  switch (typeof owner) {
-    case 'undefined': return;
-    case 'number':
-      if (args.length === 0) {
-        switch (methodName) {
-          case '__pos__': return owner;
-          case '__neg__': return -owner;
-        }
-      } else if (args.length === 1) {
-        const arg0 = args[0];
-        if (typeof arg0 === 'number') {
-          switch (methodName) {
-            case '__add__': return owner + arg0;
-            case '__sub__': return owner - arg0;
-            case '__mul__': return owner * arg0;
-            case '__div__': return owner / arg0;
-            case '__mod__': return owner % arg0;
-            case '__lt__': return owner < arg0;
-            case '__gt__': return owner > arg0;
-            case '__le__': return owner <= arg0;
-            case '__ge__': return owner >= arg0;
-          }
-        }
-      }
-      break;
-    case 'string':
-      if (args.length === 0) {
-        if (methodName === '__get_size') return owner.length;
-      } else if (args.length === 1) {
-        const arg0 = args[0];
-        if (typeof arg0 === 'string') {
-          switch (methodName) {
-            case '__lt__': return owner < arg0;
-            case '__gt__': return owner > arg0;
-            case '__le__': return owner <= arg0;
-            case '__ge__': return owner >= arg0;
-            case '__add__': return owner + arg0;
-          }
-        }
-      }
-      break;
-    case 'object':
-      if (Array.isArray(owner)) {
-        if (args.length === 0) {
-          if (methodName === '__get_size') return owner.length;
-        } else if (args.length === 1) {
-          const arg0 = args[0];
-          if (typeof arg0 === 'number' && methodName === '__getitem__') {
-            return owner[arg0];
-          }
-        }
-      } else if (owner instanceof ModuleValue || owner instanceof RecordValue) {
-        if (methodName.startsWith('__get_')) {
-          const fieldName = methodName.substring('__get_'.length);
-          const modifiedFieldName = translateVariableName(fieldName);
-          if ((owner as any)[modifiedFieldName]) return (owner as any)[modifiedFieldName];
-        } else if (methodName.startsWith('__set_')) {
-          // setters... ignore
-        } else {
-          if (owner instanceof ModuleValue) {
-            const jsName = translateVariableName(methodName);
-            if ((owner as any)[jsName]) return (owner as any)[jsName](...args);
-          }
-          // NOTE: this may not correctly handle aliasing methods
-          const jsMethodName = translateMethodName(methodName, method.parameters.length);
-          if ((owner as any)[jsMethodName]) return (owner as any)[jsMethodName](...args);
-        }
-      } else {
-        // Some other kind of object
-      }
-      break;
-    case 'function':
-      if (methodName === '__call__') return owner(...args);
-      break;
+
+  // "normal" method call
+  if (owner instanceof ModuleValue) {
+    const translatedMethodName = translateFieldName(resolvedMethodName);
+    if ((owner as any)[translatedMethodName]) return (owner as any)[translatedMethodName](...args);
   }
-  return;
+  const translatedMethodName = translateMethodName(resolvedMethodName, args.length);
+  if (owner[translatedMethodName]) return owner[translatedMethodName](...args);
 }
