@@ -1081,7 +1081,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
         // If the types satisfy the requirements of the variance without any further binding,
         // there isn't any binding that is needed.
-        // Similarly, if the requirements are the variance cannot be satisfied due to the
+        // Similarly, if the requirements of the variance cannot be satisfied due to the
         // limited ways it can happen, we can determine quickly whether the binding will fail.
         switch (variance) {
           case COVARIANT:
