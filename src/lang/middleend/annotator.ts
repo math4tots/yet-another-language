@@ -52,9 +52,10 @@ import {
   flipVariance,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
-import { ModuleValue, RecordValue, Value, evalMethodCall, translateVariableName } from './value';
+import { ModuleValue, RecordValue, Value, evalMethodCall } from './value';
 import { printFunction } from './functions';
 import { getSymbolTable } from '../frontend/symbolregistry';
+import { translateVariableName } from './names';
 
 type AnnotatorParameters = {
   readonly annotation: AnnotationWithoutIR;

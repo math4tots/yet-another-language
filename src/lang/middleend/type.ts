@@ -1,6 +1,7 @@
 import { Identifier } from "../frontend/ast";
 import * as ast from "../frontend/ast";
 import type { Annotation, EnumConstVariable, Variable } from "./annotation";
+import { translateFieldName } from "./names";
 
 type TypeConstructorParameters = {
   readonly identifier: Identifier;
@@ -648,6 +649,13 @@ export function newModuleType(annotation: Annotation): ModuleType {
           parameters: [...parameters],
           returnType,
           sourceVariable: variable,
+
+          // Because we qualify method names with the number of parameters it has,
+          // by default, the field names on a module will not match the automatically
+          // inferred method name.
+          // So instead we explicitly specify the method name here so that we
+          // do not need to specially handle module "methods"
+          aliasFor: `__js_${translateFieldName(variable.identifier.name)}`,
         });
       }
     }

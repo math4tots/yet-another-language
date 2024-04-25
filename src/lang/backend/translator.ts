@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as ast from '../frontend/ast';
-import { translateFieldName, translateMethodName, translateVariableName } from '../middleend/value';
+import { translateFieldName, translateMethodName, translateVariableName } from '../middleend/names';
 import { getAnnotationForDocument } from '../middleend/annotator';
 import { Annotation } from '../middleend/annotation';
 import {

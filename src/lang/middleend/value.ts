@@ -1,5 +1,6 @@
 import type { Annotation } from "./annotation";
 import { nullGetFunction, nullMapFunction, printFunction } from "./functions";
+import { translateFieldName, translateMethodName, translateVariableName } from "./names";
 import type { Method } from "./type";
 
 export type Value =
@@ -12,31 +13,6 @@ export type Value =
   Function |
   RecordValue;
 
-
-/**
- * Translates variable names from YAL to JS.
- * 
- * This functionality arguably belongs in the backend, but is needed to properly handle
- * properties of values in the middleend
- */
-export function translateVariableName(name: string): string {
-  if (name === 'this') return 'this';
-  if (name.startsWith('__js_')) return name.substring('__js_'.length);
-  return 'YAL' + name;
-}
-
-export function translateMethodName(name: string, argc: number): string {
-  if (name.startsWith('__js_')) return name.substring('__js_'.length);
-
-  // There's no need for a separator character between argc and name
-  // because argc is an integer and name cannot start with a digit.
-  return `YAL${argc}${name}`;
-}
-
-export function translateFieldName(name: string): string {
-  if (name.startsWith('__js_')) return name.substring('__js_'.length);
-  return `YAL${name}`;
-}
 
 export class ModuleValue {
   constructor(annotation: Annotation) {
@@ -121,10 +97,6 @@ export function evalMethodCall(owner: any, method: Method, args: any[]): Value |
   }
 
   // "normal" method call
-  if (owner instanceof ModuleValue) {
-    const translatedMethodName = translateFieldName(resolvedMethodName);
-    if ((owner as any)[translatedMethodName]) return (owner as any)[translatedMethodName](...args);
-  }
   const translatedMethodName = translateMethodName(resolvedMethodName, args.length);
   if (owner[translatedMethodName]) return owner[translatedMethodName](...args);
 }
