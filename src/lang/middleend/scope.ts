@@ -1,22 +1,36 @@
 import { Variable } from "./annotation";
 import { printFunction, reprFunction, strFunction } from "./functions";
-import { AnyType, BoolType, NeverType, NullType, NumberType, StringType, newLambdaType } from "./type";
+import {
+  AnyType,
+  AnyTypeType,
+  BoolType,
+  BoolTypeType,
+  NeverType,
+  NeverTypeType,
+  NullType,
+  NullTypeType,
+  NumberType,
+  NumberTypeType,
+  StringType,
+  StringTypeType,
+  newLambdaType,
+} from "./type";
 
 export type Scope = { [key: string]: Variable; };
 
 export const BASE_SCOPE: Scope = Object.create(null);
 BASE_SCOPE['Any'] =
-  { identifier: AnyType.identifier, type: AnyType };
+  { identifier: AnyType.identifier, type: AnyTypeType };
 BASE_SCOPE['Never'] =
-  { identifier: NeverType.identifier, type: NeverType };
+  { identifier: NeverType.identifier, type: NeverTypeType };
 BASE_SCOPE['Null'] =
-  { identifier: NullType.identifier, type: AnyType };
+  { identifier: NullType.identifier, type: NullTypeType };
 BASE_SCOPE['Bool'] =
-  { identifier: BoolType.identifier, type: AnyType };
+  { identifier: BoolType.identifier, type: BoolTypeType };
 BASE_SCOPE['Number'] =
-  { identifier: NumberType.identifier, type: AnyType };
+  { identifier: NumberType.identifier, type: NumberTypeType };
 BASE_SCOPE['String'] =
-  { identifier: StringType.identifier, type: AnyType };
+  { identifier: StringType.identifier, type: StringTypeType };
 
 BASE_SCOPE['print'] = {
   identifier: { name: 'print' },

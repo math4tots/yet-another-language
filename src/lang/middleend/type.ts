@@ -91,6 +91,7 @@ type TypeParameterTypeData = {};
 
 /** The basic types are Bool, Number and String. Null was intentionally excluded */
 export type BasicType = Type & { readonly basicTypeData: BasicTypeData; };
+export type BasicTypeType = Type & { readonly typeTypeData: BasicType; };
 
 export type TypeType = Type & { readonly typeTypeData: TypeTypeData; };
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
@@ -553,6 +554,36 @@ export const NullType = new Type({ identifier: { name: 'Null' } });
 export const BoolType = new Type({ identifier: { name: 'Bool' }, basicTypeData: {} }) as BasicType;
 export const NumberType = new Type({ identifier: { name: 'Number' }, basicTypeData: {} }) as BasicType;
 export const StringType = new Type({ identifier: { name: 'String' }, basicTypeData: {} }) as BasicType;
+
+export const AnyTypeType = new Type({
+  identifier: { name: '(type Any)' },
+  typeTypeData: { type: AnyType, isCompileTimeOnly: true },
+}) as TypeType;
+
+export const NeverTypeType = new Type({
+  identifier: { name: '(type Never)' },
+  typeTypeData: { type: NeverType, isCompileTimeOnly: true },
+}) as TypeType;
+
+export const NullTypeType = new Type({
+  identifier: { name: '(type Null)' },
+  typeTypeData: { type: NullType, isCompileTimeOnly: true },
+}) as TypeType;
+
+export const BoolTypeType = new Type({
+  identifier: { name: '(type Bool)' },
+  typeTypeData: { type: BoolType, isCompileTimeOnly: true },
+}) as BasicTypeType;
+
+export const NumberTypeType = new Type({
+  identifier: { name: '(type Number)' },
+  typeTypeData: { type: NumberType, isCompileTimeOnly: true },
+}) as BasicTypeType;
+
+export const StringTypeType = new Type({
+  identifier: { name: '(type String)' },
+  typeTypeData: { type: StringType, isCompileTimeOnly: true },
+}) as BasicTypeType;
 
 type Cache = {
   type?: FunctionType,
