@@ -1,4 +1,4 @@
-from './helpertypes/drawimagesource' import DrawImageSource
+from './marker/drawimagesource' import DrawImageSource
 from './offscreencanvasrenderingcontext2d' import OffscreenCanvasRenderingContext2D
 from './webglrenderingcontext' import WebGLRenderingContext
 

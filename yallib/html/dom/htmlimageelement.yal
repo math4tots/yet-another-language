@@ -1,5 +1,5 @@
-from './helpertypes/drawimagesource' import DrawImageSource
 from './htmlelement' import HTMLElement
+from './marker/drawimagesource' import DrawImageSource
 
 export interface HTMLImageElement extends HTMLElement, DrawImageSource {
   """

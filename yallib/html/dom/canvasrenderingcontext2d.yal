@@ -1,4 +1,4 @@
-from './helpertypes/drawimagesource' import DrawImageSource
+from './marker/drawimagesource' import DrawImageSource
 from './textmetrics' import TextMetrics
 
 enum TextAlign {
