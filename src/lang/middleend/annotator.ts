@@ -202,7 +202,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         getCompletions() {
           return Array.from(moduleTypeData.annotation.exportMap.values())
             .filter(v => v.type.typeTypeData)
-            .map(v => ({ name: v.identifier.name }));
+            .map(v => ({ name: v.identifier.name, variable: v }));
         },
       });
 
@@ -231,7 +231,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           const variable = scopeAtLocation[key];
           const type = variable.type;
           if (type.typeTypeData || type.moduleTypeData) {
-            completions.push({ name: key });
+            completions.push({ name: key, variable });
           }
         }
         // Provide completions for builtin generic types
@@ -856,7 +856,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           for (const enumConstVariable of hint.getEnumConstVariables()) {
             const value = enumConstVariable.value;
             if (typeof value === 'string') {
-              completions.push({ name: value, detail: `(enum)` });
+              completions.push({ name: value, variable: enumConstVariable });
             }
           }
           return completions;
@@ -876,7 +876,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       getCompletions: () => {
         const completions: Completion[] = [];
         for (const key in scope) {
-          completions.push({ name: key });
+          completions.push({ name: key, variable: scope[key] });
         }
         // additionally, provide provide completions for constants and keywords
         completions.push({ name: 'null' });
@@ -1070,7 +1070,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       getCompletions(): Completion[] {
         const completions: Completion[] = [];
         const seen = new Set<string>();
-        for (const rawName of new Set(owner.type.getAllMethods().map(m => m.identifier.name))) {
+        for (const method of owner.type.getAllMethodsWithDedupedNames()) {
+          const rawName = method.identifier.name;
           if (rawName.startsWith('__marker_') || rawName.startsWith('__get___marker_')) {
             // skip the __marker__ field/method - these are used purely for
             // adding a unique marker to interfaces
@@ -1084,6 +1085,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             completions.push({
               name,
               detail: '(property)',
+              variable: method.sourceVariable,
             });
           } else {
             // normal methods
@@ -1093,6 +1095,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             completions.push({
               name,
               detail: '(method)',
+              variable: method.sourceVariable,
             });
           }
         }

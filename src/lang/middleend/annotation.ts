@@ -73,6 +73,7 @@ export interface CallInstance {
 
 export interface Completion {
   readonly name: string;
+  readonly variable?: Variable;
   readonly detail?: string;
   readonly importFrom?: string;
   readonly importAsModule?: boolean;

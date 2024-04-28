@@ -17,6 +17,9 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
             if (completion.detail) {
               item.detail = completion.detail;
             }
+            if (completion.variable?.comment) {
+              item.documentation = completion.variable.comment.value;
+            }
             if (completion.importFrom) {
               const fileNode = await getAstForDocument(document);
               let position = new vscode.Position(0, 0);

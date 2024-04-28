@@ -457,6 +457,17 @@ export class Type {
     return [...this._methods];
   }
 
+  *getAllMethodsWithDedupedNames(): Generator<Method> {
+    this.prepareMethods();
+    const seen = new Set<string>();
+    for (const method of this._methods) {
+      if (!seen.has(method.identifier.name)) {
+        seen.add(method.identifier.name);
+        yield method;
+      }
+    }
+  }
+
   addMethod(params: NewMethodParameters) {
     const method = newMethod(params);
     this._methods.push(method);
