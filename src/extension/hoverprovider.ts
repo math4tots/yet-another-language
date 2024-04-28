@@ -1,16 +1,8 @@
 import * as vscode from 'vscode';
-import * as yal from '../lang/yal';
 import { getAnnotationForDocument } from '../lang/middleend/annotator';
 import { AnyType } from '../lang/middleend/type';
 import { reprFunction } from '../lang/middleend/functions';
-
-function toVSPosition(p: yal.Position): vscode.Position {
-  return new vscode.Position(p.line, p.column);
-}
-
-function toVSRange(range: yal.Range): vscode.Range {
-  return new vscode.Range(toVSPosition(range.start), toVSPosition(range.end));
-}
+import { toVSRange } from '../lang/frontend/bridge-utils';
 
 function formatComment(s: string): string {
   if (!s.startsWith('\n')) return s;
