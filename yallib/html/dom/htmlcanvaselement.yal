@@ -1,6 +1,6 @@
 from './htmlelement' import HTMLElement
 from './canvasrenderingcontext2d' import CanvasRenderingContext2D
-from './marker/drawimagesource' import DrawImageSource
+from './mixin/drawimagesource' import DrawImageSource
 from './webglrenderingcontext' import WebGLRenderingContext
 
 enum String2D {

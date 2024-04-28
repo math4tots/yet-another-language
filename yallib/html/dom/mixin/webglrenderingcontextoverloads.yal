@@ -1,0 +1,22 @@
+from 'js/type/arraybuffer' import ArrayBuffer
+from 'js/type/float32array' import Float32Array
+
+typedef GLboolean = Bool
+typedef GLenum = Number
+typedef GLsizei = Number
+typedef GLuint = Number
+typedef GLint = Number
+typedef GLintptr = Number
+typedef GLsizeiptr = Number
+typedef GLbitfield = Number
+typedef GLclampf = Number
+typedef GLfloat = Number
+typedef DOMString = String
+typedef Float32List = Float32Array
+
+typedef AllowSharedBufferSource = ArrayBuffer | Float32Array
+
+
+export interface WebGLRenderingContextOverloads {
+  function bufferData(target: GLenum, sizeOrData: GLsizeiptr | AllowSharedBufferSource?, usage: GLenum) { aliasFor(__js_bufferData) }
+}

@@ -508,8 +508,31 @@ export interface WebGLRenderingContextBase {
                              srcAlpha: GLenum, dstAlpha: GLenum) { aliasFor(__js_blendFuncSeparate) }
 
   function checkFramebufferStatus(target: GLenum): GLenum { aliasFor(__js_checkFramebufferStatus) }
-  function clear(mask: GLbitfield) { aliasFor(__js_clear) }
-  function clearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf) { aliasFor(__js_clearColor) }
+  function clear(mask: GLbitfield) {
+    """
+    The WebGLRenderingContext.clear() method of the WebGL API clears buffers
+    to preset values.
+
+    The preset values can be set by clearColor(), clearDepth() or clearStencil().
+
+    The scissor box, dithering, and buffer writemasks can affect the clear() method.
+
+    * Parameters
+      * `mask`
+        A GLbitfield bitwise OR mask that indicates the buffers to be cleared.
+        Possible values are:
+        * gl.COLOR_BUFFER_BIT
+        * gl.DEPTH_BUFFER_BIT
+        * gl.STENCIL_BUFFER_BIT
+    """
+    aliasFor(__js_clear)
+  }
+  function clearColor(red: GLclampf, green: GLclampf, blue: GLclampf, alpha: GLclampf) {
+    """
+    Specifies the color values used when clearing color buffers.
+    """
+    aliasFor(__js_clearColor)
+  }
   function clearDepth(depth: GLclampf) { aliasFor(__js_clearDepth) }
   function clearStencil(s: GLint) { aliasFor(__js_clearStencil) }
   function colorMask(red: GLboolean, green: GLboolean, blue: GLboolean, alpha: GLboolean) { aliasFor(__js_colorMask) }
