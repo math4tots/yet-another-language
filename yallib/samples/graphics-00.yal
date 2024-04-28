@@ -1,7 +1,7 @@
 """
 A graphics demo
 """
-from 'html/htmlcanvaselement' import HTMLCanvasElement
+from 'html/dom/htmlcanvaselement' import HTMLCanvasElement
 from 'html/value/document' import document
 from 'html/value/window' import window
 

@@ -1,7 +1,7 @@
 from './htmlelement' import HTMLElement
 from './canvasrenderingcontext2d' import CanvasRenderingContext2D
-from './helpertypes/drawimagesource' import DrawImageSource
 from './webglrenderingcontext' import WebGLRenderingContext
+from 'html/helpertypes/drawimagesource' import DrawImageSource
 
 enum String2D {
   const value = "2d"

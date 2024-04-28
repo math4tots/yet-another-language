@@ -1,5 +1,5 @@
-from './helpertypes/drawimagesource' import DrawImageSource
 from './textmetrics' import TextMetrics
+from 'html/helpertypes/drawimagesource' import DrawImageSource
 
 enum TextAlign {
   const left = "left"

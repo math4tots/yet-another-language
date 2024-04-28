@@ -1,5 +1,5 @@
-from 'html/element' import Element
-from 'html/htmlbodyelement' import HTMLBodyElement
+from 'html/dom/element' import Element
+from 'html/dom/htmlbodyelement' import HTMLBodyElement
 
 export interface Document {
   const __marker_Document: Any

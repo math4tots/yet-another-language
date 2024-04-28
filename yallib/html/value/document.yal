@@ -1,4 +1,4 @@
-from 'html/document' import Document
+from 'html/dom/document' import Document
 
 
 const __target = 'html'

@@ -1,4 +1,4 @@
-from 'html/window' import Window
+from 'html/dom/window' import Window
 
 const __target = 'html'
 
