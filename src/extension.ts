@@ -4,7 +4,6 @@ import { tokenizeCommand } from './extension/tokenize';
 import { parseCommand } from './extension/parse';
 import { runCommand } from './extension/run';
 import { translateToJSCommand } from './extension/translate-to-js';
-import { runHTMLCommand } from './extension/runhtml';
 import { newDefinitionProvider } from './extension/definitionprovider';
 import { newHoverProvider } from './extension/hoverprovider';
 import { newCompletionProvider } from './extension/completionprovider';
@@ -58,9 +57,6 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.commands.registerCommand(
     'yal.run',
     runCommand));
-  sub(vscode.commands.registerCommand(
-    'yal.runhtml',
-    runHTMLCommand));
   sub(vscode.commands.registerCommand(
     'yal.translateToJavascript',
     translateToJSCommand));

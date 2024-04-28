@@ -71,10 +71,6 @@
                 "title": "yal: Run/Eval yal File"
             },
             {
-                "command": "yal.runhtml",
-                "title": "yal: Run/Eval yal File as HTML"
-            },
-            {
                 "command": "yal.translateToJavascript",
                 "title": "yal: Translate YAL code to Javascript (JS)"
             },
@@ -105,10 +101,6 @@
                     "when": "editorLangId == yal"
                 },
                 {
-                    "command": "yal.runhtml",
-                    "when": "editorLangId == yal"
-                },
-                {
                     "command": "yal.translateToJavascript",
                     "when": "editorLangId == yal"
                 }
@@ -119,8 +111,7 @@
         "onLanguage:yal",
         "onCommand:yal.tokenize",
         "onCommand:yal.parse",
-        "onCommand:yal.run",
-        "onCommand:yal.runhtml"
+        "onCommand:yal.run"
     ],
     "devDependencies": {
         "@types/vscode": "^1.45.0",
