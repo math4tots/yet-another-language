@@ -1438,6 +1438,23 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const startErrorCount = this.annotation.errors.length;
     const type = this.solveType(n.type);
     const result = this.solveExpr(n.value, type, false);
+
+    // Warn about specific kinds of type assertions
+    if (type === AnyType || result.type === AnyType || result.type.isAssignableTo(type)) {
+      // Casting to or from Any is always allowed
+      // This allows using Any as an intermediate type when you want to ignore
+      // type assertion warnings
+      //
+      // Upcasting is also always allowed. Generally this is not needed, but
+      // it can help with documentation or pushing a certain type to be inferred at
+      // a specific location.
+      //
+    } else if (result.type.nullableTypeData && !type.nullableTypeData) {
+      // casting a nullable to a non-nullable is a bit suspicious.
+      // It might be better to just get the inside value first
+      this.error(n.type.location, `Call '.get()' on Nullable values before making type assertions`);
+    }
+
     let value = startErrorCount === this.annotation.errors.length ?
       result.value : undefined;
     return { type, value, ir: result.ir };
