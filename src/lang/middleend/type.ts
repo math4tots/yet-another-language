@@ -636,8 +636,9 @@ export function newFunctionType(parameterTypes: Type[], returnType: Type): Funct
 
 export function newLambdaType(parameters: Parameter[], returnType: Type): LambdaType {
   const functionType = newFunctionType(parameters.map(p => p.type), returnType);
+  const name = '(' + parameters.map(p => `${p.identifier.name}: ${p.type}`).join(', ') + ') => ' + returnType;
   const lambdaType = new Type({
-    identifier: functionType.identifier,
+    identifier: { name },
     lambdaTypeData: {
       functionType,
       parameters: [...parameters],
