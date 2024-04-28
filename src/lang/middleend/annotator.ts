@@ -45,11 +45,13 @@ import {
   EnumVariable,
   EnumConstVariable,
   ModuleVariable,
-  AnnotationWithoutIR,
+  LimitedAnnotation,
   TypeVariance,
   COVARIANT,
   CONTRAVARIANT,
   flipVariance,
+  CompileTimeConfigs,
+  RunTarget,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
 import { ModuleValue, RecordValue, Value, evalMethodCall } from './value';
@@ -57,8 +59,12 @@ import { printFunction } from './functions';
 import { getSymbolTable } from '../frontend/symbolregistry';
 import { translateVariableName } from './names';
 
+type CompileTimeConfigsWIP = {
+  target?: RunTarget;
+};
+
 type AnnotatorParameters = {
-  readonly annotation: AnnotationWithoutIR;
+  readonly annotation: LimitedAnnotation;
   readonly stack: Set<string>; // for detecting recursion
   readonly cached?: Annotation;
 };
@@ -100,6 +106,7 @@ type BResult = SResult & { readonly ir: ast.Block; };
 type FResult = {
   readonly useCached: boolean;
   readonly ir: ast.File;
+  readonly compileTimeConfigs: CompileTimeConfigs;
 };
 
 type InterfaceMethodBodyContents = {
@@ -122,7 +129,7 @@ function getValue(scope: Scope, result: EResult): Value | undefined {
 }
 
 class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
-  readonly annotation: AnnotationWithoutIR;
+  readonly annotation: LimitedAnnotation;
   private readonly stack: Set<string>; // for detecting recursion
 
   private currentReturnType: Type | null = null;
@@ -378,6 +385,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
   async handle(n: ast.File): Promise<FResult> {
     // resolve imports
+    const compileTimeConfigs: CompileTimeConfigsWIP = {};
     const srcURI = n.location.uri;
     let canUseCached = n.documentVersion === this.cached?.documentVersion;
     for (const statement of n.statements) {
@@ -397,7 +405,11 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
         const cachedImportModuleAnnotation = this.cached?.importMap.get(uriString);
         const importModuleAnnotation = await getAnnotationForURI(uri, this.stack);
-        this.annotation.importMap.set(uriString, importModuleAnnotation);
+        if (!this.annotation.importMap.has(uriString)) {
+          this.annotation.importMap.set(uriString, importModuleAnnotation);
+          const importConfig = importModuleAnnotation.compileTimeConfigs;
+          compileTimeConfigs.target = importConfig.target ?? compileTimeConfigs.target;
+        }
         if (cachedImportModuleAnnotation !== importModuleAnnotation) {
           canUseCached = false;
         }
@@ -445,26 +457,60 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
 
     if (canUseCached) {
-      return { useCached: true, ir: n };
+      return { useCached: true, ir: n, compileTimeConfigs };
     }
 
     this.forwardDeclare(n.statements);
     const irs: ast.Statement[] = [];
     for (const statement of n.statements) {
       const result = this.solveStmt(statement);
-      if (!(result.ir instanceof ast.EmptyStatement)) irs.push(result.ir);
-      if ((statement instanceof ast.Declaration || statement instanceof ast.ClassDefinition ||
+      let includeIR = !(result.ir instanceof ast.EmptyStatement);
+      if (statement instanceof ast.Declaration || statement instanceof ast.ClassDefinition ||
         statement instanceof ast.InterfaceDefinition || statement instanceof ast.EnumDefinition ||
-        statement instanceof ast.Typedef || statement instanceof ast.FromImport) &&
-        statement.isExported) {
-        const variable = this.scope[statement.identifier.name];
+        statement instanceof ast.Typedef || statement instanceof ast.FromImport) {
+        const name = statement.identifier.name;
+        const location = statement.identifier.location;
+        const variable = this.scope[name];
         if (variable) {
-          this.annotation.exportMap.set(variable.identifier.name, variable);
+          if (statement.isExported) {
+            this.annotation.exportMap.set(variable.identifier.name, variable);
+          }
+          if (name.startsWith('__')) {
+            switch (name) {
+              case '__target': {
+                includeIR = false;
+                const value = variable.value;
+                if (value === undefined) {
+                  this.error(location, `__target value could not be determined at compile time`);
+                } else if (typeof value !== 'string') {
+                  this.error(location, `__target value must be a string`);
+                } else {
+                  switch (value) {
+                    case 'default':
+                    case 'html':
+                      // known values ok
+                      compileTimeConfigs.target = value;
+                      break;
+                    default:
+                      this.error(location, `Unrecognized target value ${value}`);
+                  }
+                }
+                break;
+              }
+              default:
+                this.error(location, `Names that start with '__' are reserved`);
+            }
+          }
         }
       }
+      if (includeIR) irs.push(result.ir);
     }
 
-    return { useCached: false, ir: new ast.File(n.location, n.documentVersion, irs, n.errors) };
+    return {
+      useCached: false,
+      ir: new ast.File(n.location, n.documentVersion, irs, n.errors),
+      compileTimeConfigs,
+    };
   }
 
   private addMethodsAndFields(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
@@ -1689,6 +1735,7 @@ export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<strin
       importMap: new Map(),
       importAliasVariables: [],
       memberImports: [],
+      compileTimeConfigs: {},
       ir: new ast.File(LOC, -1, [], []),
     };
   }
@@ -1705,7 +1752,7 @@ export async function getAnnotationForDocument(
   const key = uri.toString();
   const cached = annotationCache.get(key);
   const fileNode = await getAstForDocument(document);
-  const annotationWithoutIR: AnnotationWithoutIR = {
+  const limitedAnnotation: LimitedAnnotation = {
     uri,
     documentVersion: document.version,
     errors: [...fileNode.errors],
@@ -1719,10 +1766,10 @@ export async function getAnnotationForDocument(
     importAliasVariables: [],
     memberImports: [],
   };
-  const annotator = new Annotator({ annotation: annotationWithoutIR, stack, cached });
+  const annotator = new Annotator({ annotation: limitedAnnotation, stack, cached });
   stack.add(key);
-  const { useCached, ir } = await annotator.handle(fileNode);
-  const annotation: Annotation = { ...annotationWithoutIR, ir };
+  const { useCached, ir, compileTimeConfigs } = await annotator.handle(fileNode);
+  const annotation: Annotation = { ...limitedAnnotation, ir, compileTimeConfigs };
   stack.delete(key);
   // console.log(`DEBUG getAnnotationForDocument ${key} ${useCached ? '(cached)' : ''}`);
   if (cached && useCached) {

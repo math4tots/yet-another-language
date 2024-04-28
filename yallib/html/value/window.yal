@@ -1,0 +1,5 @@
+from 'html/window' import Window
+
+const __target = 'html'
+
+export const window = native "window" as Window

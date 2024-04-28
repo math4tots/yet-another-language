@@ -1,5 +1,5 @@
-from 'html/document' import document
 from 'html/htmlcanvaselement' import HTMLCanvasElement
+from 'html/value/document' import document
 from 'samples/a' import SomeClass
 
 

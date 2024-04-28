@@ -1,0 +1,6 @@
+from 'html/document' import Document
+
+
+const __target = 'html'
+
+export const document = native "document" as Document

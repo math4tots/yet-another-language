@@ -89,7 +89,17 @@ export type MemberImport = {
   readonly memberVariable: Variable;
 };
 
-export type AnnotationWithoutIR = {
+export type RunTarget = 'default' | 'html';
+
+/**
+ * Additional configurations for a module determined at
+ * compile-time/annotation-time.
+ */
+export type CompileTimeConfigs = {
+  readonly target?: RunTarget;
+};
+
+export type LimitedAnnotation = {
   readonly uri: vscode.Uri;
   readonly documentVersion: number;
   readonly errors: AnnotationError[];
@@ -104,6 +114,7 @@ export type AnnotationWithoutIR = {
   readonly memberImports: MemberImport[];
 };
 
-export type Annotation = AnnotationWithoutIR & {
+export type Annotation = LimitedAnnotation & {
   readonly ir: ast.File;
+  readonly compileTimeConfigs: CompileTimeConfigs;
 };
