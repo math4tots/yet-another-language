@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from "vscode";
 
 
@@ -74,4 +76,47 @@ export function getImportPath(uriString: string, startingUriString: string): str
     }
   }
   return stripYALExtension(uriString);
+}
+
+async function* findYalFiles(dir: string, token?: vscode.CancellationToken, atRootDir = false):
+  AsyncGenerator<string, undefined, undefined> {
+  const subdirectories = [];
+  const files = [];
+  for await (const d of await fs.promises.opendir(dir)) {
+    if (token?.isCancellationRequested) return;
+    const name = d.name;
+    const entry = path.join(dir, name);
+    if (!name.startsWith('.') && d.isDirectory()) subdirectories.push(entry);
+    else if (name.endsWith('.yal') && d.isFile()) files.push(entry);
+  }
+
+  // Only investigate this directory further if either
+  //   * this is a root directory, or
+  //   * it contains at least 1 yal file
+  if (atRootDir || (files.length > 0)) {
+    if (token?.isCancellationRequested) return;
+    yield* files;
+    for (const subdiredtory of subdirectories) {
+      if (token?.isCancellationRequested) return;
+      yield* findYalFiles(subdiredtory, token);
+    }
+  }
+}
+
+export async function* findAllLibraryFiles(token?: vscode.CancellationToken): AsyncGenerator<vscode.Uri> {
+  for (const libraryUri of LIBRARY_URIS) {
+    const libraryPath = libraryUri.fsPath;
+    for await (const yalFilePath of findYalFiles(libraryPath, token)) {
+      if (token?.isCancellationRequested) return;
+      yield vscode.Uri.file(yalFilePath);
+    }
+  }
+}
+
+export async function* findAllYalFilesInWorkspace(token?: vscode.CancellationToken): AsyncGenerator<vscode.Uri> {
+  for (const workspaceFolder of (vscode.workspace.workspaceFolders || [])) {
+    for await (const path of findYalFiles(workspaceFolder.uri.fsPath, token)) {
+      yield vscode.Uri.file(path);
+    }
+  }
 }

@@ -373,14 +373,21 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   private declareVariable(variable: Variable, addToScope = true) {
     this.annotation.variables.push(variable);
     if (addToScope) {
+      const forward = this.scope[variable.identifier.name];
+      if (forward && forward.isForwardDeclaration) {
+        for (const range of (forward.forwardDeclarationUsages || [])) {
+          this.markReference(variable, range);
+        }
+      }
       this.scope[variable.identifier.name] = variable;
     }
     const range = variable.identifier.location?.range;
-    if (range) this.markReference(variable, range);
+    if (range) this.markReference(variable, range, true);
   }
 
-  private markReference(variable: Variable, range: Range) {
-    this.annotation.references.push({ variable, range });
+  private markReference(variable: Variable, range: Range, isDeclaration: boolean = false) {
+    variable.forwardDeclarationUsages?.push(range);
+    this.annotation.references.push({ variable, range, isDeclaration });
   }
 
   async handle(n: ast.File): Promise<FResult> {
@@ -815,6 +822,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             type,
             comment: comments,
             isForwardDeclaration: true,
+            forwardDeclarationUsages: [],
           };
           this.scope[defn.identifier.name] = variable;
         }

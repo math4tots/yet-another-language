@@ -11,6 +11,7 @@ import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { getAnnotationForDocument } from './lang/middleend/annotator';
 import { indexCommand } from './extension/indexer';
+import { newReferenceProvider } from './extension/referenceprovider';
 
 
 export function activate(context: vscode.ExtensionContext) {
@@ -67,6 +68,9 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerDefinitionProvider(
     { language: 'yal' },
     newDefinitionProvider()));
+  sub(vscode.languages.registerReferenceProvider(
+    { language: 'yal' },
+    newReferenceProvider()));
   sub(vscode.languages.registerHoverProvider(
     { language: 'yal' },
     newHoverProvider()));

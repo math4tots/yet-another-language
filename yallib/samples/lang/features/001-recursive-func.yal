@@ -1,0 +1,12 @@
+
+
+
+function foo(n: Number) {
+  return bar(n - 1)
+}
+
+function bar(n: Number) {
+  if (n > 3) {
+    return foo(n)
+  }
+}

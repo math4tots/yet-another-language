@@ -21,6 +21,7 @@ export type Variable = {
   readonly comment?: ast.StringLiteral;
   readonly value?: Value;
   readonly isForwardDeclaration?: boolean,
+  readonly forwardDeclarationUsages?: Range[];
 };
 
 export const COVARIANT = 1;
@@ -54,6 +55,7 @@ export type EnumConstVariable = Variable & {
 export type Reference = {
   readonly range: Range;
   readonly variable: Variable;
+  readonly isDeclaration: boolean;
 };
 
 export interface PrintInstance {

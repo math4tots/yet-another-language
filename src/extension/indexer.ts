@@ -1,8 +1,6 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import * as vscode from 'vscode';
 import { getAstForUri } from '../lang/frontend/parser';
-import { LIBRARY_URIS } from '../lang/yal';
+import { findAllLibraryFiles, findAllYalFilesInWorkspace } from '../lang/middleend/paths';
 
 export async function indexCommand() {
   vscode.window.withProgress({
@@ -12,7 +10,12 @@ export async function indexCommand() {
   }, async (progress, token) => {
 
     progress.report({ message: 'listing workspace' });
-    const uris = await vscode.workspace.findFiles('**/*.ts', undefined, undefined, token);
+    const uris = [];
+    for await (const uri of findAllYalFilesInWorkspace(token)) {
+      uris.push(uri);
+    }
+    // Alternative quick and dirty way to list files:
+    //   const uris = await vscode.workspace.findFiles('**/*.yal', undefined, undefined, token);
     if (token.isCancellationRequested) return;
 
     progress.report({ message: 'listing library' });
@@ -36,23 +39,4 @@ export async function indexCommand() {
       });
     }
   });
-}
-
-async function* findAllLibraryFiles(token: vscode.CancellationToken): AsyncGenerator<vscode.Uri> {
-  for (const libraryUri of LIBRARY_URIS) {
-    const libraryPath = libraryUri.fsPath;
-    for await (const yalFilePath of findYalFiles(libraryPath, token)) {
-      if (token.isCancellationRequested) return;
-      yield vscode.Uri.file(yalFilePath);
-    }
-  }
-}
-
-async function* findYalFiles(dir: string, token: vscode.CancellationToken): AsyncGenerator<string> {
-  for await (const d of await fs.promises.opendir(dir)) {
-    if (token.isCancellationRequested) return;
-    const entry = path.join(dir, d.name);
-    if (d.isDirectory()) yield* findYalFiles(entry, token);
-    else if (d.name.endsWith('.yal') && d.isFile()) yield entry;
-  }
 }
