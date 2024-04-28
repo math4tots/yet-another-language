@@ -1,4 +1,4 @@
-from 'js/types/float32array' import Float32Array
+from 'js/type/float32array' import Float32Array
 
 typedef GLboolean = Bool
 typedef GLenum = Number
