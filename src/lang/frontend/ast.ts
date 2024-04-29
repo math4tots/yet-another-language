@@ -323,9 +323,13 @@ export class TypeAssertion implements Expression {
 
 export class NativeExpression implements Expression {
   readonly location: Location;
+  readonly kindFragment: IdentifierNode | null;
+  readonly isConstexpr: boolean;
   readonly source: StringLiteral;
-  constructor(location: Location, source: StringLiteral) {
+  constructor(location: Location, kindFragment: IdentifierNode | null, isConstexpr: boolean, source: StringLiteral) {
     this.location = location;
+    this.kindFragment = kindFragment;
+    this.isConstexpr = isConstexpr;
     this.source = source;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativeExpression(this); }

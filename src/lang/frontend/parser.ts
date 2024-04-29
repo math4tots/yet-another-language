@@ -358,15 +358,17 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     }
     if (consume('native')) {
       const start = peek.range.start;
-      if (at('STRING')) {
+      const kindFragment = at('IDENTIFIER') ? parseIdentifier() : null;
+      if (!at('function')) {
         // native expression
-        const stringToken = expect('STRING');
-        const end = stringToken.range.end;
-        const source = new ast.StringLiteral(
-          { uri, range: stringToken.range }, stringToken.value as string);
-        return new ast.NativeExpression({ uri, range: { start, end } }, source);
+        const isInline = consume('constexpr');
+        const source = at('STRING') ? parseStringLiteral() : new ast.StringLiteral(
+          { uri, range: tokens[i - 1].range }, "");
+        const end = source.location.range.end;
+        return new ast.NativeExpression({ uri, range: { start, end } }, kindFragment, isInline, source);
       }
       // native pure function
+      expect('function');
       const identifier = at('IDENTIFIER') ? parseIdentifier() : undefined;
       const parameters = parseParameters();
       const returnType = consume(':') ? parseTypeExpression() : null;
@@ -685,6 +687,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
 
   function parseNativeFunctionDefinition(isExported: boolean): ast.Declaration {
     const startPos = expect('native').range.start;
+    expect('function');
     const identifier = parseIdentifier();
     const comments = at('STRING') ? parseStringLiteral() : null;
     const parameters = parseParameters();

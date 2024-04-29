@@ -946,6 +946,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'var' });
         completions.push({ name: 'const' });
         completions.push({ name: 'native' });
+        completions.push({ name: 'inline' });
         completions.push({ name: 'return' });
         completions.push({ name: 'interface' });
         completions.push({ name: 'class' });
@@ -1512,7 +1513,20 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return { type, value, ir: result.ir };
   }
   visitNativeExpression(n: ast.NativeExpression): EResult {
-    return { type: AnyType, ir: n };
+    if (n.kindFragment) {
+      this.annotation.completionPoints.push({
+        range: n.kindFragment?.location.range,
+        getCompletions() {
+          return [
+            { name: 'inline' },
+            { name: 'function' },
+            { name: 'constexpr' },
+          ];
+        },
+      });
+    }
+    const value = n.isConstexpr ? Function(`return ${n.source.value}`)() : undefined;
+    return { type: AnyType, value, ir: n };
   }
   visitNativePureFunction(n: ast.NativePureFunction): EResult {
     const parameters: Parameter[] = n.parameters.map(p => ({

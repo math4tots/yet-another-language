@@ -3,7 +3,7 @@
 
 interface Math {
   static {
-    aliasFor(native "Math")
+    aliasFor(native constexpr "Math")
     const PI: Number = aliasFor(__js_PI)
     function sin(x: Number): Number { aliasFor(__js_sin) }
     function cos(x: Number): Number { aliasFor(__js_cos) }
