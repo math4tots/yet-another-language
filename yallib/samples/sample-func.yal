@@ -1,0 +1,11 @@
+
+
+export function someSampleFunc() {
+  return native constexpr "3"
+}
+
+export const someSampleFunc2 = native function someSampleFunc2() """5
+"""
+
+print(someSampleFunc())
+print(someSampleFunc2())

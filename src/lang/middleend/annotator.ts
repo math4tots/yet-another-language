@@ -1503,14 +1503,21 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         range: n.kindFragment?.location.range,
         getCompletions() {
           return [
-            { name: 'inline' },
             { name: 'function' },
             { name: 'constexpr' },
           ];
         },
       });
     }
-    const value = n.isConstexpr ? Function(`return ${n.source.value}`)() : undefined;
+    let value: Value | undefined;
+    if (n.isConstexpr) {
+      try {
+        value = Function(`return ${n.source.value}`)();
+      } catch (e) {
+        // could not be evaluated inline
+        this.error(n.location, `error in native constexpr: ${e}`);
+      }
+    }
     return { type: AnyType, value, ir: n };
   }
   visitNativePureFunction(n: ast.NativePureFunction): EResult {

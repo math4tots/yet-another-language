@@ -1,0 +1,4 @@
+from './sample-func' import someSampleFunc
+
+
+print(someSampleFunc())
