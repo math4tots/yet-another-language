@@ -19,7 +19,20 @@ export type Variable = {
   readonly identifier: ast.Identifier;
   readonly type: Type;
   readonly comment?: ast.StringLiteral;
+
+  /**
+   * Compile time value of this variable, if available
+   * 
+   * This value should never be available when isMutable is true.
+   */
   readonly value?: Value;
+
+  /**
+   * Alternative resolved expression to use when this variable is
+   * being resolved as an expression value.
+   */
+  readonly inlineIR?: ast.Expression;
+
   readonly isForwardDeclaration?: boolean,
   readonly forwardDeclarationUsages?: Range[];
 };

@@ -45,6 +45,15 @@ class Printer implements yal.ast.NodeVisitor<void> {
     }
     this.depth--;
   }
+  visitStatic(n: yal.ast.Static): void {
+    this.indent();
+    this.out += 'STATIC';
+    this.depth++;
+    for (const statement of n.statements) {
+      statement.accept(this);
+    }
+    this.depth--;
+  }
   visitNullLiteral(n: yal.ast.NullLiteral): void {
     this.indent();
     this.out += `null`;

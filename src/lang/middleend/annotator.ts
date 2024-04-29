@@ -35,6 +35,7 @@ import {
   newRecordType,
   TypeParameterTypeType,
   TypeParameterType,
+  ClassTypeType,
 } from './type';
 import {
   Annotation,
@@ -520,76 +521,90 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     };
   }
 
-  private addMethodsAndFields(type: ClassType | InterfaceType, bodyStatements: ast.Statement[]) {
-    const fields = type.classTypeData?.fields;
-    for (const declaration of bodyStatements) {
-      if (declaration instanceof ast.Declaration) {
-        const value = declaration.value;
-        if (!declaration.isMutable && !declaration.type && value instanceof ast.FunctionDisplay) {
-          // normal method definition
-          const funcdisp = value;
-          const funcdispType = this.solveFunctionDisplayType(funcdisp, AnyType);
-          const variable: Variable = {
-            identifier: declaration.identifier,
-            type: funcdispType,
-            comment: declaration.comment || getCommentFromFunctionDisplay(funcdisp),
-          };
-          this.declareVariable(variable, false);
+  private handleMemberDeclaration(type: Type, declaration: ast.Declaration) {
+    if (declaration instanceof ast.Declaration) {
+      const value = declaration.value;
+      if (!declaration.isMutable && !declaration.type && value instanceof ast.FunctionDisplay) {
+        // normal method definition
+        const funcdisp = value;
+        const funcdispType = this.solveFunctionDisplayType(funcdisp, AnyType);
+        const variable: Variable = {
+          identifier: declaration.identifier,
+          type: funcdispType,
+          comment: declaration.comment || getCommentFromFunctionDisplay(funcdisp),
+        };
+        this.declareVariable(variable, false);
 
-          // If this is an interface method, its body may contain additional information
-          // about the method, like whether it is an alias method.
-          let aliasFor: string | undefined;
-          if (type.interfaceTypeData) {
-            const interfaceMethodBodyContents = this.inspectInterfaceMethodBody(value);
-            aliasFor = interfaceMethodBodyContents.aliasFor?.name;
+        // If this is an interface method, its body may contain additional information
+        // about the method, like whether it is an alias method.
+        let aliasFor: string | undefined;
+        if (type.interfaceTypeData || type.typeTypeData?.type.interfaceTypeData) {
+          const interfaceMethodBodyContents = this.inspectInterfaceMethodBody(value);
+          aliasFor = interfaceMethodBodyContents.aliasFor?.name;
+        }
+
+        type.addMethod({
+          identifier: declaration.identifier,
+          parameters: funcdispType.lambdaTypeData.parameters,
+          returnType: funcdispType.lambdaTypeData.returnType,
+          sourceVariable: variable,
+          aliasFor,
+        });
+      } else if (declaration.type) {
+        // field/property
+
+        let aliasFor: string | undefined;
+        if (declaration.value) {
+          if (type.interfaceTypeData || type.typeTypeData?.type.interfaceTypeData) {
+            const interfaceFieldValueContents = this.inspectInterfaceFieldValue(declaration.value);
+            aliasFor = interfaceFieldValueContents.aliasFor?.name;
+          } else {
+            // TODO: like default parameters, but for passing to 'new'/constructor.
           }
+        }
 
+        const variable: Variable = {
+          isMutable: declaration.isMutable,
+          identifier: declaration.identifier,
+          type: this.solveType(declaration.type),
+          comment: declaration.comment || undefined,
+        };
+        type.classTypeData?.fields.push(variable);
+        this.declareVariable(variable, false);
+        type.addMethod({
+          identifier: { name: `__get_${declaration.identifier.name}` },
+          parameters: [],
+          returnType: variable.type,
+          sourceVariable: variable,
+          aliasFor: aliasFor ? `__get_${aliasFor}` : undefined,
+        });
+        if (declaration.isMutable) {
           type.addMethod({
-            identifier: declaration.identifier,
-            parameters: funcdispType.lambdaTypeData.parameters,
-            returnType: funcdispType.lambdaTypeData.returnType,
-            sourceVariable: variable,
-            aliasFor,
-          });
-        } else if (declaration.type) {
-          // field/property
-
-          let aliasFor: string | undefined;
-          if (declaration.value) {
-            if (type.interfaceTypeData) {
-              const interfaceFieldValueContents = this.inspectInterfaceFieldValue(declaration.value);
-              aliasFor = interfaceFieldValueContents.aliasFor?.name;
-            } else {
-              // TODO: like default parameters, but for passing to 'new'/constructor.
-            }
-          }
-
-          const variable: Variable = {
-            isMutable: declaration.isMutable,
-            identifier: declaration.identifier,
-            type: this.solveType(declaration.type),
-            comment: declaration.comment || undefined,
-          };
-          fields?.push(variable);
-          this.declareVariable(variable, false);
-          type.addMethod({
-            identifier: { name: `__get_${declaration.identifier.name}` },
-            parameters: [],
+            identifier: { name: `__set_${declaration.identifier.name}` },
+            parameters: [{ identifier: { name: 'value' }, type: variable.type }],
             returnType: variable.type,
             sourceVariable: variable,
-            aliasFor: aliasFor ? `__get_${aliasFor}` : undefined,
+            aliasFor: aliasFor ? `__set_${aliasFor}` : undefined,
           });
-          if (declaration.isMutable) {
-            type.addMethod({
-              identifier: { name: `__set_${declaration.identifier.name}` },
-              parameters: [{ identifier: { name: 'value' }, type: variable.type }],
-              returnType: variable.type,
-              sourceVariable: variable,
-              aliasFor: aliasFor ? `__set_${aliasFor}` : undefined,
-            });
+        }
+      } else {
+        this.error(declaration.location, `Invalid class or interface member declaration`);
+      }
+    }
+  }
+
+  private addMethodsAndFields(
+    typeType: InterfaceTypeType | ClassTypeType,
+    bodyStatements: ast.Statement[]) {
+    const type = typeType.typeTypeData.type;
+    for (const declaration of bodyStatements) {
+      if (declaration instanceof ast.Declaration) {
+        this.handleMemberDeclaration(type, declaration);
+      } else if (declaration instanceof ast.Static) {
+        for (const decl of declaration.statements) {
+          if (decl instanceof ast.Declaration) {
+            this.handleMemberDeclaration(typeType, decl);
           }
-        } else {
-          this.error(declaration.location, `Invalid class or interface member declaration`);
         }
       }
     }
@@ -707,7 +722,6 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
       this.error(statement.location, `Unexpected statement in enum definition body`);
     }
-
   }
 
   private forwardDeclare(statements: ast.Statement[]) {
@@ -755,11 +769,47 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             this.error(superTypeExpression.location, `interfaces can only extend other interfaces`);
           }
         }
+        let hasStatic = false;
+        let aliasForValue: Value | undefined;
+        let inlineIR: ast.Expression | undefined;
+        for (const statement of defn.statements) {
+          if (statement instanceof ast.Static) {
+            hasStatic = true;
+            for (const stmt of statement.statements) {
+              if (stmt instanceof ast.ExpressionStatement) {
+                const expression = stmt.expression;
+                if (expression instanceof ast.MethodCall &&
+                  expression.identifier.name === '__call__' &&
+                  expression.args.length === 1) {
+                  const owner = expression.owner;
+                  if (owner instanceof ast.IdentifierNode && owner.name === 'aliasFor') {
+                    const aliasForResult = this.solveExpr(expression.args[0]);
+                    inlineIR = aliasForResult.ir;
+                    aliasForValue = aliasForResult.value;
+                  }
+                }
+              }
+            }
+          }
+        }
+        const interfaceTypeType = newInterfaceTypeType(defn.identifier, superTypes, comment);
         const variable: InterfaceVariable = {
           identifier: defn.identifier,
-          type: newInterfaceTypeType(defn.identifier, superTypes, comment),
+          type: interfaceTypeType,
+          value: aliasForValue,
+          inlineIR,
           comment,
         };
+        if (hasStatic) {
+          // If the interface has a static block, we automatically add a marker method to
+          // make the interface a 'unique' type
+          const interfaceType = interfaceTypeType.typeTypeData.type;
+          interfaceType.addMethod({
+            identifier: { name: `__marker_${defn.identifier.name}`, location: defn.identifier.location },
+            parameters: [],
+            returnType: interfaceTypeType,
+          });
+        }
         this.interfaceMap.set(defn, variable);
         this.declareVariable(variable);
       }
@@ -768,9 +818,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     // forward declare methods
     for (const defn of statements) {
       if (defn instanceof ast.ClassDefinition) {
-        const classTypeType = this.classMap.get(defn);
-        if (!classTypeType) throw new Error(`FUBAR class ${classTypeType}`);
-        const classType = classTypeType.type.typeTypeData.type;
+        const classTypeTypeVariable = this.classMap.get(defn);
+        if (!classTypeTypeVariable) throw new Error(`FUBAR class ${classTypeTypeVariable}`);
+        const classTypeType = classTypeTypeVariable.type;
+        const classType = classTypeType.typeTypeData.type;
 
         // inherit from super class
         const superClassType = classType.classTypeData.superClassType;
@@ -780,11 +831,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           }
         }
 
-        this.addMethodsAndFields(classType, defn.statements);
+        this.addMethodsAndFields(classTypeType, defn.statements);
       } else if (defn instanceof ast.InterfaceDefinition) {
-        const interfaceTypeType = this.interfaceMap.get(defn);
-        if (!interfaceTypeType) throw new Error(`FUBAR interface ${interfaceTypeType}`);
-        const interfaceType = interfaceTypeType.type.typeTypeData.type;
+        const interfaceTypeTypeVariable = this.interfaceMap.get(defn);
+        if (!interfaceTypeTypeVariable) throw new Error(`FUBAR interface ${interfaceTypeTypeVariable}`);
+        const interfaceTypeType = interfaceTypeTypeVariable.type;
+        const interfaceType = interfaceTypeType.typeTypeData.type;
 
         // inherit from all the super interfaces
         for (const superType of interfaceType.interfaceTypeData.superTypes) {
@@ -793,7 +845,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           }
         }
 
-        this.addMethodsAndFields(interfaceType, defn.statements);
+        this.addMethodsAndFields(interfaceTypeType, defn.statements);
       }
     }
 
@@ -919,7 +971,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           const evalTimeVariable = scope[variable.identifier.name];
           return evalTimeVariable.value;
         } : undefined,
-      ir: n
+      ir: variable.inlineIR ?? n,
     };
   }
   visitAssignment(n: ast.Assignment): EResult {
@@ -1519,6 +1571,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       };
     });
   }
+  visitStatic(n: ast.Static): SResult {
+    this.error(n.location, 'static blocks are not allowed here');
+    return { status: Continues, ir: n };
+  }
   visitDeclaration(n: ast.Declaration): SResult {
     const explicitType = n.type ? this.solveType(n.type) : null;
     const valueInfo = n.value ? this.solveExpr(n.value, explicitType || AnyType) : null;
@@ -1597,6 +1653,31 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       };
       this.scope['this'] = thisVariable;
       for (const statement of n.statements) {
+        if (statement instanceof ast.Static) {
+          const staticIR: ast.Statement[] = [];
+          bodyIR.push(new ast.Static(statement.location, staticIR));
+          for (const stmt of statement.statements) {
+            if (stmt instanceof ast.Declaration) {
+              if (!stmt.isMutable && stmt.value instanceof ast.FunctionDisplay) {
+                // methods
+                const value = this.solveExpr(stmt.value);
+                staticIR.push(new ast.Declaration(
+                  stmt.location,
+                  stmt.isExported,
+                  stmt.isMutable,
+                  stmt.identifier,
+                  stmt.type,
+                  stmt.comment,
+                  value.ir));
+              } else if (stmt.type) {
+                // fields
+                bodyIR.push(stmt);
+              }
+            }
+          }
+          // TODO: check what is and is not allowed in static blocks
+          continue;
+        }
         if (statement instanceof ast.CommentStatement) {
           continue;
         }
@@ -1659,6 +1740,26 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       });
     }
     for (const statement of n.statements) {
+      if (statement instanceof ast.Static) {
+        for (const stmt of statement.statements) {
+          if (stmt instanceof ast.ExpressionStatement && stmt.expression instanceof ast.IdentifierNode) {
+            // This is still an error, but gives us a chance to help autocomplete keywords
+            this.annotation.completionPoints.push({
+              range: stmt.expression.location.range,
+              getCompletions() {
+                return [
+                  { name: 'function' },
+                  { name: 'var' },
+                  { name: 'const' },
+                  { name: 'aliasFor' },
+                ];
+              },
+            });
+          }
+          // TOOD: check other kinds of statements here
+        }
+        continue;
+      }
       if (statement instanceof ast.ExpressionStatement) {
         if (statement.expression instanceof ast.StringLiteral) {
           continue; // comments
@@ -1672,6 +1773,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
                 { name: 'function' },
                 { name: 'var' },
                 { name: 'const' },
+                { name: 'static' },
               ];
             },
           });

@@ -571,6 +571,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('if')) return parseIf();
     if (at('while')) return parseWhile();
     if (at('{')) return parseBlock();
+    if (at('static')) return parseStatic();
     if (at('var') || at('const')) return parseDeclaration(false);
     if (at('native')) return parseNativeFunctionDefinition(false);
     if (at('function')) return parseFunctionDefinition(false);
@@ -662,6 +663,15 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     }
     const endPos = expect('}').range.end;
     return new ast.Block({ uri, range: { start: startPos, end: endPos } }, statements);
+  }
+
+  function parseStatic(): ast.Static {
+    const start = expect('static').range.start;
+    const block = parseBlock();
+    const end = block.location.range.end;
+    const statements = block.statements;
+    const location: ast.Location = { uri, range: { start, end } };
+    return new ast.Static(location, statements);
   }
 
   function parseBlockOrQuickReturnExpression(): ast.Block {

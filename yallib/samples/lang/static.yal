@@ -1,0 +1,28 @@
+
+
+
+interface Math {
+  static {
+    aliasFor(native "Math")
+    const PI: Number = aliasFor(__js_PI)
+    function sin(x: Number): Number { aliasFor(__js_sin) }
+    function cos(x: Number): Number { aliasFor(__js_cos) }
+  }
+}
+
+print(Math)
+print(Math.sin(33))
+print(Math.cos(33))
+print(Math.cos(0))
+print(Math.sin(0))
+print(Math.PI)
+
+
+class SomeClass {
+  static {
+    function someMethod(): Number { return 777 }
+  }
+}
+
+const result = SomeClass.someMethod()
+print(result)

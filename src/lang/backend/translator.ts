@@ -145,6 +145,7 @@ class Translator implements ast.NodeVisitor<string> {
   visitCommentStatement(n: ast.CommentStatement): string { return ''; }
   visitExpressionStatement(n: ast.ExpressionStatement): string { return `${n.expression.accept(this)};`; }
   visitBlock(n: ast.Block): string { return `{${n.statements.map(s => s.accept(this)).join('')}}`; }
+  visitStatic(n: ast.Static): string { return ''; }
   visitDeclaration(n: ast.Declaration): string {
     const storageClass = n.isMutable ? 'let' : 'const';
     const value = n.value ? `=${n.value.accept(this)}` : '';
@@ -165,6 +166,38 @@ class Translator implements ast.NodeVisitor<string> {
   visitClassDefinition(n: ast.ClassDefinition): string {
     const name = n.identifier.name;
     const superClass = n.superClass ? ` extends ${translateType(n.superClass)}` : '';
+    const staticMethods = n.statements.map(statement => {
+      if (statement instanceof ast.Static) {
+        return statement.statements.map(stmt => {
+          if (stmt instanceof ast.Declaration) {
+            const name = stmt.identifier.name;
+            const value = stmt.value;
+            if ((value instanceof ast.FunctionDisplay) && !stmt.type) {
+              if (builtinOnlyMethodNames.has(name)) {
+                this.warnings.push({
+                  location: stmt.identifier.location,
+                  message: `You cannot define a method with name ${JSON.stringify(name)} - this is a reserved name`,
+                });
+              }
+              const parameters = value.parameters.map(p => `YAL${p.identifier.name}`);
+              const body = value.body.accept(this);
+              const suffix = `(${parameters.join(',')})${body}`;
+              if (parameters.length === 0) {
+                if (name.startsWith('__get___js_')) return `get ${name.substring(11)}${suffix}`;
+                if (name.startsWith('__get_')) return `get YAL${name.substring(6)}${suffix}`;
+              } else if (parameters.length === 1) {
+                if (name.startsWith('__set__js_')) return `set ${name.substring(11)}${suffix}`;
+                if (name.startsWith('__set_')) return `set YAL${name.substring(6)}${suffix}`;
+              }
+              if (name.startsWith('__js_')) return `${name.substring(5)}${suffix}`;
+              return `static ${translateMethodName(name, parameters.length)}${suffix}`;
+            }
+          }
+          return [];
+        }).flat();
+      }
+      return [];
+    }).flat();
     const fields = n.statements.map(statement => {
       const stmt = statement;
       if (stmt instanceof ast.Declaration) {
@@ -207,7 +240,7 @@ class Translator implements ast.NodeVisitor<string> {
       return [];
     }).flat();
     methods.push(`toString(){return '<${n.identifier.name} instance>'}`);
-    return `class YAL${name}${superClass}{${ctor}${methods.join('')}}`;
+    return `class YAL${name}${superClass}{${staticMethods.join('')}${ctor}${methods.join('')}}`;
   }
   visitInterfaceDefinition(n: ast.InterfaceDefinition): string { return ''; }
   visitEnumDefinition(n: ast.EnumDefinition): string { return ''; }

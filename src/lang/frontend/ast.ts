@@ -43,6 +43,7 @@ export interface StatementVisitor<R> {
   visitCommentStatement(n: CommentStatement): R;
   visitExpressionStatement(n: ExpressionStatement): R;
   visitBlock(n: Block): R;
+  visitStatic(n: Static): R;
   visitDeclaration(n: Declaration): R;
   visitIf(n: If): R;
   visitWhile(n: While): R;
@@ -404,6 +405,16 @@ export class Block implements Statement {
     this.statements = statements;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitBlock(this); }
+}
+
+export class Static implements Statement {
+  readonly location: Location;
+  readonly statements: Statement[];
+  constructor(location: Location, statements: Statement[]) {
+    this.location = location;
+    this.statements = statements;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitStatic(this); }
 }
 
 export class Declaration implements Statement {
