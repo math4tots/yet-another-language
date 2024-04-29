@@ -339,12 +339,12 @@ export class NativePureFunction implements Expression {
   readonly identifier: IdentifierNode | undefined;
   readonly parameters: Parameter[];
   readonly returnType: TypeExpression | null;
-  readonly body: [IdentifierNode, StringLiteral][];
+  readonly body: Block;
   constructor(location: Location,
     identifier: IdentifierNode | undefined,
     parameters: Parameter[],
     returnType: TypeExpression | null,
-    body: [IdentifierNode, StringLiteral][]) {
+    body: Block) {
     this.location = location;
     this.identifier = identifier;
     this.parameters = parameters;
@@ -352,11 +352,19 @@ export class NativePureFunction implements Expression {
     this.body = body;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNativePureFunction(this); }
-  getBodyFor(usage: string): string | undefined {
-    for (const [identifier, implementation] of this.body) {
-      if (identifier.name === usage) return implementation.value;
+  getJavascriptReturnExpression(): string | undefined {
+    for (const statement of this.body.statements) {
+      if (statement instanceof ExpressionStatement) {
+        const e = statement.expression;
+        if (e instanceof MethodCall && e.identifier.name === '__call__' && e.args.length === 1) {
+          const owner = e.owner;
+          const arg = e.args[0];
+          if (owner instanceof IdentifierNode && owner.name === 'returns' && arg instanceof StringLiteral) {
+            return arg.value;
+          }
+        }
+      }
     }
-    return undefined;
   }
 }
 

@@ -166,10 +166,7 @@ class Printer implements yal.ast.NodeVisitor<void> {
     this.indent();
     this.out += `NATIVE PURE FUNCTION ${n.parameters.map(p => p.identifier.name).join(', ')}`;
     this.depth++;
-    for (const [identifier, implementation] of n.body) {
-      this.indent();
-      this.out += `${identifier.name} => ${implementation}`;
-    }
+    n.body.accept(this);
     this.depth--;
   }
   visitIf(n: yal.ast.If): void {

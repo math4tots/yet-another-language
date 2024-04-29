@@ -1,11 +1,18 @@
 
 
-export function someSampleFunc() {
-  return native constexpr "3"
+export function someSampleFunc(): Number {
+  return native constexpr "3" as Number
 }
 
-export const someSampleFunc2 = native function someSampleFunc2() """5
-"""
+export const someSampleFunc2 = native function someSampleFunc2(x: Number) """(
+  5 + x
+)"""
 
 print(someSampleFunc())
-print(someSampleFunc2())
+print(someSampleFunc2(4))
+
+export const sampleFunc3 = native function sampleFunc3(x: Number) {
+  returns("x * x")
+}
+print(sampleFunc3)
+print(sampleFunc3(3))

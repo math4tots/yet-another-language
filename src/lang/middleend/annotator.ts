@@ -55,7 +55,7 @@ import {
   RunTarget,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
-import { ModuleValue, RecordValue, Value, evalMethodCall } from './value';
+import { ModuleValue, RecordValue, Value, evalMethodCallCatchExc } from './value';
 import { printFunction } from './functions';
 import { getSymbolTable } from '../frontend/symbolregistry';
 import { translateVariableName } from './names';
@@ -1403,7 +1403,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           value: argValues[0],
         });
       } else {
-        staticValue = evalMethodCall(owner.value, method, argValues);
+        staticValue = evalMethodCallCatchExc(owner.value, method, argValues);
       }
     }
 
@@ -1423,7 +1423,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           (staticEvalScope: Scope): Value | undefined => {
             const ownerValue = getValue(staticEvalScope, owner);
             const argValues = argResults.map(arg => getValue(staticEvalScope, arg));
-            return evalMethodCall(ownerValue, method, argValues);
+            return evalMethodCallCatchExc(ownerValue, method, argValues);
           } : undefined,
       ir:
         typeof method.inlineValue === 'string' ?
@@ -1529,17 +1529,39 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
     const lambdaType = newLambdaType(parameters, returnType);
     const paramNames = n.parameters.map(p => p.identifier.name);
-    const body = n.body.find(pair => pair[0].name === 'js')?.[1].value;
+    for (const statement of n.body.statements) {
+      if (statement instanceof ast.ExpressionStatement) {
+        const expression = statement.expression;
+        if (expression instanceof ast.IdentifierNode) {
+          this.annotation.completionPoints.push({
+            range: expression.location.range,
+            getCompletions() {
+              return [
+                { name: 'returns' },
+              ];
+            },
+          });
+        }
+      }
+    }
+    const body = n.getJavascriptReturnExpression();
     const jsName = n.identifier?.name ? translateVariableName(n.identifier.name) : undefined;
+    let value: Value | undefined;
+    if (body !== undefined) {
+      try {
+        if (jsName) {
+          value = Function(
+            `"use strict";const ${jsName}=(${paramNames.join(',')})=>{return ${body}};return ${jsName}`)() as any;
+        } else {
+          value = Function(...paramNames, `"use strict";return ${body}`) as any;
+        }
+      } catch (e) {
+        this.error(n.location, `Error with native function: ${e}`);
+      }
+    }
     return {
       type: lambdaType,
-      value:
-        body == undefined ?
-          undefined :
-          jsName ?
-            (Function(
-              `"use strict";const ${jsName}=(${paramNames.join(',')})=>{${body}};return ${jsName}`)() as any) :
-            (Function(...paramNames, `"use strict";${body}`) as any),
+      value,
       ir: n,
     };
   }

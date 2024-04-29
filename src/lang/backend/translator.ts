@@ -134,7 +134,7 @@ class Translator implements ast.NodeVisitor<string> {
     // For NativePureFunctions, parameter names are intentionally NOT mangled
     // const parameters = n.parameters.map(p => translateVariableName(p.identifier.name));
     const parameters = n.parameters.map(p => p.identifier.name);
-    const body = n.body.find(pair => pair[0].name === 'js')?.[1].value;
+    const body = n.getJavascriptReturnExpression();
     if (!body) this.warnings.push({ location: n.location, message: `Native Pure function missing body` });
     return `((${parameters.join(',')}) => {${body || 'throw new Error("missing pure function body")'}})`;
   }

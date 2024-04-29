@@ -42,6 +42,14 @@ export class RecordValue {
   }
 }
 
+export function evalMethodCallCatchExc(owner: any, method: Method, args: any[]): Value | undefined {
+  try {
+    return evalMethodCall(owner, method, args);
+  } catch (e) {
+    return;
+  }
+}
+
 export function evalMethodCall(owner: any, method: Method, args: any[]): Value | undefined {
   if (method.inlineValue !== undefined) return method.inlineValue;
   const resolvedMethodName = method.aliasFor || method.identifier.name;
