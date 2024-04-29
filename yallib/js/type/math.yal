@@ -1,21 +1,348 @@
 
 export interface Math {
+  """
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math
+
+  Interface of methods and fields avaiable in the JavaScript Math object.
+
+  The Math namespace object contains static properties and methods for mathematical constants and functions.
+  """
   static {
     aliasFor(native constexpr "Math")
 
-    const PI: Number = aliasFor(__js_PI)
+    const E: Number """
+    Euler's number and the base of natural logarithms; approximately 2.718.
+    """= aliasFor(__js_E)
 
-    function sin(x: Number): Number {
-      "compute sine in radians"
-      aliasFor(__js_sin)
+    const LN10: Number """
+    Natural logarithm of 10; approximately 2.303.
+    """= aliasFor(__js_LN10)
+
+    const LN2: Number """
+    Natural logarithm of 2; approximately 0.693.
+    """= aliasFor(__js_LN2)
+
+    const LOG10E: Number """
+    Base-10 logarithm of E; approximately 0.434.
+    """= aliasFor(__js_LOG10E)
+
+    const LOG2E: Number """
+    Base-2 logarithm of E; approximately 1.443.
+    """= aliasFor(__js_LOG2E)
+
+    const PI: Number """
+    Ratio of a circle's circumference to its diameter; approximately 3.14159.
+    """= aliasFor(__js_PI)
+
+    const SQRT1_2: Number """
+    Square root of ½; approximately 0.707.
+    """= aliasFor(__js_SQRT1_2)
+
+    const SQRT2: Number """
+    Square root of 2; approximately 1.414.
+    """= aliasFor(__js_SQRT2)
+
+    function abs(x: Number): Number {
+      """
+      Returns the absolute value of x.
+      """
+      aliasFor(__js_abs)
     }
+
+    function acos(x: Number): Number {
+      """
+      Returns the arccosine of x.
+      """
+      aliasFor(__js_acos)
+    }
+
+    function acosh(x: Number): Number {
+      """
+      Returns the hyperbolic arccosine of x.
+      """
+      aliasFor(__js_acosh)
+    }
+
+    function asin(x: Number): Number {
+      """
+      Returns the arcsine of x.
+      """
+      aliasFor(__js_asin)
+    }
+
+    function asinh(x: Number): Number {
+      """
+      Returns the hyperbolic arcsine of a number.
+      """
+      aliasFor(__js_asinh)
+    }
+
+    function atan(x: Number): Number {
+      """
+      Returns the arctangent of x.
+      """
+      aliasFor(__js_atan)
+    }
+
+    function atan2(y: Number, x: Number): Number {
+      """
+      Returns the arctangent of the quotient of its arguments.
+      """
+      aliasFor(__js_atan2)
+    }
+
+    function atanh(x: Number): Number {
+      """
+      Returns the hyperbolic arctangent of x.
+      """
+      aliasFor(__js_atanh)
+    }
+
+    function cbrt(x: Number): Number {
+      """
+      Returns the cube root of x.
+      """
+      aliasFor(__js_cbrt)
+    }
+
+    function ceil(x: Number): Number {
+      """
+      Returns the smallest integer greater than or equal to x.
+      """
+      aliasFor(__js_ceil)
+    }
+
+    function clz32(x: Number): Number {
+      """
+      Returns the number of leading zero bits of the 32-bit integer x.
+      """
+      aliasFor(__js_clz32)
+    }
+
     function cos(x: Number): Number {
-      "compute cosine in radians"
+      """
+      Returns the cosine of x.
+      """
       aliasFor(__js_cos)
     }
+
+    function cosh(x: Number): Number {
+      """
+      Returns the hyperbolic cosine of x.
+      """
+      aliasFor(__js_cosh)
+    }
+
+    function exp(x: Number): Number {
+      """
+      Returns ex, where x is the argument, and e is Euler's number (2.718…, the base of the natural logarithm).
+      """
+      aliasFor(__js_exp)
+    }
+
+    function expm1(x: Number): Number {
+      """
+      Returns subtracting 1 from exp(x).
+      """
+      aliasFor(__js_expm1)
+    }
+
+    function floor(x: Number): Number {
+      """
+      Returns the largest integer less than or equal to x.
+      """
+      aliasFor(__js_floor)
+    }
+
+    function fround(x: Number): Number {
+      """
+      Returns the nearest single precision float representation of x.
+      """
+      aliasFor(__js_fround)
+    }
+
+    function hypot(x: Number): Number {
+      """
+      Returns the square root of the sum of squares of its arguments.
+      """
+      aliasFor(__js_hypot)
+    }
+
+    function imul(x: Number): Number {
+      """
+      Returns the result of the 32-bit integer multiplication of x and y.
+      """
+      aliasFor(__js_imul)
+    }
+
+    function log(x: Number): Number {
+      """
+      Returns the natural logarithm (㏒e; also, ㏑) of x.
+      """
+      aliasFor(__js_log)
+    }
+
+    function log10(x: Number): Number {
+      """
+      Returns the base-10 logarithm of x.
+      """
+      aliasFor(__js_log10)
+    }
+
+    function log1p(x: Number): Number {
+      """
+      Returns the natural logarithm (㏒e; also ㏑) of 1 + x for the number x.
+      """
+      aliasFor(__js_log1p)
+    }
+
+    function log2(x: Number): Number {
+      """
+      Returns the base-2 logarithm of x.
+      """
+      aliasFor(__js_log2)
+    }
+
+    function max(): Number {
+      """
+      Returns the largest of zero or more numbers.
+      (When no arguments are provided, returns -Infinity)
+      """
+      aliasFor(__js_max)
+    }
+
+    function max(x: Number): Number {
+      """
+      Returns the largest of zero or more numbers.
+      """
+      aliasFor(__js_max)
+    }
+
+    function max(x: Number, y: Number): Number {
+      """
+      Returns the largest of zero or more numbers.
+      """
+      aliasFor(__js_max)
+    }
+
+    function max(x: Number, y: Number, z: Number): Number {
+      """
+      Returns the largest of zero or more numbers.
+      """
+      aliasFor(__js_max)
+    }
+
+    function max(x: Number, y: Number, z: Number, w: Number): Number {
+      """
+      Returns the largest of zero or more numbers.
+      """
+      aliasFor(__js_max)
+    }
+
+    function min(): Number {
+      """
+      Returns the smallest of zero or more numbers.
+      (When no arguments are provided, returns +Infinity)
+      """
+      aliasFor(__js_min)
+    }
+
+    function min(x: Number): Number {
+      """
+      Returns the smallest of zero or more numbers.
+      """
+      aliasFor(__js_min)
+    }
+
+    function min(x: Number, y: Number): Number {
+      """
+      Returns the smallest of zero or more numbers.
+      """
+      aliasFor(__js_min)
+    }
+
+    function min(x: Number, y: Number, z: Number): Number {
+      """
+      Returns the smallest of zero or more numbers.
+      """
+      aliasFor(__js_min)
+    }
+
+    function min(x: Number, y: Number, z: Number, w: Number): Number {
+      """
+      Returns the smallest of zero or more numbers.
+      """
+      aliasFor(__js_min)
+    }
+
+    function pow(x: Number, y: Number): Number {
+      """
+      Returns base x to the exponent power y (that is, xy).
+      """
+      aliasFor(__js_pow)
+    }
+
+    function random(): Number {
+      """
+      Returns a pseudo-random number between 0 and 1.
+      """
+      aliasFor(__js_random)
+    }
+
+    function round(x: Number): Number {
+      """
+      Returns the value of the number x rounded to the nearest integer.
+      """
+      aliasFor(__js_round)
+    }
+
+    function sign(x: Number): Number {
+      """
+      Returns the sign of the x, indicating whether x is positive, negative, or zero.
+      """
+      aliasFor(__js_sign)
+    }
+
+    function sin(x: Number): Number {
+      """
+      Returns the sine of x.
+      """
+      aliasFor(__js_sin)
+    }
+
+    function sinh(x: Number): Number {
+      """
+      Returns the hyperbolic sine of x.
+      """
+      aliasFor(__js_sinh)
+    }
+
+    function sqrt(x: Number): Number {
+      """
+      Returns the positive square root of x.
+      """
+      aliasFor(__js_sqrt)
+    }
+
     function tan(x: Number): Number {
-      "compute tangent in radians"
+      """
+      Returns the tangent of x.
+      """
       aliasFor(__js_tan)
+    }
+
+    function tanh(x: Number): Number {
+      """
+      Returns the hyperbolic tangent of x.
+      """
+      aliasFor(__js_tanh)
+    }
+
+    function trunc(x: Number): Number {
+      """
+      Returns the integer portion of x, removing any fractional digits.
+      """
+      aliasFor(__js_trunc)
     }
   }
 }
