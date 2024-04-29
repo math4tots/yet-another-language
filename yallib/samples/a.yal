@@ -1,4 +1,4 @@
-from 'math' import Math
+from 'js/type/math' import Math
 
 export class SomeClass {
   "These are some comments"
