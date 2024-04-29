@@ -116,11 +116,6 @@ class Translator implements ast.NodeVisitor<string> {
     if (name.startsWith('__fn_')) return `${name.substring(5)}(${args.join(',')})`;
     return `${owner}.${translateMethodName(name, args.length)}(${args.join(',')})`;
   }
-  visitNew(n: ast.New): string {
-    const te = n.type;
-    const type = translateType(te);
-    return `new ${type}(${n.args.map(e => e.accept(this)).join(',')})`;
-  }
   visitLogicalNot(n: ast.LogicalNot): string {
     return `(!${n.accept(this)})`;
   }

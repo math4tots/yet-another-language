@@ -14,7 +14,6 @@ export const Keywords = [
   'null', 'true', 'false',
   'and', 'or', 'is', 'in', 'as',
   'not',
-  'new',
   'import', 'export', 'from',
   'static', 'inline', 'constexpr',
   'class', 'interface', 'enum', 'typedef',

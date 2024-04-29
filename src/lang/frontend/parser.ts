@@ -325,21 +325,6 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const end = expect('}').range.end;
       return new ast.RecordDisplay({ uri, range: { start, end } }, entries);
     }
-    if (consume('new')) {
-      const start = peek.range.start;
-      const type = parseTypeExpression();
-      // emit error if args is missing, but don't fail the parse.
-      // This allows autocomplete to happen for new expressions
-      if (!at('(')) {
-        errors.push({
-          location: { uri, range: tokens[i].range },
-          message: "Expected new expression arguments",
-        });
-      }
-      const [_, args, end] = at('(') ?
-        parseArgsWithParens() : [start, [], type.location.range.end];
-      return new ast.New({ uri, range: { start, end } }, type, args);
-    }
     if (consume('if')) {
       const condition = parseExpression();
       expect('then');
@@ -463,16 +448,14 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         lhs, type);
     }
     if (consume('.')) {
-      if (!(at('new') || at('IDENTIFIER')) || atFirstTokenOfNewLine()) {
+      if (!at('IDENTIFIER') || atFirstTokenOfNewLine()) {
         // If the person is just typing, the dot might not yet be followed by any name.
         // We still want the parse to succeed so that we can provide completion
         const location: ast.Location = { uri, range: tokens[i - 1].range };
         const identifier = new ast.IdentifierNode(location, '');
         return new ast.MethodCall(location, lhs, identifier, []);
       }
-      const identifier = consume('new') ? new ast.IdentifierNode(
-        { uri, range: tokens[i - 1].range }, 'new'
-      ) : parseIdentifier();
+      const identifier = parseIdentifier();
       if (at('(') && !atFirstTokenOfNewLine()) {
         const args = parseArgs();
         const end = tokens[i - 1].range.end;

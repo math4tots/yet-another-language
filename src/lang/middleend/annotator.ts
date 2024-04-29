@@ -1433,31 +1433,6 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             new ast.MethodCall(n.location, owner.ir, methodIdentifier, argIRs),
     };
   }
-  visitNew(n: ast.New): EResult {
-    const type = this.solveType(n.type);
-    const fields = type.classTypeData?.fields;
-    if (!fields) {
-      for (const arg of n.args) this.solveExpr(arg);
-      this.error(n.location, `${type} is not new-constructible`);
-      return { type: AnyType, ir: n };
-    }
-    this.annotation.callInstances.push({
-      range: n.location.range,
-      args: n.args.map(arg => arg.location.range),
-      overloads: [{ parameters: fields }],
-    });
-    if (fields.length !== n.args.length) {
-      for (const arg of n.args) this.solveExpr(arg);
-      this.error(n.location, `${type} requires ${fields.length} args but got ${n.args.length}`);
-      return { type, ir: n };
-    }
-    const argIRs: ast.Expression[] = [];
-    for (let i = 0; i < fields.length; i++) {
-      const result = this.solveExpr(n.args[i], fields[i].type);
-      argIRs.push(result.ir);
-    }
-    return { type, ir: new ast.New(n.location, n.type, argIRs) };
-  }
   visitLogicalNot(n: ast.LogicalNot): EResult {
     const { value, ir: valueIR } = this.solveExpr(n.value);
     return {

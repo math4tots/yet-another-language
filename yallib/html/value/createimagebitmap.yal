@@ -1,0 +1,7 @@
+from 'html/dom/imagebitmap' import ImageBitmap
+from 'html/dom/mixin/drawimagesource' import DrawImageSource
+
+
+export const createImageBitmap =
+  native function createImageBitmap(image: DrawImageSource): ImageBitmap "createImageBitmap(image)"
+

@@ -28,7 +28,6 @@ export interface ExpressionVisitor<R> {
   visitRecordDisplay(n: RecordDisplay): R;
   visitFunctionDisplay(n: FunctionDisplay): R;
   visitMethodCall(n: MethodCall): R;
-  visitNew(n: New): R;
   visitLogicalNot(n: LogicalNot): R;
   visitLogicalAnd(n: LogicalAnd): R;
   visitLogicalOr(n: LogicalOr): R;
@@ -247,18 +246,6 @@ export class MethodCall implements Expression {
     this.args = args;
   }
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitMethodCall(this); }
-}
-
-export class New implements Expression {
-  readonly location: Location;
-  readonly type: TypeExpression;
-  readonly args: Expression[];
-  constructor(location: Location, type: TypeExpression, args: Expression[]) {
-    this.location = location;
-    this.type = type;
-    this.args = args;
-  }
-  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitNew(this); }
 }
 
 export class LogicalNot implements Expression {
