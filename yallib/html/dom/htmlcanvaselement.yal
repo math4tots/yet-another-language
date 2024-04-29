@@ -12,6 +12,10 @@ enum StringWebGL {
   const value = "webgl"
 }
 
+enum StringWebGL2 {
+  const value = "webgl2"
+}
+
 export interface HTMLCanvasElement extends HTMLElement, DrawImageSource {
   """
   https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement
@@ -60,7 +64,7 @@ export interface HTMLCanvasElement extends HTMLElement, DrawImageSource {
     aliasFor(__js_getContext)
   }
 
-  function getWebGL2Context(contextType: StringWebGL = "webgl2"): WebGL2RenderingContext? {
+  function getWebGL2Context(contextType: StringWebGL2 = "webgl2"): WebGL2RenderingContext? {
     """
     https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext
 
