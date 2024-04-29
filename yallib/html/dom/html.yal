@@ -2,7 +2,6 @@
 HTML DOM interface
 """
 export as html
-import 'math' as Math
 from './canvasrenderingcontext2d' export CanvasRenderingContext2D
 from './document' export Document
 from './element' export Element

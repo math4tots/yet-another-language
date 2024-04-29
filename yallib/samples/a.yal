@@ -1,4 +1,4 @@
-import 'math' as Math
+from 'math' import Math
 
 export class SomeClass {
   "These are some comments"
@@ -86,8 +86,6 @@ print(Math.sin(30))
 print(Math.sin(4))
 print(Math.sin(5))
 print(Math)
-print(Math.cos)
-print(Math.cos)
 print(33 + 47)
 
 print(['a', 'b', 'c'])
@@ -106,7 +104,7 @@ const y = "y value"
 
 print(x + " " + y)
 
-const now = native(): Number { js "return Date.now()" }
+const now = native function(): Number { js "return Date.now()" }
 print(now())
 
 

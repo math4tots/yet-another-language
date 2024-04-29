@@ -1,8 +1,21 @@
-export as Math
 
-export const PI = (native function(): Number "Math.PI")()
-export const TAU "Two times PI" = 2 * PI
+export interface Math {
+  static {
+    aliasFor(native constexpr "Math")
 
-export native function sin "computes sine in radians" (x: Number): Number "Math.sin(x)"
-export native function cos "computes cosine in radians" (x: Number): Number "Math.cos(x)"
-export native function tan "computes tangent in radians" (x: Number): Number "Math.tan(x)"
+    const PI: Number = aliasFor(__js_PI)
+
+    function sin(x: Number): Number {
+      "compute sine in radians"
+      aliasFor(__js_sin)
+    }
+    function cos(x: Number): Number {
+      "compute cosine in radians"
+      aliasFor(__js_cos)
+    }
+    function tan(x: Number): Number {
+      "compute tangent in radians"
+      aliasFor(__js_tan)
+    }
+  }
+}
