@@ -62,6 +62,7 @@ import { translateVariableName } from './names';
 
 type CompileTimeConfigsWIP = {
   target?: RunTarget;
+  jsLibs: Set<string>;
 };
 
 type AnnotatorParameters = {
@@ -393,7 +394,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
   async handle(n: ast.File): Promise<FResult> {
     // resolve imports
-    const compileTimeConfigs: CompileTimeConfigsWIP = {};
+    const compileTimeConfigs: CompileTimeConfigsWIP = {
+      jsLibs: new Set(),
+    };
     const srcURI = n.location.uri;
     let canUseCached = n.documentVersion === this.cached?.documentVersion;
     for (const statement of n.statements) {
@@ -417,6 +420,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           this.annotation.importMap.set(uriString, importModuleAnnotation);
           const importConfig = importModuleAnnotation.compileTimeConfigs;
           compileTimeConfigs.target = importConfig.target ?? compileTimeConfigs.target;
+          for (const item of importModuleAnnotation.compileTimeConfigs.jsLibs) {
+            compileTimeConfigs.jsLibs.add(item);
+          }
         }
         if (cachedImportModuleAnnotation !== importModuleAnnotation) {
           canUseCached = false;
@@ -501,6 +507,21 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
                       break;
                     default:
                       this.error(location, `Unrecognized target value ${value}`);
+                  }
+                }
+                break;
+              }
+              case '__jsLibs': {
+                includeIR = false;
+                const value = variable.value;
+                if (value === undefined) {
+                  this.error(location, '__jsLibs value could not be determined at compile time');
+                } else if (!Array.isArray(value) || !value.every(v => typeof v === 'string')) {
+                  this.error(location, `__jsLibs value must be an array of strings`);
+                } else {
+                  for (const item of value) {
+                    if (typeof item !== 'string') continue;
+                    compileTimeConfigs.jsLibs.add(item);
                   }
                 }
                 break;
@@ -1899,7 +1920,7 @@ export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<strin
       importMap: new Map(),
       importAliasVariables: [],
       memberImports: [],
-      compileTimeConfigs: {},
+      compileTimeConfigs: { jsLibs: new Set() },
       ir: new ast.File(LOC, -1, [], []),
     };
   }

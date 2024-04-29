@@ -17,7 +17,7 @@ export const REPR_FUNCTION_DEFINITION = `function YALrepr(x) {
         '<function ' + x.name + '>' : '<function>';
     case 'object':
       if (x === null) return 'null';
-      if (Array.isArray(x)) return '[' + x.map(i => YALrepr(i)).join(', ') + ']';
+      if (Array.isArray(x)||ArrayBuffer.isView(x)) return '[' + x.map(i => YALrepr(i)).join(', ') + ']';
       if (x.YAL__repr__) return x.YAL__repr__();
       if (x.toString && x.toString !== Object.prototype.toString) return x.toString();
       break;

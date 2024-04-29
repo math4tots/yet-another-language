@@ -1,0 +1,94 @@
+
+
+const __jsLibs = ["gl-matrix.js"]
+
+export interface glMatrix {
+  """
+  https://glmatrix.net/docs/module-glMatrix.html
+  """
+  static {
+    aliasFor(native "glMatrix.glMatrix")
+    function equals(a: Number, b: Number): Bool { aliasFor(__js_equals) }
+    function toRadian(a: Number): Number { aliasFor(__js_toRadian) }
+  }
+}
+
+export interface mat2 {
+  static {
+    aliasFor(native "glMatrix.mat2")
+    function create(): mat2 { aliasFor(__js_create) }
+  }
+}
+
+export interface mat4 {
+  """
+  https://glmatrix.net/docs/module-mat4.html
+
+  4x4 Matrix
+  Format: column-major, when typed out it looks like row-major
+  The matrices are being post multiplied.
+  """
+
+  static {
+    aliasFor(native "glMatrix.mat4")
+    function add(out: mat4, a: mat4, b: mat4): mat4 { aliasFor(__js_add) }
+    function adjoint(out: mat4, a: mat4): mat4 { aliasFor(__js_adjoint) }
+    function clone(a: mat4): mat4 { aliasFor(__js_clone) }
+    function copy(out: mat4, a: mat4): mat4 { aliasFor(__js_copy) }
+    function create(): mat4 { aliasFor(__js_create) }
+    function determinant(a: mat4): Number { aliasFor(__js_determinant) }
+    function equals(a: mat4, b: mat4): Bool { aliasFor(__js_equals) }
+    function exactEquals(a: mat4, b: mat4): Bool { aliasFor(__js_exactEquals) }
+    function frob(a: mat4): Number { aliasFor(__js_frob) }
+    function fromQuat(out: mat4, q: quat): mat4 { aliasFor(__js_fromQuat) }
+    function fromQuat2(out: mat4, a: quat2): mat4 { aliasFor(__js_fromQuat2) }
+    function fromRotation(out: mat4, rad: Number, axis: vec3): mat4 { aliasFor(__js_fromRotation) }
+    function perspective(out: mat4, fovy: Number, aspect: Number, near: Number, far: Number): mat4 { aliasFor(__js_perspective) }
+  }
+}
+
+export interface quat {
+  """
+  https://glmatrix.net/docs/module-quat.html
+  """
+
+  static {
+    aliasFor(native "glMatrix.quat")
+  }
+}
+
+export interface quat2 {
+  """
+  https://glmatrix.net/docs/module-quat2.html
+
+  Dual Quaternion
+  Format: [real, dual]
+  Quaternion format: XYZW
+  Make sure to have normalized dual quaternions, otherwise the functions may not work as intended.
+  """
+
+  static {
+    aliasFor(native "glMatrix.quat2")
+  }
+}
+
+export interface vec2 {
+  """
+  2 Dimensional Vector
+  """
+  static {}
+}
+
+export interface vec3 {
+  """
+  3 Dimensional Vector
+  """
+  static {}
+}
+
+export interface vec4 {
+  """
+  4 Dimensional Vector
+  """
+  static {}
+}

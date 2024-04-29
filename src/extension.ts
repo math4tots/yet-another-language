@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
     parseCommand));
   sub(vscode.commands.registerCommand(
     'yal.run',
-    runCommand));
+    () => runCommand(context)));
   sub(vscode.commands.registerCommand(
     'yal.translateToJavascript',
     translateToJSCommand));
