@@ -6,4 +6,4 @@ class SomeClass {
   }
 }
 
-print(new SomeClass().someMethod())
+print(SomeClass.new().someMethod())

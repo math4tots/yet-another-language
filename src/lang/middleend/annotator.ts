@@ -832,6 +832,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
 
         this.addMethodsAndFields(classTypeType, defn.statements);
+        classTypeType.addMethod({
+          identifier: { name: 'new', location: defn.identifier.location },
+          parameters: [...classType.classTypeData.fields],
+          returnType: classType,
+          sourceVariable: {
+            identifier: { name: 'new', location: defn.identifier.location },
+            type: newLambdaType([...classType.classTypeData.fields], classType),
+          },
+          aliasFor: '__op_new__',
+        });
       } else if (defn instanceof ast.InterfaceDefinition) {
         const interfaceTypeTypeVariable = this.interfaceMap.get(defn);
         if (!interfaceTypeTypeVariable) throw new Error(`FUBAR interface ${interfaceTypeTypeVariable}`);

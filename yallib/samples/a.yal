@@ -28,7 +28,7 @@ export interface SomeInterface {
 export const someValue = 'hello some value'
 export const someOtherValue = 'some other value'
 
-const instance "instance is an instance of SomeClass" = new SomeClass(0)
+const instance "instance is an instance of SomeClass" = SomeClass.new(0)
 
 instance.someMethod()
 

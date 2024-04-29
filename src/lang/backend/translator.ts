@@ -43,6 +43,7 @@ const builtinOnlyMethodNames = new Set([
   ...specialUnaryOperatorMap.keys(),
   '__op_getitem__',
   '__op_setitem__',
+  '__op_new__',
   '__call__',
 ].flat());
 
@@ -98,6 +99,7 @@ class Translator implements ast.NodeVisitor<string> {
     const args = n.args.map(e => e.accept(this));
     const name = n.identifier.name;
     if (name === '__call__') return `${owner}(${args.join(',')})`;
+    if (name === '__op_new__') return `(new (${owner})(${args.join(',')}))`;
     if (args.length === 0) {
       const applyOperator = specialUnaryOperatorMap.get(name);
       if (applyOperator) return applyOperator(owner);

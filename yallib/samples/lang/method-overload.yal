@@ -12,7 +12,7 @@ class SomeClass {
   }
 }
 
-const instance = new SomeClass()
+const instance = SomeClass.new()
 print(instance.overloadedMethod())
 print(instance.overloadedMethod(0x35))
 print(instance.overloadedMethod("a", "b"))
