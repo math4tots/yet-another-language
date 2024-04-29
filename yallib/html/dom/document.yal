@@ -1,3 +1,4 @@
+from './nodelist' import NodeList
 from 'html/dom/element' import Element
 from 'html/dom/htmlbodyelement' import HTMLBodyElement
 
@@ -6,4 +7,9 @@ export interface Document {
   
   const body: HTMLBodyElement = aliasFor(__js_body)
   function getElementById(id: String): Element? { aliasFor(__js_getElementById) }
+
+  function querySelector(selectors: String): Element? { aliasFor(__js_querySelector) }
+  function querySelectorAll(selectors: String): NodeList { aliasFor(__js_querySelectorAll) }
+
+  function createElement(tagName: String): Element { aliasFor(__js_createElement) }
 }

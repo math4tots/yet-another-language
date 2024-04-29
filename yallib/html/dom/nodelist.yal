@@ -1,0 +1,6 @@
+
+
+export interface NodeList {
+  static {}
+  const length: Number = aliasFor(__js_length)
+}
