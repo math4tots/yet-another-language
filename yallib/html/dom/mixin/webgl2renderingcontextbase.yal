@@ -1,18 +1,55 @@
+from './webglrenderingcontextbase' import WebGLBuffer
+from './webglrenderingcontextbase' import WebGLProgram
+from './webglrenderingcontextbase' import WebGLTexture
+from './webglrenderingcontextbase' import WebGLUniformLocation
+from 'js/type/arraybufferview' import ArrayBufferView
+from 'js/type/dataview' import DataView
 from 'js/type/float32array' import Float32Array
+from 'js/type/int32array' import Int32Array
+from 'js/type/typedarray' import TypedArray
+from 'js/type/uint32array' import Uint32Array
 
 typedef GLboolean = Bool
 typedef GLenum = Number
 typedef GLint64 = Number
+typedef GLuint64 = Number
 typedef GLsizei = Number
 typedef GLuint = Number
 typedef GLint = Number
 typedef GLintptr = Number
+typedef GLsizeiptr = Number
 typedef GLbitfield = Number
 typedef GLclampf = Number
 typedef GLfloat = Number
 typedef DOMString = String
 typedef Float32List = Float32Array
+typedef Uint32List = Uint32Array
+typedef Int32List = Int32Array
+typedef TexImageSource = TypedArray | DataView
 
+export interface WebGLQuery {
+  static {}
+}
+
+export interface WebGLSampler {
+  static {}
+}
+
+export interface WebGLSync {
+  static {}
+}
+
+export interface WebGLTransformFeedback {
+  static {}
+}
+
+export interface WebGLActiveInfo {
+  static {}
+}
+
+export interface WebGLVertexArrayObject {
+  static {}
+}
 
 export interface WebGL2RenderingContextBase {
   """From https://registry.khronos.org/webgl/specs/latest/2.0/"""
@@ -282,4 +319,185 @@ export interface WebGL2RenderingContextBase {
 
   # WebGL-specific enums
   const MAX_CLIENT_WAIT_TIMEOUT_WEBGL: GLenum                  = aliasFor(__js_MAX_CLIENT_WAIT_TIMEOUT_WEBGL)
+
+  # Buffer objects
+  function copyBufferSubData(readTarget: GLenum, writeTarget: GLenum, readOffset: GLintptr,
+                              writeOffset: GLintptr, size: GLsizeiptr) { aliasFor(__js_copyBufferSubData) }
+  # MapBufferRange, in particular its read-only and write-only modes,
+  # can not be exposed safely to JavaScript. GetBufferSubData
+  # replaces it for the purpose of fetching data back from the GPU.
+  function getBufferSubData(target: GLenum, srcByteOffset: GLintptr, dstBuffer: ArrayBufferView,
+                             dstOffset: Number = 0, length: GLuint = 0) { aliasFor(__js_getBufferSubData) }
+
+  # Framebuffer objects
+  function blitFramebuffer(srcX0: GLint, srcY0: GLint, srcX1: GLint, srcY1: GLint, dstX0: GLint, dstY0: GLint,
+                            dstX1: GLint, dstY1: GLint, mask: GLbitfield, filter: GLenum) { aliasFor(__js_blitFramebuffer) }
+  function framebufferTextureLayer(target: GLenum, attachment: GLenum, texture: WebGLTexture?, level: GLint,
+                                    layer: GLint) { aliasFor(__js_framebufferTextureLayer) }
+  function invalidateFramebuffer(target: GLenum, attachments: List[GLenum]) { aliasFor(__js_invalidateFramebuffer) }
+  function invalidateSubFramebuffer(target: GLenum, attachments: List[GLenum],
+                                     x: GLint, y: GLint, width: GLsizei, height: GLsizei) { aliasFor(__js_invalidateSubFramebuffer) }
+  function readBuffer(src: GLenum) { aliasFor(__js_readBuffer) }
+
+  # Renderbuffer objects
+  function getInternalformatParameter(target: GLenum, internalformat: GLenum, pname: GLenum) { aliasFor(__js_getInternalformatParameter) }
+  function renderbufferStorageMultisample(target: GLenum, samples: GLsizei, internalformat: GLenum,
+                                           width: GLsizei, height: GLsizei) { aliasFor(__js_renderbufferStorageMultisample) }
+
+  # Texture objects
+  function texStorage2D(target: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei,
+                         height: GLsizei) { aliasFor(__js_texStorage2D) }
+  function texStorage3D(target: GLenum, levels: GLsizei, internalformat: GLenum, width: GLsizei,
+                         height: GLsizei, depth: GLsizei) { aliasFor(__js_texStorage3D) }
+
+  function texImage3D(target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei,
+                       depth: GLsizei, border: GLint, format: GLenum, type: GLenum, pboOffset: GLintptr) { aliasFor(__js_texImage3D) }
+  function texImage3D(target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei,
+                       depth: GLsizei, border: GLint, format: GLenum, type: GLenum,
+                       source: TexImageSource) { aliasFor(__js_texImage3D) }
+  function texImage3D(target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei,
+                       depth: GLsizei, border: GLint, format: GLenum, type: GLenum, srcData: ArrayBufferView?) { aliasFor(__js_texImage3D) }
+  function texImage3D(target: GLenum, level: GLint, internalformat: GLint, width: GLsizei, height: GLsizei,
+                       depth: GLsizei, border: GLint, format: GLenum, type: GLenum, srcData: ArrayBufferView,
+                       srcOffset: Number) { aliasFor(__js_texImage3D) }
+
+  function texSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint,
+                          width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type: GLenum,
+                          pboOffset: GLintptr) { aliasFor(__js_texSubImage3D) }
+  function texSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint,
+                          width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type: GLenum,
+                          source: TexImageSource) { aliasFor(__js_texSubImage3D) }
+  function texSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint,
+                          width: GLsizei, height: GLsizei, depth: GLsizei, format: GLenum, type: GLenum,
+                          srcData: ArrayBufferView?, srcOffset: Number = 0) { aliasFor(__js_texSubImage3D) }
+
+  function copyTexSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint, zoffset: GLint,
+                              x: GLint, y: GLint, width: GLsizei, height: GLsizei) { aliasFor(__js_copyTexSubImage3D) }
+
+  function compressedTexImage3D(target: GLenum, level: GLint, internalformat: GLenum, width: GLsizei,
+                                 height: GLsizei, depth: GLsizei, border: GLint, imageSize: GLsizei, offset: GLintptr) { aliasFor(__js_compressedTexImage3D) }
+  function compressedTexImage3D(target: GLenum, level: GLint, internalformat: GLenum, width: GLsizei,
+                                 height: GLsizei, depth: GLsizei, border: GLint, srcData: ArrayBufferView,
+                                 srcOffset: Number = 0, srcLengthOverride: GLuint = 0) { aliasFor(__js_compressedTexImage3D) }
+
+  function compressedTexSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint,
+                                    zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei,
+                                    format: GLenum, imageSize: GLsizei, offset: GLintptr) { aliasFor(__js_compressedTexSubImage3D) }
+  function compressedTexSubImage3D(target: GLenum, level: GLint, xoffset: GLint, yoffset: GLint,
+                                    zoffset: GLint, width: GLsizei, height: GLsizei, depth: GLsizei,
+                                    format: GLenum, srcData: ArrayBufferView,
+                                    srcOffset: Number = 0,
+                                    srcLengthOverride: GLuint = 0) { aliasFor(__js_compressedTexSubImage3D) }
+
+  # Programs and shaders
+  function getFragDataLocation(program: WebGLProgram, name: DOMString): GLint { aliasFor(__js_getFragDataLocation) }
+
+  # Uniforms
+  function uniform1ui(location: WebGLUniformLocation?, v0: GLuint) { aliasFor(__js_uniform1ui) }
+  function uniform2ui(location: WebGLUniformLocation?, v0: GLuint, v1: GLuint) { aliasFor(__js_uniform2ui) }
+  function uniform3ui(location: WebGLUniformLocation?, v0: GLuint, v1: GLuint, v2: GLuint) { aliasFor(__js_uniform3ui) }
+  function uniform4ui(location: WebGLUniformLocation?, v0: GLuint, v1: GLuint, v2: GLuint, v3: GLuint) { aliasFor(__js_uniform4ui) }
+
+  function uniform1uiv(location: WebGLUniformLocation?, data: Uint32List, srcOffset: Number = 0,
+                        srcLength: GLuint = 0) { aliasFor(__js_uniform1uiv) }
+  function uniform2uiv(location: WebGLUniformLocation?, data: Uint32List, srcOffset: Number = 0,
+                        srcLength: GLuint = 0) { aliasFor(__js_uniform2uiv) }
+  function uniform3uiv(location: WebGLUniformLocation?, data: Uint32List, srcOffset: Number = 0,
+                        srcLength: GLuint = 0) { aliasFor(__js_uniform3uiv) }
+  function uniform4uiv(location: WebGLUniformLocation?, data: Uint32List, srcOffset: Number = 0,
+                        srcLength: GLuint = 0) { aliasFor(__js_uniform4uiv) }
+  function uniformMatrix3x2fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                               srcOffset: Number = 0, srcLength: GLuint = 0) { aliasFor(__js_uniformMatrix3x2fv) }
+  function uniformMatrix4x2fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                               srcOffset: Number = 0, srcLength: GLuint = 0) { aliasFor(__js_uniformMatrix4x2fv) }
+
+  function uniformMatrix2x3fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                               srcOffset: Number = 0, srcLength: GLuint = 0) { aliasFor(__js_uniformMatrix2x3fv) }
+  function uniformMatrix4x3fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                               srcOffset: Number = 0, srcLength: GLuint = 0) { aliasFor(__js_uniformMatrix4x3fv) }
+
+  function uniformMatrix2x4fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                               srcOffset: Number = 0, srcLength: GLuint = 0) { aliasFor(__js_uniformMatrix2x4fv) }
+  function uniformMatrix3x4fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                               srcOffset: Number = 0, srcLength: GLuint = 0) { aliasFor(__js_uniformMatrix3x4fv) }
+
+  # Vertex attribs
+  function vertexAttribI4i(index: GLuint, x: GLint, y: GLint, z: GLint, w: GLint) { aliasFor(__js_vertexAttribI4i) }
+  function vertexAttribI4iv(index: GLuint, values: Int32List) { aliasFor(__js_vertexAttribI4iv) }
+  function vertexAttribI4ui(index: GLuint, x: GLuint, y: GLuint, z: GLuint, w: GLuint) { aliasFor(__js_vertexAttribI4ui) }
+  function vertexAttribI4uiv(index: GLuint, values: Uint32List) { aliasFor(__js_vertexAttribI4uiv) }
+  function vertexAttribIPointer(index: GLuint, size: GLint, type: GLenum, stride: GLsizei, offset: GLintptr) { aliasFor(__js_vertexAttribIPointer) }
+
+  # Writing to the drawing buffer
+  function vertexAttribDivisor(index: GLuint, divisor: GLuint) { aliasFor(__js_vertexAttribDivisor) }
+  function drawArraysInstanced(mode: GLenum, first: GLint, count: GLsizei, instanceCount: GLsizei) { aliasFor(__js_drawArraysInstanced) }
+  function drawElementsInstanced(mode: GLenum, count: GLsizei, type: GLenum, offset: GLintptr, instanceCount: GLsizei) { aliasFor(__js_drawElementsInstanced) }
+  function drawRangeElements(mode: GLenum, start: GLuint, end: GLuint, count: GLsizei, type: GLenum, offset: GLintptr) { aliasFor(__js_drawRangeElements) }
+
+  # Multiple Render Targets
+  function drawBuffers(buffers: List[GLenum]) { aliasFor(__js_drawBuffers) }
+
+  function clearBufferfv(buffer: GLenum, drawbuffer: GLint, values: Float32List,
+                          srcOffset: Number = 0) { aliasFor(__js_clearBufferfv) }
+  function clearBufferiv(buffer: GLenum, drawbuffer: GLint, values: Int32List,
+                          srcOffset: Number = 0) { aliasFor(__js_clearBufferiv) }
+  function clearBufferuiv(buffer: GLenum, drawbuffer: GLint, values: Uint32List,
+                           srcOffset: Number = 0) { aliasFor(__js_clearBufferuiv) }
+
+  function clearBufferfi(buffer: GLenum, drawbuffer: GLint, depth: GLfloat, stencil: GLint) { aliasFor(__js_clearBufferfi) }
+
+  # Query Objects
+  function createQuery(): WebGLQuery? { aliasFor(__js_createQuery) }
+  function deleteQuery(query: WebGLQuery?) { aliasFor(__js_deleteQuery) }
+  function isQuery(query: WebGLQuery?): GLboolean { aliasFor(__js_isQuery) }
+  function beginQuery(target: GLenum, query: WebGLQuery) { aliasFor(__js_beginQuery) }
+  function endQuery(target: GLenum) { aliasFor(__js_endQuery) }
+  function getQuery(target: GLenum, pname: GLenum): WebGLQuery? { aliasFor(__js_getQuery) }
+  function getQueryParameter(query: WebGLQuery, pname: GLenum) { aliasFor(__js_getQueryParameter) }
+
+  # Sampler Objects
+  function createSampler(): WebGLSampler? { aliasFor(__js_createSampler) }
+  function deleteSampler(sampler: WebGLSampler?) { aliasFor(__js_deleteSampler) }
+  function isSampler(sampler: WebGLSampler?): GLboolean { aliasFor(__js_isSampler) }
+  function bindSampler(unit: GLuint, sampler: WebGLSampler?) { aliasFor(__js_bindSampler) }
+  function samplerParameteri(sampler: WebGLSampler, pname: GLenum, param: GLint) { aliasFor(__js_samplerParameteri) }
+  function samplerParameterf(sampler: WebGLSampler, pname: GLenum, param: GLfloat) { aliasFor(__js_samplerParameterf) }
+  function getSamplerParameter(sampler: WebGLSampler, pname: GLenum) { aliasFor(__js_getSamplerParameter) }
+
+  # Sync objects
+  function fenceSync(condition: GLenum, flags: GLbitfield): WebGLSync? { aliasFor(__js_fenceSync) }
+  function isSync(sync: WebGLSync?): GLboolean { aliasFor(__js_isSync) }
+  function deleteSync(sync: WebGLSync?) { aliasFor(__js_deleteSync) }
+  function clientWaitSync(sync: WebGLSync, flags: GLbitfield, timeout: GLuint64): GLenum { aliasFor(__js_clientWaitSync) }
+  function waitSync(sync: WebGLSync, flags: GLbitfield, timeout: GLint64) { aliasFor(__js_waitSync) }
+  function getSyncParameter(sync: WebGLSync, pname: GLenum) { aliasFor(__js_getSyncParameter) }
+
+  # Transform Feedback
+  function createTransformFeedback(): WebGLTransformFeedback? { aliasFor(__js_createTransformFeedback) }
+  function deleteTransformFeedback(tf: WebGLTransformFeedback?) { aliasFor(__js_deleteTransformFeedback) }
+  function isTransformFeedback(tf: WebGLTransformFeedback?): GLboolean { aliasFor(__js_isTransformFeedback) }
+  function bindTransformFeedback(target: GLenum, tf: WebGLTransformFeedback?) { aliasFor(__js_bindTransformFeedback) }
+  function beginTransformFeedback(primitiveMode: GLenum) { aliasFor(__js_beginTransformFeedback) }
+  function endTransformFeedback() { aliasFor(__js_endTransformFeedback) }
+  function transformFeedbackVaryings(program: WebGLProgram, varyings: List[DOMString], bufferMode: GLenum) { aliasFor(__js_transformFeedbackVaryings) }
+  function getTransformFeedbackVarying(program: WebGLProgram, index: GLuint): WebGLActiveInfo? { aliasFor(__js_getTransformFeedbackVarying) }
+  function pauseTransformFeedback() { aliasFor(__js_pauseTransformFeedback) }
+  function resumeTransformFeedback() { aliasFor(__js_resumeTransformFeedback) }
+
+  # Uniform Buffer Objects and Transform Feedback Buffers
+  function bindBufferBase(target: GLenum, index: GLuint, buffer: WebGLBuffer?) { aliasFor(__js_bindBufferBase) }
+  function bindBufferRange(target: GLenum, index: GLuint, buffer: WebGLBuffer?, offset: GLintptr, size: GLsizeiptr) { aliasFor(__js_bindBufferRange) }
+  function getIndexedParameter(target: GLenum, index: GLuint) { aliasFor(__js_getIndexedParameter) }
+  function getUniformIndices(program: WebGLProgram, uniformNames: List[DOMString]): List[GLuint]? { aliasFor(__js_getUniformIndices) }
+  function getActiveUniforms(program: WebGLProgram, uniformIndices: List[GLuint], pname: GLenum) { aliasFor(__js_getActiveUniforms) }
+  function getUniformBlockIndex(program: WebGLProgram, uniformBlockName: DOMString): GLuint { aliasFor(__js_getUniformBlockIndex) }
+  function getActiveUniformBlockParameter(program: WebGLProgram, uniformBlockIndex: GLuint, pname: GLenum) { aliasFor(__js_getActiveUniformBlockParameter) }
+  function getActiveUniformBlockName(program: WebGLProgram, uniformBlockIndex: GLuint): DOMString? { aliasFor(__js_getActiveUniformBlockName) }
+  function uniformBlockBinding(program: WebGLProgram, uniformBlockIndex: GLuint, uniformBlockBinding: GLuint) { aliasFor(__js_uniformBlockBinding) }
+
+  # Vertex Array Objects
+  function createVertexArray(): WebGLVertexArrayObject? { aliasFor(__js_createVertexArray) }
+  function deleteVertexArray(vertexArray: WebGLVertexArrayObject?) { aliasFor(__js_deleteVertexArray) }
+  function isVertexArray(vertexArray: WebGLVertexArrayObject?): GLboolean { aliasFor(__js_isVertexArray) }
+  function bindVertexArray(array: WebGLVertexArrayObject?) { aliasFor(__js_bindVertexArray) }
 }

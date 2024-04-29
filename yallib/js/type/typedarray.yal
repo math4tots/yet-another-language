@@ -1,0 +1,6 @@
+from './arraybufferview' import ArrayBufferView
+
+
+export interface TypedArray extends ArrayBufferView {
+  static {}
+}

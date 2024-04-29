@@ -18,39 +18,39 @@ enum PredefinedColorSpace {
 }
 
 export interface WebGLProgram {
-  const __marker_WebGLProgram: Any
+  static {}
 }
 
 export interface WebGLShader {
-  const __marker_WebGLShader: Any
+  static {}
 }
 
 export interface WebGLBuffer {
-  const __marker_WebGLBuffer: Any
+  static {}
 }
 
 export interface WebGLFramebuffer {
-  const __marker_WebGLFramebuffer: Any
+  static {}
 }
 
 export interface WebGLRenderbuffer {
-  const __marker_WebGLRenderbuffer: Any
+  static {}
 }
 
 export interface WebGLTexture {
-  const __marker_WebGLTexture: Any
+  static {}
 }
 
 export interface WebGLActiveInfo {
-  const __marker_WebGLActiveInfo: Any
+  static {}
 }
 
 export interface WebGLShaderPrecisionFormat {
-  const __marker_WebGLShaderPrecisionFormat: Any
+  static {}
 }
 
 export interface WebGLUniformLocation {
-  const __marker_WebGLUniformLocation: Any
+  static {}
 }
 
 export interface WebGLRenderingContextBase {

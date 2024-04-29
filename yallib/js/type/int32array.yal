@@ -2,5 +2,5 @@ from './arraybufferview' import ArrayBufferView
 from './typedarray' import TypedArray
 
 
-export interface Float32Array extends TypedArray {
+export interface Int32Array extends TypedArray {
 }

@@ -1,0 +1,15 @@
+from './mixin/webgl2renderingcontextbase' import WebGL2RenderingContextBase
+from './mixin/webglrenderingcontextbase' import WebGLRenderingContextBase
+from './mixin/webglrenderingcontextoverloads' import WebGLRenderingContextOverloads
+
+
+export interface WebGL2RenderingContext extends WebGLRenderingContextBase,
+    WebGL2RenderingContextBase,
+    WebGLRenderingContextOverloads {
+  """
+  https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext
+
+  The WebGL2RenderingContext interface provides the OpenGL ES 3.0
+  rendering context for the drawing surface of an HTML <canvas> element.
+  """
+}

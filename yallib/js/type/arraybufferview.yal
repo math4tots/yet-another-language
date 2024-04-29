@@ -1,0 +1,18 @@
+
+
+export interface ArrayBufferView {
+  """
+  https://stackoverflow.com/questions/14309049/which-arraybufferview
+
+  There's no 'ArrayBufferView' page on MDN.
+
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer
+
+  But the name appears in the webgl specs
+
+  https://registry.khronos.org/webgl/specs/1.0/
+
+  I'm assuming that these refer to the various typed arrays and the DataView class.
+  """
+  static {}
+}
