@@ -2,7 +2,7 @@
     "name": "yal",
     "displayName": "yal",
     "description": "Intellisense support for Yet Another Language",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "publisher": "mtots",
     "license": "Apache-2.0",
     "repository": {
