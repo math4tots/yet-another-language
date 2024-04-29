@@ -1173,6 +1173,17 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         return completions;
       },
     });
+
+    // Even if the method is not correct based on the parameter count, if we find
+    // a method that matches the name, add to the callInstances to provide signature help.
+    if (owner.type.getAnyMethodWithName(n.identifier.name)) {
+      this.annotation.callInstances.push({
+        range: n.location.range,
+        args: n.args.map(arg => arg.location.range),
+        overloads: owner.type.getAllMethodsWithName(n.identifier.name),
+      });
+    }
+
     const method = owner.type.getMethodHandlingArgumentCount(n.identifier.name, n.args.length);
     if (!method) {
       for (const arg of n.args) this.solveExpr(arg);
@@ -1184,11 +1195,6 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
       return { type: AnyType, ir: n };
     }
-    this.annotation.callInstances.push({
-      range: n.location.range,
-      args: n.args.map(arg => arg.location.range),
-      overloads: owner.type.getAllMethodsWithName(n.identifier.name),
-    });
     this.markReference(method.sourceVariable, n.identifier.location.range);
 
     // account for default parameters

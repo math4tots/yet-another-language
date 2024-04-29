@@ -25,7 +25,7 @@ export async function runCommand() {
     <title>YAL VIEW</title>
   </head>
   <body>
-    <script>${translation}</script>
+    <script type='module'>${translation}</script>
   </body>
   </html>`;
       const panel = vscode.window.createWebviewPanel(

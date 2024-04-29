@@ -267,7 +267,7 @@ export async function getTranslationForDocument(
 
   const parts: string[] = [
     '"use strict";',
-    '(()=>{',
+    '(()=>{"use strict";',
     RAISE_FUNCTION_DEFINITION,
     NULL_GET_FUNCTION_DEFINITION,
     NULL_MAP_FUNCTION_DEFINITION,
