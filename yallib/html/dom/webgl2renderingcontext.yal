@@ -1,11 +1,11 @@
 from './mixin/webgl2renderingcontextbase' import WebGL2RenderingContextBase
+from './mixin/webgl2renderingcontextoverloads' import WebGL2RenderingContextOverloads
 from './mixin/webglrenderingcontextbase' import WebGLRenderingContextBase
-from './mixin/webglrenderingcontextoverloads' import WebGLRenderingContextOverloads
 
 
 export interface WebGL2RenderingContext extends WebGLRenderingContextBase,
     WebGL2RenderingContextBase,
-    WebGLRenderingContextOverloads {
+    WebGL2RenderingContextOverloads {
   """
   https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext
 
