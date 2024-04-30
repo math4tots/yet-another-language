@@ -117,7 +117,7 @@ class Translator implements ast.NodeVisitor<string> {
     return `${owner}.${translateMethodName(name, args.length)}(${args.join(',')})`;
   }
   visitLogicalNot(n: ast.LogicalNot): string {
-    return `(!${n.accept(this)})`;
+    return `(!${n.value.accept(this)})`;
   }
   visitLogicalAnd(n: ast.LogicalAnd): string {
     return `(${n.lhs.accept(this)}&&${n.rhs.accept(this)})`;
