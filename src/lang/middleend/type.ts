@@ -813,7 +813,7 @@ export type RecordEntry = {
 
 export function newRecordType(identifier: Identifier, entryVariables: Variable[]) {
   const name = `${identifier.name}[${entryVariables.map(v =>
-    v.identifier.name + (v.isMutable ? '*' : '')).join(',')}]`;
+    v.identifier.name + (v.isMutable ? '*' : '') + '[' + v.type + ']').join(',')}]`;
   const typeType = newInterfaceTypeType({ name, location: identifier.location }, [], undefined);
   const type = typeType.typeTypeData.type;
   for (const variable of entryVariables) {
