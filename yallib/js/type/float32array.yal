@@ -3,4 +3,5 @@ from './typedarray' import TypedArray
 
 
 export interface Float32Array extends TypedArray {
+  static {}
 }

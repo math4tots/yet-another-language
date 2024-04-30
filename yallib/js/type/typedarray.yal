@@ -3,4 +3,14 @@ from './arraybufferview' import ArrayBufferView
 
 export interface TypedArray extends ArrayBufferView {
   static {}
+
+  const length: Number = aliasFor(__js_length)
+
+  function __getitem__(index: Number): Number {
+    aliasFor(__op_getitem__)
+  }
+
+  function __setitem__(index: Number, value: Number): Number {
+    aliasFor(__op_setitem__)
+  }
 }

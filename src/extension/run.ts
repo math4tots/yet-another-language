@@ -13,7 +13,6 @@ export async function runCommand(context: vscode.ExtensionContext) {
 
   const annotation = await getAnnotationForDocument(editor.document);
   const configs = annotation.compileTimeConfigs;
-  console.log(`target = ${configs.target}, jsLibs = ${Array.from(configs.jsLibs)}`);
   const libUris = Array.from(configs.jsLibs).map(lib => vscode.Uri.from({
     authority: extensionURI.authority,
     fragment: extensionURI.fragment,
@@ -26,7 +25,15 @@ export async function runCommand(context: vscode.ExtensionContext) {
       // The html runner will create a dummy HTML page and allow the generated code
       // to manipulate the dom as needed.
       const translation = await getTranslationForDocument(editor.document);
-      const libs = libUris.map(uri => `<script src="${uri}"></script>`).join('');
+      const panel = vscode.window.createWebviewPanel(
+        'yalhtml',
+        'YAL',
+        vscode.ViewColumn.Active,
+        {
+          enableScripts: true,
+        }
+      );
+      const libs = libUris.map(uri => `<script src="${panel.webview.asWebviewUri(uri)}"></script>`).join('');
       const html = `<!DOCTYPE html>
   <html lang="en">
   <head>
@@ -38,15 +45,6 @@ export async function runCommand(context: vscode.ExtensionContext) {
     <script type='module'>${translation}</script>
   </body>
   </html>`;
-      console.log(`HTML = ${html}`);
-      const panel = vscode.window.createWebviewPanel(
-        'yalhtml',
-        'YAL',
-        vscode.ViewColumn.Active,
-        {
-          enableScripts: true,
-        }
-      );
       panel.webview.html = html;
       break;
     }
