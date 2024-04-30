@@ -927,6 +927,10 @@ addBinaryOperatorMethod(NumberType, 'mul', NumberType);
 addBinaryOperatorMethod(NumberType, 'div', NumberType);
 addBinaryOperatorMethod(NumberType, 'mod', NumberType);
 addBinaryOperatorMethod(NumberType, 'pow', NumberType);
+addBinaryOperatorMethod(NumberType, 'or', NumberType);
+addBinaryOperatorMethod(NumberType, 'and', NumberType);
+addBinaryOperatorMethod(NumberType, 'lshift', NumberType);
+addBinaryOperatorMethod(NumberType, 'rshift', NumberType);
 addComparisonOperatorMethods(NumberType);
 
 NumberType.addMethod({

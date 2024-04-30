@@ -2,6 +2,14 @@ from './node' import Node
 
 export interface Element extends Node {
   const __marker_Element: Any
+
+  const clientWidth: Number """
+  Returns a number representing the inner width of the element.
+  """ = aliasFor(__js_clientWidth)
+
+  const clientHeight: Number """
+  Returns a number representing the inner height of the element.
+  """ = aliasFor(__js_clientHeight)
   
   var id: String = aliasFor(__js_id)
   var innerHTML: String = aliasFor(__js_innerHTML)

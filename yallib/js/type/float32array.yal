@@ -4,6 +4,8 @@ from './typedarray' import TypedArray
 
 export interface Float32Array extends TypedArray {
   static {
+    aliasFor(native constexpr "Float32Array")
+
     function new(valuesOrLength: List[Number] | Number): Float32Array {
       """
       """

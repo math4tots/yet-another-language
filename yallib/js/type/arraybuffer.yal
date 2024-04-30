@@ -1,4 +1,7 @@
 
 
 export interface ArrayBuffer {
+  static {
+    aliasFor(native constexpr "ArrayBuffer")
+  }
 }

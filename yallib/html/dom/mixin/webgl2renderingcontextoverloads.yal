@@ -1,6 +1,8 @@
+from './webglrenderingcontextbase' import WebGLUniformLocation
 from 'js/type/arraybuffer' import ArrayBuffer
 from 'js/type/arraybufferview' import ArrayBufferView
 from 'js/type/float32array' import Float32Array
+from 'js/type/int32array' import Int32Array
 
 typedef GLboolean = Bool
 typedef GLenum = Number
@@ -14,6 +16,7 @@ typedef GLclampf = Number
 typedef GLfloat = Number
 typedef DOMString = String
 typedef Float32List = Float32Array
+typedef Int32List = Int32Array
 
 typedef AllowSharedBufferSource = ArrayBuffer | Float32Array
 
@@ -27,4 +30,29 @@ export interface WebGL2RenderingContextOverloads {
                        length: GLuint = 0) { aliasFor(__js_bufferData) }
   function bufferSubData(target: GLenum, dstByteOffset: GLintptr, srcData: ArrayBufferView,
                           srcOffset: Number, length: GLuint = 0) { aliasFor(__js_bufferSubData) }
+
+  function uniform1fv(location: WebGLUniformLocation?, data: Float32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform1fv) }
+  function uniform2fv(location: WebGLUniformLocation?, data: Float32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform2fv) }
+  function uniform3fv(location: WebGLUniformLocation?, data: Float32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform3fv) }
+  function uniform4fv(location: WebGLUniformLocation?, data: Float32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform4fv) }
+
+  function uniform1iv(location: WebGLUniformLocation?, data: Int32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform1iv) }
+  function uniform2iv(location: WebGLUniformLocation?, data: Int32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform2iv) }
+  function uniform3iv(location: WebGLUniformLocation?, data: Int32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform3iv) }
+  function uniform4iv(location: WebGLUniformLocation?, data: Int32List, srcOffset: Number = 0,
+                       srcLength: GLuint = 0): Null { aliasFor(__js_uniform4iv) }
+
+  function uniformMatrix2fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                             srcOffset: Number = 0, srcLength: GLuint = 0): Null { aliasFor(__js_uniformMatrix2fv) }
+  function uniformMatrix3fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                             srcOffset: Number = 0, srcLength: GLuint = 0): Null { aliasFor(__js_uniformMatrix3fv) }
+  function uniformMatrix4fv(location: WebGLUniformLocation?, transpose: GLboolean, data: Float32List,
+                             srcOffset: Number = 0, srcLength: GLuint = 0): Null { aliasFor(__js_uniformMatrix4fv) }
 }

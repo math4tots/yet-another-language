@@ -41,6 +41,8 @@ const BinopMethodMap: Map<TokenType, string> = new Map([
   ['&', '__and__'],
   ['^', '__xor__'],
   ['|', '__or__'],
+  ['<<', '__lshift__'],
+  ['>>', '__rshift__'],
   ['+', '__add__'],
   ['-', '__sub__'],
   ['*', '__mul__'],
@@ -410,10 +412,12 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const args: ast.Expression[] = [];
     expect('(');
     while (!atEOF() && !at(')')) {
+      consume('COMMENT'); // allow preceeding comments in argument lists
       args.push(parseExpression());
       if (!consume(',')) {
         break;
       }
+      consume('COMMENT'); // allow trailing comments in argument lists
     }
     expect(')');
     return args;

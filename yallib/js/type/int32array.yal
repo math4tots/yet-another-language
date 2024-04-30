@@ -3,5 +3,7 @@ from './typedarray' import TypedArray
 
 
 export interface Int32Array extends TypedArray {
-  static {}
+  static {
+    aliasFor(native constexpr "Int32Array")
+  }
 }

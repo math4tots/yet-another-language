@@ -51,7 +51,7 @@
 				{
 					"comment": "Globals provided by the runtime (variables and constants)",
 					"name": "support.variable.yal",
-					"match": "\\b(len|exit|type|repr|str|chr|ord|print|range|open|StopIteration)\\b"
+					"match": "\\b(len|exit|repr|str|chr|ord|print|range|open|StopIteration)\\b"
 				},
 				{
 					"comment": "Reserved keyword",

@@ -34,6 +34,11 @@ const specialBinaryOperatorMap = new Map<string, (a: string, b: string) => strin
   ['__op_div__', (a, b) => `(${a}/${b})`],
   ['__op_mod__', (a, b) => `(${a}%${b})`],
   ['__op_pow__', (a, b) => `(${a}**${b})`],
+  ['__op_and__', (a, b) => `(${a}&${b})`],
+  ['__op_or__', (a, b) => `(${a}|${b})`],
+  ['__op_xor__', (a, b) => `(${a}^${b})`],
+  ['__op_lshift__', (a, b) => `(${a}<<${b})`],
+  ['__op_rshift__', (a, b) => `(${a}>>${b})`],
   ['__op_nullish_coalescing__', (a, b) => `(${a}??${b})`],
   ['__op_nullmap__', (a, b) => `nullMap(${a},${b})`],
 ]);

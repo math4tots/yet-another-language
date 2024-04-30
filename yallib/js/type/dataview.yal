@@ -5,6 +5,8 @@ export interface DataView extends ArrayBufferView {
   """
   https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
   """
-  static {}
+  static {
+    aliasFor(native constexpr "DataView")
+  }
 }
 
