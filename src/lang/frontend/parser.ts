@@ -79,8 +79,9 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return i >= tokens.length || tokens[i].type === 'EOF';
   }
 
-  function atFirstTokenOfNewLine(): boolean {
-    return i === 0 || (tokens[i - 1].range.end.line < tokens[i].range.start.line);
+  function atFirstTokenOfNewLine(j?: number): boolean {
+    const k = j ?? i;
+    return k === 0 || (tokens[k - 1].range.end.line < tokens[k].range.start.line);
   }
 
   function next() {
@@ -107,6 +108,9 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   }
 
   function expectStatementDelimiter(): Token {
+    if (at('COMMENT') && atFirstTokenOfNewLine(i + 1)) {
+      return next();
+    }
     if (at(';')) {
       return next();
     }
