@@ -23,6 +23,25 @@ export async function resolveURI(srcURI: vscode.Uri, rawPath: string): Promise<R
     // absolute path. Not yet supported
     return { uri: srcURI, error: `Absolute import paths not yet supported` };
   }
+  if (rawPath.startsWith('@/')) {
+    // path relative to workspace root
+    const folders = vscode.workspace.workspaceFolders;
+    if (folders) {
+      for (const folder of folders) {
+        const folderUri = folder.uri;
+        if (srcURI.path.startsWith(folderUri.path)) {
+          const importURI = vscode.Uri.from({
+            authority: folderUri.authority,
+            fragment: folderUri.fragment,
+            path: folderUri.path + '/' + rawPath.substring('@/'.length),
+            query: folderUri.query,
+            scheme: folderUri.scheme,
+          });
+          return { uri: importURI };
+        }
+      }
+    }
+  }
   if (rawPath.startsWith('./')) {
     // relative path
     return {
@@ -73,6 +92,15 @@ export function getImportPath(uriString: string, startingUriString: string): str
     const folderUri = root.toString() + '/';
     if (uriString.startsWith(folderUri)) {
       return stripYALExtension(uriString.substring(folderUri.length));
+    }
+  }
+  const folders = vscode.workspace.workspaceFolders;
+  if (folders) {
+    for (const folder of folders) {
+      const prefix = folder.uri.toString() + '/';
+      if (startingUriString.startsWith(prefix) && uriString.startsWith(prefix)) {
+        return '@/' + stripYALExtension(uriString.substring(prefix.length));
+      }
     }
   }
   return stripYALExtension(uriString);
