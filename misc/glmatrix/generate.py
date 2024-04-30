@@ -6,6 +6,22 @@ import typing
 SCRIPT_DIR = os.path.dirname(os.path.realpath(__file__))
 JSON_DIR = os.path.join(SCRIPT_DIR, 'glmatrix.json')
 
+HARDCODED_RETURN_TYPE_MAP = {
+    'glMatrix.toRadian': [{'type': {'names': ['Number']}}],
+}
+
+HARDCODED_PARAMS_TYPE_MAP = {
+    'mat2.create': [],
+    'mat2d.create': [],
+    'mat3.create': [],
+    'mat4.create': [],
+    'quat.create': [],
+    'quat2.create': [],
+    'vec2.create': [],
+    'vec3.create': [],
+    'vec4.create': [],
+}
+
 
 def getAliasForFromDescription(description: str) -> typing.Optional[str]:
     if description and description.startswith('Alias for {@link ') and description.endswith('}'):
@@ -62,8 +78,12 @@ def main():
             fullnames.add(fullname)
 
             description: str = entry.get('description', None)
-            returns = entry.get('returns', None)
-            params = entry.get('params', None)
+            returns = HARDCODED_RETURN_TYPE_MAP.get(fullname, None) or entry.get('returns', None)
+            params = (
+                HARDCODED_PARAMS_TYPE_MAP.get(fullname, None) or
+                entry.get('params', None) or
+                HARDCODED_PARAMS_TYPE_MAP.get(fullname, None)
+            )
             aliasFor = getAliasForFromDescription(description) if description else None
 
             print(f"{kind} {fullname}")
