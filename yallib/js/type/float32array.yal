@@ -3,5 +3,11 @@ from './typedarray' import TypedArray
 
 
 export interface Float32Array extends TypedArray {
-  static {}
+  static {
+    function new(valuesOrLength: List[Number] | Number): Float32Array {
+      """
+      """
+      aliasFor(__op_new__)
+    }
+  }
 }
