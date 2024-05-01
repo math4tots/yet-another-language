@@ -78,19 +78,6 @@ export function startsWithUri(uri: vscode.Uri, prefix: vscode.Uri): boolean {
   return uri.path.startsWith(prefix.path + '/');
 }
 
-/** A module is 'private' if its filename starts with '_' */
-export function isPrivateModuleUri(uri: vscode.Uri): boolean {
-  return isPrivateModuleUriPath(uri.path);
-}
-
-/** A module is 'private' if its filename starts with '_' */
-function isPrivateModuleUriPath(path: string): boolean {
-  const slashIndex = path.lastIndexOf('/');
-  if (slashIndex < 0) return false;
-  const basename = path.substring(slashIndex + 1);
-  return basename.startsWith('_');
-}
-
 function stripYALExtension(s: string): string {
   return s.endsWith('.yal') ? s.substring(0, s.length - 4) : s;
 }
