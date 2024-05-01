@@ -156,8 +156,10 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     let end = identifier.location.range.end;
     if (consume('[')) {
       while (!atEOF() && !at(']')) {
+        consume('COMMENT');
         args.push(parseTypeExpression());
         if (!consume(',')) break;
+        consume('COMMENT');
       }
       end = expect(']').range.end;
     }
@@ -243,10 +245,12 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     expect('(');
     const parameters: ast.Parameter[] = [];
     while (!atEOF() && !at(')')) {
+      consume('COMMENT');
       parameters.push(parseParameter());
       if (!consume(',')) {
         break;
       }
+      consume('COMMENT');
     }
     expect(')');
     return parameters;
@@ -310,8 +314,10 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const start = peek.range.start;
       const elements: ast.Expression[] = [];
       while (!atEOF() && !at(']')) {
+        consume('COMMENT');
         elements.push(parseExpression());
         if (!consume(',')) break;
+        consume('COMMENT');
       }
       const end = expect(']').range.end;
       return new ast.ListDisplay({ uri, range: { start, end } }, elements);
@@ -321,12 +327,15 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const start = peek.range.start;
       const entries: ast.RecordDisplayEntry[] = [];
       while (!atEOF() && !at('}')) {
+        consume('COMMENT');
         const isMutable = consume('var');
         const identifier = parseIdentifier();
         expect(':');
+        consume('COMMENT');
         const value = parseExpression();
         entries.push({ isMutable, identifier, value });
         if (!consume(',')) break;
+        consume('COMMENT');
       }
       const end = expect('}').range.end;
       return new ast.RecordDisplay({ uri, range: { start, end } }, entries);
@@ -421,19 +430,6 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     }
     expect(')');
     return args;
-  }
-
-  function parseArgsWithParens(): [Position, ast.Expression[], Position] {
-    const args: ast.Expression[] = [];
-    const start = expect('(').range.start;
-    while (!atEOF() && !at(')')) {
-      args.push(parseExpression());
-      if (!consume(',')) {
-        break;
-      }
-    }
-    const end = expect(')').range.end;
-    return [start, args, end];
   }
 
   function parseInfix(lhs: ast.Expression, startRange: Range): ast.Expression {
