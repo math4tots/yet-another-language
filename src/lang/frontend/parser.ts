@@ -864,6 +864,7 @@ export async function getAstForDocument(document: vscode.TextDocument): Promise<
     if ((statement instanceof ast.InterfaceDefinition ||
       statement instanceof ast.ClassDefinition ||
       statement instanceof ast.EnumDefinition ||
+      statement instanceof ast.Typedef ||
       (statement instanceof ast.Declaration && !statement.isMutable)) &&
       statement.isExported) {
       registerSymbol(statement.identifier.name, key, 'member');

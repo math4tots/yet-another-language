@@ -10,7 +10,13 @@ import {
 import { toVSRange } from '../frontend/bridge-utils';
 import { getAstForDocument } from '../frontend/parser';
 import { Position, Range } from '../frontend/lexer';
-import { getImportPath, resolveURI } from './paths';
+import {
+  getImportPath,
+  getParentUri,
+  isPrivateModuleUri,
+  resolveURI,
+  startsWithUri,
+} from './paths';
 import {
   AnyType,
   NeverType,
@@ -165,12 +171,24 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
 
   private addSymbolTableCompletions(completions: Completion[], scopeAtLocation: Scope) {
-    const startingUriString = this.annotation.uri.toString();
+    const startingUri = this.annotation.uri;
+    const startingUriString = startingUri.toString();
     const symbolTable = getSymbolTable();
     for (const [symbolName, uriToSymbols] of symbolTable) {
       // Only include if the symbol is not currently in scope
       if (!scopeAtLocation[symbolName]) {
         for (const symbol of uriToSymbols.values()) {
+          const symbolUri = vscode.Uri.parse(symbol.uri);
+
+          // If a symbol appears in a 'private' uri, do not suggest it unless
+          // we are currently in a file that is a nested under the directory
+          // where the symbol appears
+          if (isPrivateModuleUri(symbolUri)) {
+            if (!startsWithUri(startingUri, getParentUri(symbolUri))) {
+              continue;
+            }
+          }
+
           const importPath = getImportPath(symbol.uri, startingUriString);
           completions.push({
             name: symbol.name,
@@ -1140,7 +1158,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           const result = this.solveBlock(n.body);
           if (result.status !== Jumps && !NullType.isAssignableTo(tentativeReturnType)) {
             this.error(
-              n.location, `A function that cannot return null must always explicitly return`);
+              (n.returnType ?? n).location,
+              `A function that cannot return null must always explicitly return`);
           }
           return {
             type: lambdaType,
