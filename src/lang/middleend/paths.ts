@@ -5,13 +5,6 @@ import * as vscode from "vscode";
 
 export const LIBRARY_URIS: vscode.Uri[] = [];
 
-function getParentPath(path: string): string {
-  let i = path.length;
-  while (i > 0 && path[i - 1] !== '/') i--;
-  i--;
-  return path.substring(0, i);
-}
-
 export type ResolveResult = { uri: vscode.Uri, error?: string; };
 
 // When importing `rawPath` from file `srcURI`, this function resolves the `rawPath` into a Uri
@@ -30,13 +23,7 @@ export async function resolveURI(srcURI: vscode.Uri, rawPath: string): Promise<R
       for (const folder of folders) {
         const folderUri = folder.uri;
         if (srcURI.path.startsWith(folderUri.path)) {
-          const importURI = vscode.Uri.from({
-            authority: folderUri.authority,
-            fragment: folderUri.fragment,
-            path: folderUri.path + '/' + rawPath.substring('@/'.length),
-            query: folderUri.query,
-            scheme: folderUri.scheme,
-          });
+          const importURI = joinUri(folderUri, rawPath.substring('@/'.length));
           return { uri: importURI };
         }
       }
@@ -44,24 +31,10 @@ export async function resolveURI(srcURI: vscode.Uri, rawPath: string): Promise<R
   }
   if (rawPath.startsWith('./')) {
     // relative path
-    return {
-      uri: vscode.Uri.from({
-        authority: srcURI.authority,
-        fragment: srcURI.fragment,
-        path: getParentPath(srcURI.path) + rawPath.substring(1),
-        query: srcURI.query,
-        scheme: srcURI.scheme,
-      })
-    };
+    return { uri: joinUri(getParentUri(srcURI), rawPath.substring('./'.length)) };
   }
   for (const libraryURI of LIBRARY_URIS) {
-    const importURI = vscode.Uri.from({
-      authority: libraryURI.authority,
-      fragment: libraryURI.fragment,
-      path: libraryURI.path + '/' + rawPath,
-      query: libraryURI.query,
-      scheme: libraryURI.scheme,
-    });
+    const importURI = joinUri(libraryURI, rawPath);
     try {
       // If URI exists, return this one
       await vscode.workspace.fs.stat(importURI);
@@ -74,6 +47,31 @@ export async function resolveURI(srcURI: vscode.Uri, rawPath: string): Promise<R
     uri: srcURI,
     error: `Module ${JSON.stringify(rawPath)} not found`
   };
+}
+
+export function joinUri(uri: vscode.Uri, ...components: string[]): vscode.Uri {
+  return vscode.Uri.from({
+    authority: uri.authority,
+    fragment: uri.fragment,
+    path: uri.path + components.map(c => `/${c}`).join(''),
+    query: uri.query,
+    scheme: uri.scheme,
+  });
+}
+
+export function getParentUri(uri: vscode.Uri): vscode.Uri {
+  const originalPath = uri.path;
+  const slashIndex = originalPath.lastIndexOf('/');
+  if (slashIndex < 0) {
+    return uri; // cannot get parent (path does not contain '/')
+  }
+  return vscode.Uri.from({
+    authority: uri.authority,
+    fragment: uri.fragment,
+    path: originalPath.substring(0, slashIndex),
+    query: uri.query,
+    scheme: uri.scheme,
+  });
 }
 
 function stripYALExtension(s: string): string {

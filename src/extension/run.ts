@@ -3,6 +3,7 @@ import { writeToNewEditor } from './utils';
 import { getTranslationForDocument } from '../lang/backend/translator';
 import { strFunction } from '../lang/middleend/functions';
 import { getAnnotationForDocument } from '../lang/middleend/annotator';
+import { joinUri } from '../lang/middleend/paths';
 
 export async function runCommand(context: vscode.ExtensionContext) {
   const extensionURI = context.extensionUri;
@@ -13,13 +14,7 @@ export async function runCommand(context: vscode.ExtensionContext) {
 
   const annotation = await getAnnotationForDocument(editor.document);
   const configs = annotation.compileTimeConfigs;
-  const libUris = Array.from(configs.jsLibs).map(lib => vscode.Uri.from({
-    authority: extensionURI.authority,
-    fragment: extensionURI.fragment,
-    path: extensionURI.path + '/jslib/' + lib,
-    query: extensionURI.query,
-    scheme: extensionURI.scheme,
-  }));
+  const libUris = Array.from(configs.jsLibs).map(lib => joinUri(extensionURI, 'jslib', lib));
   switch (configs.target) {
     case 'html': {
       // The html runner will create a dummy HTML page and allow the generated code

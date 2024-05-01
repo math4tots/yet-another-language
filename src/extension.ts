@@ -12,17 +12,12 @@ import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
 import { getAnnotationForDocument } from './lang/middleend/annotator';
 import { indexCommand } from './extension/indexer';
 import { newReferenceProvider } from './extension/referenceprovider';
+import { joinUri } from './lang/middleend/paths';
 
 
 export function activate(context: vscode.ExtensionContext) {
   const extensionURI = context.extensionUri;
-  yal.LIBRARY_URIS.push(vscode.Uri.from({
-    authority: extensionURI.authority,
-    fragment: extensionURI.fragment,
-    path: extensionURI.path + '/yallib',
-    query: extensionURI.query,
-    scheme: extensionURI.scheme,
-  }));
+  yal.LIBRARY_URIS.push(joinUri(extensionURI, 'yallib'));
 
   const sub = (item: vscode.Disposable) => context.subscriptions.push(item);
 
