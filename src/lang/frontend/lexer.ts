@@ -21,6 +21,7 @@ export const Keywords = [
   'if', 'then', 'else', 'while', 'break', 'continue',
   'return',
   'native',
+  'abstract',
 ] as const;
 export const Symbols = [
   // grouping tokens

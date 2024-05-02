@@ -482,6 +482,7 @@ export class Return implements Statement {
 export class ClassDefinition implements Statement {
   readonly location: Location;
   readonly isExported: boolean;
+  readonly isAbstract: boolean;
   readonly identifier: IdentifierNode;
   readonly extendsFragment: IdentifierNode | null;
   readonly superClass: TypeExpression | null;
@@ -489,12 +490,14 @@ export class ClassDefinition implements Statement {
   constructor(
     location: Location,
     isExported: boolean,
+    isAbstract: boolean,
     identifier: IdentifierNode,
     extendsFragment: IdentifierNode | null,
     superClass: TypeExpression | null,
     statements: Statement[]) {
     this.location = location;
     this.isExported = isExported;
+    this.isAbstract = isAbstract;
     this.identifier = identifier;
     this.extendsFragment = extendsFragment;
     this.superClass = superClass;

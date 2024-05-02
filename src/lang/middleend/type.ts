@@ -64,6 +64,7 @@ type ModuleTypeData = {
 };
 
 type ClassTypeData = {
+  readonly isAbstract: boolean;
   readonly superClassType?: ClassType;
   readonly fields: Field[];
 };
@@ -765,12 +766,13 @@ function newMethod(params: NewMethodParameters): Method {
 }
 
 export function newClassTypeType(
+  isAbstract: boolean,
   identifier: Identifier,
   superClassType: ClassType | undefined,
   comment: ast.StringLiteral | undefined): ClassTypeType {
   const classType = new Type({
     identifier,
-    classTypeData: { superClassType, fields: [] },
+    classTypeData: { isAbstract, superClassType, fields: [] },
     comment,
   }) as ClassType;
   const classTypeType = new Type({
@@ -848,7 +850,7 @@ export function newRecordInterfaceType(identifier: Identifier, entryVariables: V
 
 export function newRecordClassType(identifier: Identifier, entryVariables: Variable[]) {
   const name = getRecordTypeName(identifier, entryVariables);
-  const typeType = newClassTypeType({ name, location: identifier.location }, undefined, undefined);
+  const typeType = newClassTypeType(false, { name, location: identifier.location }, undefined, undefined);
   const type = typeType.typeTypeData.type;
   addRecordTypeMembers(type, entryVariables);
   return type;

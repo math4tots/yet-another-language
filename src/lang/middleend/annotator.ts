@@ -783,9 +783,18 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       } else if (defn instanceof ast.ClassDefinition) {
         const comment = getCommentFromClassDefinition(defn);
         const superClassType = defn.superClass ? this.solveType(defn.superClass) : undefined;
+        const superClassLocation = defn.superClass?.location;
+        if (superClassLocation) {
+          if (!superClassType?.classTypeData) {
+            this.error(superClassLocation, `Classes can only inherit from other classes`);
+          } else if (!superClassType?.classTypeData?.isAbstract) {
+            this.error(superClassLocation, `Classes can only inherit from abstract classes`);
+          }
+        }
         const variable: ClassVariable = {
           identifier: defn.identifier,
           type: newClassTypeType(
+            defn.isAbstract,
             defn.identifier,
             superClassType?.classTypeData ? (superClassType as ClassType) : undefined,
             comment),
@@ -999,6 +1008,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'typedef' });
         completions.push({ name: 'export' });
         completions.push({ name: 'import' });
+        completions.push({ name: 'abstract' });
         this.addSymbolTableCompletions(completions, scope);
         return completions;
       },
@@ -1795,6 +1805,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       ir: new ast.ClassDefinition(
         n.location,
         n.isExported,
+        n.isAbstract,
         n.identifier,
         n.extendsFragment,
         n.superClass,

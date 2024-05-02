@@ -563,7 +563,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('var') || at('const')) return parseDeclaration(false);
     if (at('native')) return parseNativeFunctionDefinition(false);
     if (at('function')) return parseFunctionDefinition(false);
-    if (at('class')) return parseClassDefinition(false);
+    if (at('class') || at('abstract')) return parseClassDefinition(false);
     if (at('interface')) return parseInterfaceDefinition(false);
     if (at('enum')) return parseEnumDefinition(false);
     if (at('typedef')) return parseTypedef(false);
@@ -572,7 +572,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (consume('export')) {
       if (at('native')) return parseNativeFunctionDefinition(true);
       if (at('function')) return parseFunctionDefinition(true);
-      if (at('class')) return parseClassDefinition(true);
+      if (at('class') || at('abstract')) return parseClassDefinition(true);
       if (at('interface')) return parseInterfaceDefinition(true);
       if (at('enum')) return parseEnumDefinition(true);
       if (at('var') || at('const')) return parseDeclaration(true);
@@ -705,7 +705,9 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   }
 
   function parseClassDefinition(isExported: boolean): ast.ClassDefinition {
-    const startPos = expect('class').range.start;
+    const startPos = tokens[i].range.start;
+    const isAbstract = consume('abstract');
+    expect('class');
     const identifier = parseIdentifier();
     const extendsFragment = at('IDENTIFIER') ? parseIdentifier() : null;
     const superClass = consume('extends') ? parseTypeExpression() : null;
@@ -718,7 +720,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const body = at('{') ? parseBlock() : new ast.Block(identifier.location, []);
     return new ast.ClassDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
-      isExported, identifier, extendsFragment, superClass, body.statements);
+      isExported, isAbstract, identifier, extendsFragment, superClass, body.statements);
   }
 
   function parseInterfaceDefinition(isExported: boolean): ast.InterfaceDefinition {

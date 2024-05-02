@@ -27,7 +27,7 @@
 				},
 				{
 					"name": "storage.type",
-					"match": "\\b(static|inline|constexpr|var|const|final|function|class|interface|typedef|enum|extends)\\b"
+					"match": "\\b(static|inline|constexpr|var|const|final|function|abstract|class|interface|typedef|enum|extends)\\b"
 				},
 				{
 					"name": "keyword.control.yal",
