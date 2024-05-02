@@ -605,6 +605,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           comment: declaration.comment || undefined,
         };
         type.classTypeData?.fields.push(variable);
+        if (type.classTypeData?.isAbstract) {
+          this.error(declaration.identifier.location, `abstract classes cannot have fields`);
+        }
         this.declareVariable(variable, false);
         type.addMethod({
           identifier: { name: `__get_${declaration.identifier.name}` },
