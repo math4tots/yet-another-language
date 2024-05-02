@@ -488,7 +488,17 @@ export class Type {
     // exact parameter count match is required.
     const method = this.getMethodWithExactParameterCount(
       targetMethod.identifier.name, targetMethod.parameters.length);
-    if (!method) return false;
+    if (!method) {
+      // If we have a non-abstract class, and the required method is a nullable field,
+      // it's ok if the method is entirely missing.
+      if (this.classTypeData?.isAbstract === false &&
+        targetMethod.identifier.name.startsWith('__get_') &&
+        targetMethod.parameters.length === 0 &&
+        targetMethod.returnType.nullableTypeData) {
+        return true;
+      }
+      return false;
+    }
 
     // template methods cannot implement interface methods (yet)
     if (method.typeParameters) return false;
