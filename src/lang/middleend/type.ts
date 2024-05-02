@@ -805,17 +805,7 @@ export function newInterfaceTypeType(
   return interfaceTypeType;
 }
 
-export type RecordEntry = {
-  readonly identifier: Identifier;
-  readonly type: Type;
-  readonly isMutable: boolean;
-};
-
-export function newRecordType(identifier: Identifier, entryVariables: Variable[]) {
-  const name = `${identifier.name}[${entryVariables.map(v =>
-    v.identifier.name + (v.isMutable ? '*' : '') + '[' + v.type + ']').join(',')}]`;
-  const typeType = newInterfaceTypeType({ name, location: identifier.location }, [], undefined);
-  const type = typeType.typeTypeData.type;
+function addRecordTypeMembers(type: Type, entryVariables: Variable[]) {
   for (const variable of entryVariables) {
     type.addMethod({
       identifier: { name: `__get_${variable.identifier.name}`, location: variable.identifier.location },
@@ -832,6 +822,35 @@ export function newRecordType(identifier: Identifier, entryVariables: Variable[]
       });
     }
   }
+}
+
+function getRecordTypeName(identifier: Identifier, entryVariables: Variable[]) {
+  const parts = [identifier.name, '['];
+  for (let i = 0; i < entryVariables.length; i++) {
+    if (i > 0) parts.push(',');
+    const v = entryVariables[i];
+    parts.push(v.identifier.name, '[', v.type.toString());
+    if (v.isMutable) {
+      parts.push(',mutable');
+    }
+    parts.push(']');
+  }
+  return parts.join('');
+}
+
+export function newRecordInterfaceType(identifier: Identifier, entryVariables: Variable[]) {
+  const name = getRecordTypeName(identifier, entryVariables);
+  const typeType = newInterfaceTypeType({ name, location: identifier.location }, [], undefined);
+  const type = typeType.typeTypeData.type;
+  addRecordTypeMembers(type, entryVariables);
+  return type;
+}
+
+export function newRecordClassType(identifier: Identifier, entryVariables: Variable[]) {
+  const name = getRecordTypeName(identifier, entryVariables);
+  const typeType = newClassTypeType({ name, location: identifier.location }, undefined, undefined);
+  const type = typeType.typeTypeData.type;
+  addRecordTypeMembers(type, entryVariables);
   return type;
 }
 

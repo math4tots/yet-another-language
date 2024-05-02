@@ -35,7 +35,8 @@ import {
   newEnumTypeType,
   InterfaceTypeType,
   newAliasType,
-  newRecordType,
+  newRecordInterfaceType,
+  newRecordClassType,
   TypeParameterTypeType,
   TypeParameterType,
   ClassTypeType,
@@ -326,7 +327,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         this.declareVariable(variable, false);
         memberVariables.push(variable);
       }
-      return newRecordType(e.identifier, memberVariables);
+      return newRecordInterfaceType(e.identifier, memberVariables);
     }
 
     // locally declared class or interface
@@ -1080,7 +1081,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
     value;
     return {
-      type: newRecordType({ name: 'Record' }, memberVariables),
+      type: newRecordClassType({ name: 'Record' }, memberVariables),
       ir: new ast.RecordDisplay(n.location, newEntries),
       value,
     };
