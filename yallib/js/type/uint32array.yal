@@ -5,5 +5,8 @@ from './typedarray' import TypedArray
 export interface Uint32Array extends TypedArray {
   static {
     aliasFor(native constexpr "Uint32Array")
+    function new(values: Any): Uint32Array {
+      aliasFor(__op_new__)
+    }
   }
 }

@@ -1060,6 +1060,22 @@ function addListMethods(listType: ListType) {
     returnType: itemType,
     aliasFor: '__op_setitem__',
   });
+  listType.addMethod({
+    identifier: { name: 'push' },
+    parameters: [
+      { identifier: { name: 'value' }, type: itemType },
+    ],
+    returnType: itemType,
+    aliasFor: '__js_push',
+  });
+  listType.addMethod({
+    identifier: { name: 'extend' },
+    parameters: [
+      { identifier: { name: 'values' }, type: listType },
+    ],
+    returnType: itemType,
+    aliasFor: '__fn_Array.prototype.push.apply',
+  });
   {
     const RType = newTypeParameterTypeType({ name: 'R' });
     const R = RType.typeTypeData.type;

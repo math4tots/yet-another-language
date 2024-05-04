@@ -1,0 +1,12 @@
+from './arraybufferview' import ArrayBufferView
+from './typedarray' import TypedArray
+
+
+export interface Uint16Array extends TypedArray {
+  static {
+    aliasFor(native constexpr "Uint16Array")
+    function new(values: Any): Uint16Array {
+      aliasFor(__op_new__)
+    }
+  }
+}

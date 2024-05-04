@@ -3,6 +3,8 @@ from 'js/type/arraybuffer' import ArrayBuffer
 from 'js/type/arraybufferview' import ArrayBufferView
 from 'js/type/float32array' import Float32Array
 from 'js/type/int32array' import Int32Array
+from 'js/type/uint16array' import Uint16Array
+from 'js/type/uint32array' import Uint32Array
 
 typedef GLboolean = Bool
 typedef GLenum = Number
@@ -18,7 +20,7 @@ typedef DOMString = String
 typedef Float32List = Float32Array
 typedef Int32List = Int32Array
 
-typedef AllowSharedBufferSource = ArrayBuffer | Float32Array
+typedef AllowSharedBufferSource = ArrayBuffer | Float32Array | Uint16Array | Uint32Array
 
 
 export interface WebGL2RenderingContextOverloads {
