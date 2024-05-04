@@ -18,6 +18,7 @@ export function newHoverProvider(): vscode.HoverProvider {
       const annotation = await getAnnotationForDocument(document);
       const markedStrings: vscode.MarkdownString[] = [];
       for (const reference of annotation.references) {
+        if (reference.variable.isForwardDeclaration) continue;
         const range = toVSRange(reference.range);
         if (range.contains(position)) {
           const definitionInfo = new vscode.MarkdownString();
