@@ -889,6 +889,7 @@ function getRecordTypeName(identifier: Identifier, entryVariables: Variable[]) {
     }
     parts.push(']');
   }
+  parts.push(']');
   return parts.join('');
 }
 

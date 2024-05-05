@@ -141,6 +141,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
   private currentReturnType: Type | null = null;
   private hint: Type = AnyType;
+  private mustSatisfyHint: boolean = false;
   private scope: Scope = Object.create(BASE_SCOPE);
   private readonly cached?: Annotation;
   private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
@@ -167,6 +168,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     } finally {
       this.scope = outerScope;
     }
+  }
+
+  private getErrorCount(): number {
+    return this.annotation.errors.length;
   }
 
   private addSymbolTableCompletions(completions: Completion[], scopeAtLocation: Scope) {
@@ -360,8 +365,11 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
 
   private solveExpr(e: ast.Expression, hint: Type = AnyType, required: boolean = true): EResult {
+    const startErrorCount = this.getErrorCount();
     const oldHint = this.hint;
+    const oldMustStasifyHint = this.mustSatisfyHint;
     this.hint = hint;
+    this.mustSatisfyHint = required;
     const info = e.accept(this);
     try {
       if (!info.type.isAssignableTo(hint)) {
@@ -371,13 +379,18 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         if ((typeof value === 'number' || typeof value === 'string') && hint.getEnumConstVariableByValue(value)) {
           return { ...info, type: hint };
         }
-        if (required) {
+
+        // If a type is required, we want to add an error message.
+        // However, if there were already errors while evaluating the expression, it might just add
+        // clutter if we complain again - so we omit it in such cases.
+        if (required && startErrorCount === this.getErrorCount()) {
           this.error(e.location, `Expected expression of type ${hint} but got expression of type ${info.type}`);
         }
       }
       return info;
     } finally {
       this.hint = oldHint;
+      this.mustSatisfyHint = oldMustStasifyHint;
     }
   }
 
@@ -1059,52 +1072,73 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return { type: variable.type, value: rhs.value, ir };
   }
   visitListDisplay(n: ast.ListDisplay): EResult {
-    const startErrorCount = this.annotation.errors.length;
+    const startErrorCount = this.getErrorCount();
     const hint = this.hint;
+    const values: Value[] = [];
+    const irs: ast.Expression[] = [];
     if (hint.tupleTypeData && hint.tupleTypeData.itemTypes.length === n.values.length) {
       const itemTypes = hint.tupleTypeData.itemTypes;
       const actualItemTypes = [];
-      const values: Value[] = [];
-      const irs: ast.Expression[] = [];
-      for (let i = 0; i < itemTypes.length; i++) {
+      for (let i = 0; i < n.values.length; i++) {
         const itemNode = n.values[i];
         const itemType = itemTypes[i];
-        const result = this.solveExpr(itemNode, itemType, false);
+        const result = this.solveExpr(itemNode, itemType, this.mustSatisfyHint);
         actualItemTypes.push(result.type);
         if (result.value !== undefined) values.push(result.value);
         irs.push(result.ir);
       }
-      const hasErrors = startErrorCount !== this.annotation.errors.length;
-      const hasAllValues = values.length === itemTypes.length;
+      const hasErrors = startErrorCount !== this.getErrorCount();
+      const hasAllValues = values.length === n.values.length;
       return {
         type: newTupleType(actualItemTypes),
         value: (!hasErrors && hasAllValues) ? values : undefined,
         ir: new ast.ListDisplay(n.location, irs),
       };
+    } else if (hint.listTypeData) {
+      const itemType = hint.listTypeData.itemType;
+      let actualItemType = itemType;
+      for (let i = 0; i < n.values.length; i++) {
+        const itemNode = n.values[i];
+        const result = this.solveExpr(itemNode, itemType, this.mustSatisfyHint);
+        actualItemType = actualItemType.getCommonType(result.type);
+        if (result.value !== undefined) values.push(result.value);
+        irs.push(result.ir);
+      }
+      const hasErrors = startErrorCount !== this.getErrorCount();
+      const hasAllValues = values.length === n.values.length;
+      return {
+        type: actualItemType.list(),
+        value: (!hasErrors && hasAllValues) ? values : undefined,
+        ir: new ast.ListDisplay(n.location, irs),
+      };
+    } else {
+      let itemType = NeverType;
+      for (let i = 0; i < n.values.length; i++) {
+        const itemNode = n.values[i];
+        const result = this.solveExpr(itemNode, itemType, this.mustSatisfyHint);
+        itemType = itemType.getCommonType(result.type);
+        if (result.value !== undefined) values.push(result.value);
+        irs.push(result.ir);
+      }
+      const hasErrors = startErrorCount !== this.getErrorCount();
+      const hasAllValues = values.length === n.values.length;
+      return {
+        type: itemType.list(),
+        value: (!hasErrors && hasAllValues) ? values : undefined,
+        ir: new ast.ListDisplay(n.location, irs),
+      };
     }
-    let itemType = hint.listTypeData?.itemType || NeverType;
-    let values: Value[] | undefined = [];
-    const irs: ast.Expression[] = [];
-    for (const element of n.values) {
-      const result = this.solveExpr(element, itemType, false);
-      itemType = itemType.getCommonType(result.type);
-      irs.push(result.ir);
-      if (result.value === undefined) values = undefined;
-      else values?.push(result.value);
-    }
-    return {
-      type: itemType.list(),
-      value: (startErrorCount === this.annotation.errors.length && values) ? values : undefined,
-      ir: new ast.ListDisplay(n.location, irs),
-    };
   }
   visitRecordDisplay(n: ast.RecordDisplay): EResult {
+    const hint = this.hint;
     const memberVariables: Variable[] = [];
     const newEntries: ast.RecordDisplayEntry[] = [];
     const value = new RecordValue();
     for (const entry of n.entries) {
       // TODO: immutable member entries
-      const memberResult = this.solveExpr(entry.value);
+      const method = hint.getMethodHandlingArgumentCount(`__get_${entry.identifier.name}`, 0);
+      const memberType = method?.returnType || AnyType;
+      const memberResult = this.solveExpr(entry.value, memberType, this.mustSatisfyHint);
       newEntries.push({
         isMutable: entry.isMutable,
         identifier: entry.identifier,
@@ -1143,7 +1177,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return lambdaType;
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): EResult {
-    const startErrorCount = this.annotation.errors.length;
+    const startErrorCount = this.getErrorCount();
     const lambdaType = this.solveFunctionDisplayType(n, this.hint);
     const outerScope = this.scope;
     return this.scoped(() => {
@@ -1211,7 +1245,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
 
   visitMethodCall(n: ast.MethodCall): EResult {
-    const startErrorCount = this.annotation.errors.length;
+    const startErrorCount = this.getErrorCount();
     const owner = this.solveExpr(n.owner);
     this.annotation.completionPoints.push({
       range: n.identifier.location.range,
@@ -1478,7 +1512,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
     // If we did not encounter any errors, as a bonus, try computing the static value
     let staticValue: Value | undefined;
-    if (this.annotation.errors.length === startErrorCount &&
+    if (this.getErrorCount() === startErrorCount &&
       owner.value !== undefined && argValues.length === method.parameters.length) {
       if (owner.value === printFunction && argValues.length === 1) {
         this.annotation.printInstances.push({
@@ -1556,7 +1590,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     };
   }
   visitTypeAssertion(n: ast.TypeAssertion): EResult {
-    const startErrorCount = this.annotation.errors.length;
+    const startErrorCount = this.getErrorCount();
     const type = this.solveType(n.type);
     const result = this.solveExpr(n.value, type, false);
 
@@ -1576,7 +1610,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       this.error(n.type.location, `Call '.get()' on Nullable values before making type assertions`);
     }
 
-    let value = startErrorCount === this.annotation.errors.length ?
+    let value = startErrorCount === this.getErrorCount() ?
       result.value : undefined;
     return { type, value, ir: result.ir };
   }
