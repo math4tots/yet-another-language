@@ -10,6 +10,7 @@ type TypeConstructorParameters = {
   readonly basicTypeData?: BasicTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
+  readonly tupleTypeData?: TupleTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
   readonly moduleTypeData?: ModuleTypeData;
@@ -46,6 +47,10 @@ type NullableTypeData = {
 
 type ListTypeData = {
   readonly itemType: Type;
+};
+
+type TupleTypeData = {
+  readonly itemTypes: Type[];
 };
 
 type FunctionTypeData = {
@@ -97,6 +102,7 @@ export type BasicTypeType = Type & { readonly typeTypeData: BasicType; };
 export type TypeType = Type & { readonly typeTypeData: TypeTypeData; };
 export type NullableType = Type & { readonly nullableTypeData: NullableTypeData; };
 export type ListType = Type & { readonly listTypeData: ListTypeData; };
+export type TupleType = Type & { readonly tupleTypeData: TupleTypeData; };
 export type LambdaType = Type & { readonly lambdaTypeData: LambdaTypeData; };
 export type FunctionType = Type & { readonly functionTypeData: FunctionTypeData; };
 export type ModuleType = Type & { readonly moduleTypeData: ModuleTypeData; };
@@ -130,6 +136,7 @@ export class Type {
   readonly basicTypeData?: BasicTypeData;
   readonly nullableTypeData?: NullableTypeData;
   readonly listTypeData?: ListTypeData;
+  readonly tupleTypeData?: TupleTypeData;
   readonly functionTypeData?: FunctionTypeData;
   readonly lambdaTypeData?: LambdaTypeData;
   readonly moduleTypeData?: ModuleTypeData;
@@ -156,6 +163,9 @@ export class Type {
     }
     if (params.listTypeData) {
       this.listTypeData = params.listTypeData;
+    }
+    if (params.tupleTypeData) {
+      this.tupleTypeData = params.tupleTypeData;
     }
     if (params.functionTypeData) {
       this.functionTypeData = params.functionTypeData;
@@ -192,6 +202,7 @@ export class Type {
     return !!(
       this.basicTypeData ||
       this.listTypeData ||
+      this.tupleTypeData ||
       this.classTypeData ||
       this.interfaceTypeData ||
       this.enumTypeData);
@@ -200,6 +211,7 @@ export class Type {
   hasTypeVariable(): boolean {
     return !!(this.typeParameterTypeData ||
       this.listTypeData?.itemType.hasTypeVariable() ||
+      this.tupleTypeData?.itemTypes.some(e => e.hasTypeVariable()) ||
       this.nullableTypeData?.itemType.hasTypeVariable() ||
       this.unionTypeData?.types.some(t => t.hasTypeVariable()) ||
       this.functionTypeData?.returnType.hasTypeVariable() ||
@@ -243,6 +255,18 @@ export class Type {
         if (source.isAssignableTo(element)) return true;
       }
       return false;
+    }
+
+    if (source.tupleTypeData) {
+      const sourceTypes = source.tupleTypeData.itemTypes;
+      if (target.tupleTypeData) {
+        const targetTypes = target.tupleTypeData.itemTypes;
+        return sourceTypes.length === targetTypes.length && sourceTypes.every(
+          (s, i) => s.isAssignableTo(targetTypes[i]));
+      } else if (target.listTypeData) {
+        const targetItemType = target.listTypeData.itemType;
+        return sourceTypes.every(s => s.isAssignableTo(targetItemType));
+      }
     }
 
     if (target.interfaceTypeData) {
@@ -607,26 +631,44 @@ export const StringTypeType = new Type({
   typeTypeData: { type: StringType, isCompileTimeOnly: true },
 }) as BasicTypeType;
 
-type Cache = {
-  type?: FunctionType,
-  readonly map: WeakMap<Type, Cache>,
+type Cache<T extends Type> = {
+  type?: T,
+  readonly map: WeakMap<Type, Cache<T>>,
 };
 
-const cache: Cache = { map: new WeakMap() };
-
-export function newFunctionType(parameterTypes: Type[], returnType: Type): FunctionType {
-  const types = [...parameterTypes, returnType];
-  let c = cache;
+function getCache<T extends Type>(c: Cache<T>, types: Type[]): Cache<T> {
   for (const type of types) {
     const foundChild = c.map.get(type);
     if (foundChild) {
       c = foundChild;
     } else {
-      const newChild: Cache = { map: new WeakMap() };
+      const newChild: Cache<T> = { map: new WeakMap() };
       c.map.set(type, newChild);
       c = newChild;
     }
   }
+  return c;
+}
+
+const tupleCacheRoot: Cache<TupleType> = { map: new WeakMap() };
+
+export function newTupleType(types: Type[]): TupleType {
+  const c = getCache<TupleType>(tupleCacheRoot, types);
+  const cached = c.type;
+  if (cached) return cached;
+  const name = `Tuple[${types.map(t => t.toString()).join(',')}]`;
+  const tupleTypeData: TupleTypeData = { itemTypes: [...types] };
+  const tupleType = new Type({ identifier: { name }, tupleTypeData }) as TupleType;
+  addTupleMethods(tupleType);
+  c.type = tupleType;
+  return tupleType;
+}
+
+const functionCacheRoot: Cache<FunctionType> = { map: new WeakMap() };
+
+export function newFunctionType(parameterTypes: Type[], returnType: Type): FunctionType {
+  const types = [...parameterTypes, returnType];
+  const c = getCache<FunctionType>(functionCacheRoot, types);
   const cached = c.type;
   if (cached) return cached;
   const name = `Function[${types.map(t => t.toString()).join(',')}]`;
@@ -1089,6 +1131,20 @@ function addListMethods(listType: ListType) {
       aliasFor: '__js_map',
     });
   }
+}
+
+// TupleType
+
+function addTupleMethods(tupleType: TupleType) {
+  const itemTypes = tupleType.tupleTypeData.itemTypes;
+  itemTypes.forEach((itemType, i) => {
+    tupleType.addMethod({
+      identifier: { name: `__get_v${i}` },
+      parameters: [],
+      returnType: itemType,
+      aliasFor: `__op_${i}__`,
+    });
+  });
 }
 
 // EnumType

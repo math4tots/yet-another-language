@@ -40,6 +40,7 @@ import {
   TypeParameterTypeType,
   TypeParameterType,
   ClassTypeType,
+  newTupleType,
 } from './type';
 import {
   Annotation,
@@ -259,6 +260,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'String' });
         completions.push({ name: 'Nullable' });
         completions.push({ name: 'List' });
+        completions.push({ name: 'Tuple' });
         completions.push({ name: 'Function' });
         completions.push({ name: 'Union' });
         completions.push({ name: 'Record' });
@@ -283,6 +285,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
     if (e.args.length === 1 && e.identifier.name === 'List') {
       return this.solveType(e.args[0]).list();
+    }
+    if (e.identifier.name === 'Tuple') {
+      const types = e.args.map(arg => this.solveType(arg));
+      return newTupleType(types);
     }
     if (e.args.length > 0 && e.identifier.name === 'Function') {
       const argTypes = e.args.map(arg => this.solveType(arg));
@@ -1054,7 +1060,29 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
   visitListDisplay(n: ast.ListDisplay): EResult {
     const startErrorCount = this.annotation.errors.length;
-    let itemType = this.hint.listTypeData?.itemType || NeverType;
+    const hint = this.hint;
+    if (hint.tupleTypeData && hint.tupleTypeData.itemTypes.length === n.values.length) {
+      const itemTypes = hint.tupleTypeData.itemTypes;
+      const actualItemTypes = [];
+      const values: Value[] = [];
+      const irs: ast.Expression[] = [];
+      for (let i = 0; i < itemTypes.length; i++) {
+        const itemNode = n.values[i];
+        const itemType = itemTypes[i];
+        const result = this.solveExpr(itemNode, itemType, false);
+        actualItemTypes.push(result.type);
+        if (result.value !== undefined) values.push(result.value);
+        irs.push(result.ir);
+      }
+      const hasErrors = startErrorCount !== this.annotation.errors.length;
+      const hasAllValues = values.length === itemTypes.length;
+      return {
+        type: newTupleType(actualItemTypes),
+        value: (!hasErrors && hasAllValues) ? values : undefined,
+        ir: new ast.ListDisplay(n.location, irs),
+      };
+    }
+    let itemType = hint.listTypeData?.itemType || NeverType;
     let values: Value[] | undefined = [];
     const irs: ast.Expression[] = [];
     for (const element of n.values) {

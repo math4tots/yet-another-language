@@ -79,6 +79,13 @@ export function evalMethodCall(owner: any, method: Method, args: any[]): Value |
         case '__op_hasvalue__': return (owner ?? null) !== null;
         case '__op_nullget__': return nullGetFunction(owner);
         case '__op_noop__': return owner;
+        case '__op_0__': return owner[0];
+        case '__op_1__': return owner[1];
+        case '__op_2__': return owner[2];
+        case '__op_3__': return owner[3];
+        case '__op_4__': return owner[4];
+        case '__op_5__': return owner[5];
+        case '__op_6__': return owner[6];
       }
       break;
     case 1: {
