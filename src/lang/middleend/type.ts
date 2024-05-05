@@ -376,7 +376,8 @@ export class Type {
   }
 
   getIterableItemType(): Type | undefined {
-    return this.iterableTypeData?.itemType ||
+    return (this === StringType ? StringType : null) ||
+      this.iterableTypeData?.itemType ||
       this.listTypeData?.itemType ||
       this.tupleTypeData?.itemTypes.reduce((a, b) => a.getCommonType(b)) ||
       undefined;
