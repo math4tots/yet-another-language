@@ -5,7 +5,7 @@ export interface Array {
   static {
     aliasFor(native constexpr "Array")
 
-    function from_(values: Iterable[Number]): List[Number] {
+    function from[T](values: Iterable[T]): List[T] {
       aliasFor(__js_from)
     }
   }

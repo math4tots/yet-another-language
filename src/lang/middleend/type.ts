@@ -1,6 +1,6 @@
 import { Identifier } from "../frontend/ast";
 import * as ast from "../frontend/ast";
-import type { Annotation, EnumConstVariable, Variable } from "./annotation";
+import type { Annotation, EnumConstVariable, TypeParameterVariable, Variable } from "./annotation";
 import { translateFieldName } from "./names";
 
 type TypeConstructorParameters = {
@@ -60,6 +60,7 @@ type FunctionTypeData = {
 };
 
 type LambdaTypeData = {
+  readonly typeParameters: TypeParameterVariable[] | undefined;
   readonly parameters: Parameter[];
   readonly functionType: FunctionType;
   readonly returnType: Type;
@@ -723,19 +724,24 @@ export function newFunctionType(parameterTypes: Type[], returnType: Type): Funct
   return functionType;
 }
 
-export function newLambdaType(parameters: Parameter[], returnType: Type): LambdaType {
+export function newLambdaType(
+  typeParameters: TypeParameterVariable[] | undefined,
+  parameters: Parameter[],
+  returnType: Type): LambdaType {
   const functionType = newFunctionType(parameters.map(p => p.type), returnType);
   const name = '(' + parameters.map(p => `${p.identifier.name}: ${p.type}`).join(', ') + ') => ' + returnType;
   const lambdaType = new Type({
     identifier: { name },
     lambdaTypeData: {
       functionType,
+      typeParameters,
       parameters: [...parameters],
       returnType,
     },
   });
   lambdaType.addMethod({
     identifier: { name: '__call__' },
+    typeParameters: typeParameters?.map(tp => tp.type),
     parameters: [...parameters],
     returnType: returnType,
     sourceVariable: { identifier: { name: '__call__' }, type: functionType },

@@ -189,6 +189,15 @@ export class RecordDisplay implements Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitRecordDisplay(this); }
 }
 
+export class TypeParameter {
+  readonly location: Location;
+  readonly identifier: IdentifierNode;
+  constructor(location: Location, identifier: IdentifierNode) {
+    this.location = location;
+    this.identifier = identifier;
+  }
+}
+
 export class Parameter {
   readonly location: Location;
   readonly isMutable: boolean;
@@ -214,15 +223,18 @@ export class Parameter {
 
 export class FunctionDisplay implements Expression {
   readonly location: Location;
+  readonly typeParameters: TypeParameter[] | undefined;
   readonly parameters: Parameter[];
   readonly returnType: TypeExpression | null;
   readonly body: Block;
   constructor(
     location: Location,
+    typeParameters: TypeParameter[] | undefined,
     parameters: Parameter[],
     returnType: TypeExpression | null,
     body: Block) {
     this.location = location;
+    this.typeParameters = typeParameters;
     this.parameters = parameters;
     this.returnType = returnType;
     this.body = body;

@@ -10,6 +10,7 @@ import type {
   InterfaceTypeType,
   EnumTypeType,
   EnumType,
+  TypeParameterTypeType,
 } from './type';
 
 export type AnnotationError = ast.ParseError;
@@ -54,6 +55,10 @@ export type ClassVariable = Variable & {
 
 export type InterfaceVariable = Variable & {
   readonly type: InterfaceTypeType;
+};
+
+export type TypeParameterVariable = Variable & {
+  readonly type: TypeParameterTypeType;
 };
 
 export type EnumVariable = Variable & {

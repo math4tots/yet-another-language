@@ -56,6 +56,12 @@ const UnopMethodMap: Map<TokenType, string> = new Map([
   ['+', '__pos__'],
 ]);
 
+// Keywords that can be used as identifiers in some cases
+const PROPERTY_KEYWORDS = new Set<TokenType>([
+  'from',
+  'for',
+]);
+
 export function parse(uri: vscode.Uri, source: string, documentVersion: number = -1): ast.File {
   class Exception { }
 
@@ -75,6 +81,10 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
 
   function at(type: TokenType) {
     return tokens[i].type === type;
+  }
+
+  function atPropertyIdentifier() {
+    return at('IDENTIFIER') || PROPERTY_KEYWORDS.has(tokens[i].type);
   }
 
   function atEOF(): boolean {
@@ -140,6 +150,15 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       message: `Expected identifier but got ${JSON.stringify(peek.type)}`,
     });
     throw new Exception();
+  }
+
+  function parsePropertyIdentifier(): ast.IdentifierNode {
+    const peek = tokens[i];
+    if (PROPERTY_KEYWORDS.has(peek.type)) {
+      i++;
+      return new ast.IdentifierNode({ uri, range: peek.range }, peek.type);
+    }
+    return parseIdentifier();
   }
 
   function parseTypeExpression(): ast.TypeExpression {
@@ -223,6 +242,26 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.NullLiteral({ uri, range: tokens[i].range });
   }
 
+  function parseTypeParameter(): ast.TypeParameter {
+    const identifier = parseIdentifier();
+    return new ast.TypeParameter(identifier.location, identifier);
+  }
+
+  function parseTypeParameters(): ast.TypeParameter[] {
+    expect('[');
+    const typeParameters: ast.TypeParameter[] = [];
+    while (!atEOF() && !at(']')) {
+      consume('COMMENT');
+      typeParameters.push(parseTypeParameter());
+      if (!consume(',')) {
+        break;
+      }
+      consume('COMMENT');
+    }
+    expect(']');
+    return typeParameters;
+  }
+
   function parseParameter(): ast.Parameter {
     const isMutable = consume('var');
     const identifier = parseIdentifier();
@@ -289,6 +328,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         const range = { start: identifier.location.range.start, end: body.location.range.end };
         return new ast.FunctionDisplay(
           { uri, range },
+          undefined,
           [new ast.Parameter(identifier.location, true, identifier, null, null, null)],
           null,
           body);
@@ -302,7 +342,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         expect('=>');
         const body = parseBlockOrQuickReturnExpression();
         const range = { start: peek.range.start, end: body.location.range.end };
-        return new ast.FunctionDisplay({ uri, range }, parameters, returnType, body);
+        return new ast.FunctionDisplay({ uri, range }, undefined, parameters, returnType, body);
       }
       i++;
       const innerExpression = parseExpression();
@@ -436,7 +476,14 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const optok = tokens[i];
     const tokenType = optok.type;
     if (tokenType === '(') {
-      const methodIdentifier = new ast.IdentifierNode({ uri, range: optok.range }, '__call__');
+      let methodIdentifierRange = optok.range;
+      if (lhs instanceof ast.IdentifierNode) {
+        methodIdentifierRange = {
+          start: lhs.location.range.start,
+          end: optok.range.end,
+        };
+      }
+      const methodIdentifier = new ast.IdentifierNode({ uri, range: methodIdentifierRange }, '__call__');
       const args = parseArgs();
       const end = tokens[i - 1].range.end;
       return new ast.MethodCall(
@@ -449,14 +496,14 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         lhs, type);
     }
     if (consume('.')) {
-      if (!at('IDENTIFIER') || atFirstTokenOfNewLine()) {
+      if (!atPropertyIdentifier() || atFirstTokenOfNewLine()) {
         // If the person is just typing, the dot might not yet be followed by any name.
         // We still want the parse to succeed so that we can provide completion
         const location: ast.Location = { uri, range: tokens[i - 1].range };
         const identifier = new ast.IdentifierNode(location, '');
         return new ast.MethodCall(location, lhs, identifier, []);
       }
-      const identifier = parseIdentifier();
+      const identifier = parsePropertyIdentifier();
       if (at('(') && !atFirstTokenOfNewLine()) {
         const args = parseArgs();
         const end = tokens[i - 1].range.end;
@@ -622,7 +669,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   function parseDeclaration(isExported: boolean): ast.Declaration {
     const start = tokens[i].range.start;
     const isMutable = consume('const') ? false : (expect('var'), true);
-    const identifier = parseIdentifier();
+    const identifier = parsePropertyIdentifier();
     const type = consume(':') ? parseTypeExpression() : null;
     const comment = consume('STRING') ?
       new ast.StringLiteral({ uri, range: tokens[i - 1].range }, tokens[i - 1].value as string) :
@@ -674,7 +721,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   function parseNativeFunctionDefinition(isExported: boolean): ast.Declaration {
     const startPos = expect('native').range.start;
     expect('function');
-    const identifier = parseIdentifier();
+    const identifier = parsePropertyIdentifier();
     const comments = at('STRING') ? parseStringLiteral() : null;
     const parameters = parseParameters();
     const returnType = consume(':') ? parseTypeExpression() : null;
@@ -689,8 +736,9 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
 
   function parseFunctionDefinition(isExported: boolean): ast.Declaration {
     const startPos = expect('function').range.start;
-    const identifier = parseIdentifier();
+    const identifier = parsePropertyIdentifier();
     const comments = at('STRING') ? parseStringLiteral() : null;
+    const typeParameters = at('[') ? parseTypeParameters() : undefined;
     const parameters = parseParameters();
     const returnType = consume(':') ? parseTypeExpression() : null;
     const body = (atFirstTokenOfNewLine() || consume(';')) ?
@@ -701,7 +749,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.Declaration(
       location,
       isExported, false, identifier, null, comments,
-      new ast.FunctionDisplay(location, parameters, returnType, body));
+      new ast.FunctionDisplay(location, typeParameters, parameters, returnType, body));
   }
 
   function parseClassDefinition(isExported: boolean): ast.ClassDefinition {

@@ -41,6 +41,7 @@ import {
   TypeParameterType,
   ClassTypeType,
   newTupleType,
+  newTypeParameterTypeType,
 } from './type';
 import {
   Annotation,
@@ -58,6 +59,7 @@ import {
   flipVariance,
   CompileTimeConfigs,
   RunTarget,
+  TypeParameterVariable,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
 import { ModuleValue, RecordValue, Value, evalMethodCallCatchExc } from './value';
@@ -603,6 +605,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
         type.addMethod({
           identifier: declaration.identifier,
+          typeParameters: funcdispType.lambdaTypeData.typeParameters?.map(tp => tp.type),
           parameters: funcdispType.lambdaTypeData.parameters,
           returnType: funcdispType.lambdaTypeData.returnType,
           sourceVariable: variable,
@@ -908,7 +911,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           returnType: classType,
           sourceVariable: {
             identifier: { name: 'new', location: defn.identifier.location },
-            type: newLambdaType([...classType.classTypeData.fields], classType),
+            type: newLambdaType([], [...classType.classTypeData.fields], classType),
           },
           aliasFor: '__op_new__',
         });
@@ -1169,22 +1172,39 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     const cached = this.lambdaTypeCache.get(n);
     if (cached) return cached;
     const hint = rawHint.lambdaErasure().functionTypeData;
-    const returnType = n.returnType ? this.solveType(n.returnType) : (hint?.returnType || AnyType);
-    const parameters: Parameter[] = n.parameters.map((p, i) => ({
-      isMutable: p.isMutable,
-      identifier: p.identifier,
-      type: (p.type ? this.solveType(p.type) : null) || (hint?.parameterTypes[i] || AnyType),
-      defaultValue: p.value || undefined,
-    }));
-    const lambdaType = newLambdaType(parameters, returnType);
-    this.lambdaTypeCache.set(n, lambdaType);
-    return lambdaType;
+    return this.scoped(() => {
+      const typeParameters: TypeParameterVariable[] | undefined = n.typeParameters?.map(tp => ({
+        identifier: tp.identifier,
+        type: newTypeParameterTypeType(tp.identifier),
+      }));
+      if (typeParameters) {
+        for (const tpVariable of typeParameters) {
+          this.declareVariable(tpVariable);
+        }
+      }
+      const parameters: Parameter[] = n.parameters.map((p, i) => ({
+        isMutable: p.isMutable,
+        identifier: p.identifier,
+        type: (p.type ? this.solveType(p.type) : null) || (hint?.parameterTypes[i] || AnyType),
+        defaultValue: p.value || undefined,
+      }));
+      const returnType = n.returnType ? this.solveType(n.returnType) : (hint?.returnType || AnyType);
+      const lambdaType = newLambdaType(typeParameters, parameters, returnType);
+      this.lambdaTypeCache.set(n, lambdaType);
+      return lambdaType;
+    });
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): EResult {
     const startErrorCount = this.getErrorCount();
     const lambdaType = this.solveFunctionDisplayType(n, this.hint);
     const outerScope = this.scope;
     return this.scoped(() => {
+      const typeParameters = lambdaType.lambdaTypeData.typeParameters;
+      if (typeParameters) {
+        for (const tp of typeParameters) {
+          this.scope[tp.identifier.name] = tp;
+        }
+      }
       const parameters = lambdaType.lambdaTypeData.parameters;
       const tentativeReturnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
       const outerReturnType = this.currentReturnType;
@@ -1207,7 +1227,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           const value = bodyResult.value;
           const thunk = bodyResult.thunk;
           return {
-            type: n.returnType ? lambdaType : newLambdaType(lambdaType.lambdaTypeData.parameters, bodyResult.type),
+            type: n.returnType ?
+              lambdaType :
+              newLambdaType(typeParameters, lambdaType.lambdaTypeData.parameters, bodyResult.type),
             value: value !== undefined ?
               () => value :
               (!hasMutableParameters && thunk) ?
@@ -1226,7 +1248,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
                 } :
                 undefined,
             ir: new ast.FunctionDisplay(
-              n.location, n.parameters, n.returnType,
+              n.location, undefined, n.parameters, n.returnType,
               new ast.Block(n.body.location, [new ast.Return(n.body.statements[0].location, bodyResult.ir)])),
           };
         } else {
@@ -1239,7 +1261,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           return {
             type: lambdaType,
             ir: new ast.FunctionDisplay(
-              n.location, n.parameters, n.returnType, result.ir),
+              n.location, undefined, n.parameters, n.returnType, result.ir),
           };
         }
       } finally {
@@ -1383,10 +1405,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
               }
               return true;
             }
-            if (typeTemplate.iterableTypeData) {
-              const templateItemType = typeTemplate.iterableTypeData.itemType;
-              const actualItemType = actualType.getIterableItemType();
-              if (!actualItemType) return false;
+            if (actualType.iterableTypeData) {
+              const actualItemType = actualType.iterableTypeData.itemType;
+              const templateItemType = typeTemplate.getIterableItemType();
+              if (!templateItemType) return false;
               return bind(templateItemType, actualItemType, variance);
             }
             break;
@@ -1404,10 +1426,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
               }
               return true;
             }
-            if (actualType.iterableTypeData) {
-              const actualItemType = actualType.iterableTypeData.itemType;
-              const templateItemType = typeTemplate.getIterableItemType();
-              if (!templateItemType) return false;
+            if (typeTemplate.iterableTypeData) {
+              const templateItemType = typeTemplate.iterableTypeData.itemType;
+              const actualItemType = actualType.getIterableItemType();
+              if (!actualItemType) return false;
               return bind(templateItemType, actualItemType, variance);
             }
             break;
@@ -1515,7 +1537,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         // If we have a successful binding, it can be useful to show the user what
         // the bound method signature looks like
         this.markReference(
-          { identifier: method.identifier, type: newLambdaType(boundParameters, returnType) },
+          { identifier: method.identifier, type: newLambdaType([], boundParameters, returnType) },
           n.identifier.location.range);
       } catch (e) {
         if (e === SUBSTITUTION_FAILURE) return failBinding('substitution failure');
@@ -1666,7 +1688,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       defaultValue: p.value || undefined,
     }));
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
-    const lambdaType = newLambdaType(parameters, returnType);
+    const lambdaType = newLambdaType([], parameters, returnType);
     const paramNames = n.parameters.map(p => p.identifier.name);
     for (const statement of n.body.statements) {
       if (statement instanceof ast.ExpressionStatement) {
