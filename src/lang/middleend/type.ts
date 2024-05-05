@@ -356,6 +356,11 @@ export class Type {
     if (lhs.isAssignableTo(rhs)) return rhs;
     if (rhs.isAssignableTo(lhs)) return lhs;
 
+    // TODO: Make this play well with unions of Iterables
+    if (lhs.iterableTypeData && rhs.iterableTypeData) {
+      return lhs.iterableTypeData.itemType.getCommonType(rhs.iterableTypeData.itemType).iterable();
+    }
+
     // try to form a union type
     const unionElements = new Set<UnionElementType>();
     for (const arg of [lhs, rhs]) {
