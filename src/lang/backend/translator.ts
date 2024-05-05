@@ -179,6 +179,12 @@ class Translator implements ast.NodeVisitor<string> {
     const jsName = translateVariableName(n.identifier.name);
     return `for(${storageClass} ${jsName} of ${n.collection.accept(this)})${n.body.accept(this)}`;
   }
+  visitBreak(n: ast.Break): string {
+    return 'break;';
+  }
+  visitContinue(n: ast.Continue): string {
+    return 'continue;';
+  }
   visitReturn(n: ast.Return): string {
     return `return ${n.value.accept(this)};`;
   }

@@ -194,6 +194,14 @@ class Printer implements yal.ast.NodeVisitor<void> {
     n.body.accept(this);
     this.depth--;
   }
+  visitBreak(n: yal.ast.Break): void {
+    this.indent();
+    this.out += `BREAK`;
+  }
+  visitContinue(n: yal.ast.Continue): void {
+    this.indent();
+    this.out += `CONTINUE`;
+  }
   visitReturn(n: yal.ast.Return): void {
     this.indent();
     this.out += `RETURN`;

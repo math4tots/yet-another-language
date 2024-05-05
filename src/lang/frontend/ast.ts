@@ -47,6 +47,8 @@ export interface StatementVisitor<R> {
   visitIf(n: If): R;
   visitWhile(n: While): R;
   visitFor(n: For): R;
+  visitBreak(n: Break): R;
+  visitContinue(n: Continue): R;
   visitReturn(n: Return): R;
   visitClassDefinition(n: ClassDefinition): R;
   visitInterfaceDefinition(n: InterfaceDefinition): R;
@@ -501,6 +503,22 @@ export class For implements Statement {
     this.body = body;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitFor(this); }
+}
+
+export class Break implements Statement {
+  readonly location: Location;
+  constructor(location: Location) {
+    this.location = location;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitBreak(this); }
+}
+
+export class Continue implements Statement {
+  readonly location: Location;
+  constructor(location: Location) {
+    this.location = location;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitContinue(this); }
 }
 
 export class Return implements Statement {
