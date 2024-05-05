@@ -1038,6 +1038,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'export' });
         completions.push({ name: 'import' });
         completions.push({ name: 'abstract' });
+        completions.push({ name: 'for' });
+        completions.push({ name: 'while' });
         this.addSymbolTableCompletions(completions, scope);
         return completions;
       },
@@ -1812,6 +1814,27 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       status: MaybeJumps,
       ir: new ast.While(n.location, condition.ir, body.ir),
     };
+  }
+  visitFor(n: ast.For): SResult {
+    const collection = this.solveExpr(n.collection);
+    const givenItemType = collection.type.getIterableItemType();
+    if (!givenItemType) {
+      this.error(n.collection.location, `Expected Iterable value`);
+    }
+    const itemType = givenItemType || AnyType;
+    return this.scoped(() => {
+      const variable: Variable = {
+        isMutable: n.isMutable,
+        identifier: n.identifier,
+        type: itemType,
+      };
+      this.declareVariable(variable);
+      const body = this.solveBlock(n.body);
+      return {
+        status: MaybeJumps,
+        ir: new ast.For(n.location, n.isMutable, n.identifier, collection.ir, body.ir),
+      };
+    });
   }
   visitReturn(n: ast.Return): SResult {
     const returnType = this.currentReturnType;

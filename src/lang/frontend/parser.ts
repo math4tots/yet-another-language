@@ -605,6 +605,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('return')) return parseReturn();
     if (at('if')) return parseIf();
     if (at('while')) return parseWhile();
+    if (at('for')) return parseFor();
     if (at('{')) return parseBlock();
     if (at('static')) return parseStatic();
     if (at('var') || at('const')) return parseDeclaration(false);
@@ -664,6 +665,17 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const body = parseBlock();
     const end = body.location.range.end;
     return new ast.While({ uri, range: { start, end } }, condition, body);
+  }
+
+  function parseFor(): ast.For {
+    const start = expect('for').range.start;
+    const isMutable = consume('var');
+    const identifier = parseIdentifier();
+    expect('in');
+    const collection = parseExpression();
+    const body = parseBlock();
+    const end = body.location.range.end;
+    return new ast.For({ uri, range: { start, end } }, isMutable, identifier, collection, body);
   }
 
   function parseDeclaration(isExported: boolean): ast.Declaration {

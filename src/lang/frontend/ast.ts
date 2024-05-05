@@ -46,6 +46,7 @@ export interface StatementVisitor<R> {
   visitDeclaration(n: Declaration): R;
   visitIf(n: If): R;
   visitWhile(n: While): R;
+  visitFor(n: For): R;
   visitReturn(n: Return): R;
   visitClassDefinition(n: ClassDefinition): R;
   visitInterfaceDefinition(n: InterfaceDefinition): R;
@@ -479,6 +480,27 @@ export class While implements Statement {
     this.body = body;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitWhile(this); }
+}
+
+export class For implements Statement {
+  readonly location: Location;
+  readonly isMutable: boolean;
+  readonly identifier: IdentifierNode;
+  readonly collection: Expression;
+  readonly body: Block;
+  constructor(
+    location: Location,
+    isMutable: boolean,
+    identifier: IdentifierNode,
+    collection: Expression,
+    body: Block) {
+    this.location = location;
+    this.isMutable = isMutable;
+    this.identifier = identifier;
+    this.collection = collection;
+    this.body = body;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitFor(this); }
 }
 
 export class Return implements Statement {

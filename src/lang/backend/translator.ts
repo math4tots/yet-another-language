@@ -174,6 +174,11 @@ class Translator implements ast.NodeVisitor<string> {
   visitWhile(n: ast.While): string {
     return `while(${n.condition.accept(this)})${n.body.accept(this)}`;
   }
+  visitFor(n: ast.For): string {
+    const storageClass = n.isMutable ? 'var' : 'const';
+    const jsName = translateVariableName(n.identifier.name);
+    return `for(${storageClass} ${jsName} of ${n.collection.accept(this)})${n.body.accept(this)}`;
+  }
   visitReturn(n: ast.Return): string {
     return `return ${n.value.accept(this)};`;
   }

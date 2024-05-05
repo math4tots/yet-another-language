@@ -31,7 +31,7 @@
 				},
 				{
 					"name": "keyword.control.yal",
-					"match": "\\b(native|if|then|else|while|break|continue|return|import|export|from|as|and|or|not|in|is|raise|try)\\b"
+					"match": "\\b(native|if|then|else|for|while|break|continue|return|import|export|from|as|and|or|not|in|is|raise|try)\\b"
 				},
 				{
 					"comment": "Globals provided by the runtime (functions)",
