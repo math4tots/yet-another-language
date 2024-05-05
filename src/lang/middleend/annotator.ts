@@ -268,6 +268,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'Tuple' });
         completions.push({ name: 'Function' });
         completions.push({ name: 'Union' });
+        completions.push({ name: 'Iterable' });
         completions.push({ name: 'Record' });
         this.addSymbolTableCompletions(completions, scopeAtLocation);
         return completions;
@@ -307,6 +308,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         type = type.getCommonType(this.solveType(argexpr));
       }
       return type;
+    }
+    if (e.args.length === 1 && e.identifier.name === 'Iterable') {
+      return this.solveType(e.args[0]).iterable();
     }
     if (e.identifier.name === 'Record') {
       // TODO: more thorough error handling here
@@ -1115,7 +1119,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       let itemType = NeverType;
       for (let i = 0; i < n.values.length; i++) {
         const itemNode = n.values[i];
-        const result = this.solveExpr(itemNode, itemType, this.mustSatisfyHint);
+        const result = this.solveExpr(itemNode, itemType, false);
         itemType = itemType.getCommonType(result.type);
         if (result.value !== undefined) values.push(result.value);
         irs.push(result.ir);
@@ -1379,6 +1383,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
               }
               return true;
             }
+            if (typeTemplate.iterableTypeData) {
+              const templateItemType = typeTemplate.iterableTypeData.itemType;
+              const actualItemType = actualType.getIterableItemType();
+              if (!actualItemType) return false;
+              return bind(templateItemType, actualItemType, variance);
+            }
             break;
           case CONTRAVARIANT:
             if (actualType.isAssignableTo(typeTemplate)) return true;
@@ -1393,6 +1403,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
                 }
               }
               return true;
+            }
+            if (actualType.iterableTypeData) {
+              const actualItemType = actualType.iterableTypeData.itemType;
+              const templateItemType = typeTemplate.getIterableItemType();
+              if (!templateItemType) return false;
+              return bind(templateItemType, actualItemType, variance);
             }
             break;
           default:
@@ -1414,6 +1430,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
         if (typeTemplate.listTypeData && actualType.listTypeData) {
           return bind(typeTemplate.listTypeData.itemType, actualType.listTypeData.itemType, variance);
+        }
+        if (typeTemplate.iterableTypeData && actualType.iterableTypeData) {
+          return bind(typeTemplate.iterableTypeData.itemType, actualType.iterableTypeData.itemType, variance);
         }
 
         if (typeTemplate.functionTypeData && actualType.functionTypeData) {
@@ -1461,6 +1480,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         if (type.unionTypeData) {
           return type.unionTypeData.types.map(
             t => substitute(t, variance)).reduce((lhs, rhs) => lhs.getCommonType(rhs));
+        }
+        if (type.iterableTypeData) {
+          return substitute(type.iterableTypeData.itemType, variance).iterable();
         }
         if (type.functionTypeData) {
           const flippedVariance = flipVariance(variance);

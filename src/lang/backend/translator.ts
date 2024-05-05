@@ -129,8 +129,8 @@ class Translator implements ast.NodeVisitor<string> {
       if (name === '__op_setitem__') return `(${owner}[${args[0]}]=${args[1]})`;
     }
     if (name.startsWith('__js_')) return `${owner}.${name.substring(5)}(${args.join(',')})`;
-    if (name.startsWith('__fn_')) return `${name.substring(5)}(${[owner].concat(args).join(',')})`;
-    if (name.startsWith('__fn0_')) return `${name.substring(6)}(${args.join(',')})`;
+    if (name.startsWith('__fn_')) return `${name.substring(5)}(${[owner].concat(args).join(',')})`; // "function"
+    if (name.startsWith('__sfn_')) return `${name.substring(6)}(${args.join(',')})`; // "static function"
     return `${owner}.${translateMethodName(name, args.length)}(${args.join(',')})`;
   }
   visitLogicalNot(n: ast.LogicalNot): string {

@@ -18,6 +18,7 @@ type TypeConstructorParameters = {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
+  readonly iterableTypeData?: IterableTypeData;
   readonly typeParameterTypeData?: TypeParameterTypeData;
 };
 
@@ -93,6 +94,10 @@ type UnionTypeData = {
   readonly types: UnionElementType[];
 };
 
+type IterableTypeData = {
+  readonly itemType: Type;
+};
+
 type TypeParameterTypeData = {};
 
 /** The basic types are Bool, Number and String. Null was intentionally excluded */
@@ -113,6 +118,7 @@ export type InterfaceTypeType = Type & { readonly typeTypeData: { readonly type:
 export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
 export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
+export type IterableType = Type & { readonly iterableTypeData: IterableTypeData; };
 
 export type TypeParameterType = Type & { readonly typeParameterTypeData: TypeParameterTypeData; };
 export type TypeParameterTypeType = Type & { readonly typeTypeData: { readonly type: TypeParameterType; }; };
@@ -131,6 +137,7 @@ export class Type {
   readonly comment?: ast.StringLiteral;
   private _list?: ListType;
   private _nullable?: NullableType;
+  private _iterable?: IterableType;
   private _addMethods?: (() => void);
   readonly typeTypeData?: TypeTypeData;
   readonly basicTypeData?: BasicTypeData;
@@ -144,6 +151,7 @@ export class Type {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
+  readonly iterableTypeData?: IterableTypeData;
   readonly typeParameterTypeData?: TypeParameterTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method[]>();
@@ -188,6 +196,9 @@ export class Type {
     if (params.unionTypeData) {
       this.unionTypeData = params.unionTypeData;
     }
+    if (params.iterableTypeData) {
+      this.iterableTypeData = params.iterableTypeData;
+    }
     if (params.typeParameterTypeData) {
       this.typeParameterTypeData = params.typeParameterTypeData;
     }
@@ -214,6 +225,7 @@ export class Type {
       this.tupleTypeData?.itemTypes.some(e => e.hasTypeVariable()) ||
       this.nullableTypeData?.itemType.hasTypeVariable() ||
       this.unionTypeData?.types.some(t => t.hasTypeVariable()) ||
+      this.iterableTypeData?.itemType.hasTypeVariable() ||
       this.functionTypeData?.returnType.hasTypeVariable() ||
       this.functionTypeData?.parameterTypes.some(p => p.hasTypeVariable()));
   }
@@ -267,6 +279,12 @@ export class Type {
         const targetItemType = target.listTypeData.itemType;
         return sourceTypes.every(s => s.isAssignableTo(targetItemType));
       }
+    }
+
+    if (target.iterableTypeData) {
+      const sourceItemType = this.getIterableItemType();
+      if (sourceItemType === undefined) return false;
+      return sourceItemType.isAssignableTo(target.iterableTypeData.itemType);
     }
 
     if (target.interfaceTypeData) {
@@ -356,6 +374,13 @@ export class Type {
     return newUnionType([...unionElements]);
   }
 
+  getIterableItemType(): Type | undefined {
+    return this.iterableTypeData?.itemType ||
+      this.listTypeData?.itemType ||
+      this.tupleTypeData?.itemTypes.reduce((a, b) => a.getCommonType(b)) ||
+      undefined;
+  }
+
   toString(): string { return this.identifier.name; }
 
   mayHaveEnumConstVariables(): boolean {
@@ -410,6 +435,17 @@ export class Type {
     nullableType._addMethods = () => addNullableMethods(nullableType);
     this._nullable = nullableType;
     return nullableType;
+  }
+
+  iterable(): IterableType {
+    const cached = this._iterable;
+    if (cached) return cached;
+    const iterableType = new Type({
+      identifier: { name: `Iterable[${this.identifier.name}]` },
+      iterableTypeData: { itemType: this },
+    }) as IterableType;
+    this._iterable = iterableType;
+    return iterableType;
   }
 
   private prepareMethods() {

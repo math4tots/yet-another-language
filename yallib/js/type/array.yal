@@ -1,0 +1,12 @@
+
+
+
+export interface Array {
+  static {
+    aliasFor(native constexpr "Array")
+
+    function from_(values: Iterable[Number]): List[Number] {
+      aliasFor(__js_from)
+    }
+  }
+}
