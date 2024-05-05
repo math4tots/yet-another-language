@@ -19,7 +19,7 @@ export const Keywords = [
   'class', 'interface', 'enum', 'typedef',
   'function', 'var', 'const', 'let', 'final', 'extends',
   'if', 'then', 'else', 'for', 'while', 'break', 'continue',
-  'return',
+  'return', 'yield',
   'native',
   'abstract',
 ] as const;

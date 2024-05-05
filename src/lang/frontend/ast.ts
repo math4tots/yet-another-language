@@ -23,6 +23,7 @@ export interface ExpressionVisitor<R> {
   visitNumberLiteral(n: NumberLiteral): R;
   visitStringLiteral(n: StringLiteral): R;
   visitIdentifierNode(n: IdentifierNode): R;
+  visitYield(n: Yield): R;
   visitAssignment(n: Assignment): R;
   visitListDisplay(n: ListDisplay): R;
   visitRecordDisplay(n: RecordDisplay): R;
@@ -154,6 +155,16 @@ export class IdentifierNode implements Expression, Identifier {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitIdentifierNode(this); }
 }
 
+export class Yield implements Expression {
+  readonly location: Location;
+  readonly value: Expression;
+  constructor(location: Location, value: Expression) {
+    this.location = location;
+    this.value = value;
+  }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitYield(this); }
+}
+
 export class Assignment implements Expression {
   readonly location: Location;
   readonly identifier: IdentifierNode;
@@ -226,17 +237,20 @@ export class Parameter {
 
 export class FunctionDisplay implements Expression {
   readonly location: Location;
+  readonly isGenerator: boolean;
   readonly typeParameters: TypeParameter[] | undefined;
   readonly parameters: Parameter[];
   readonly returnType: TypeExpression | null;
   readonly body: Block;
   constructor(
     location: Location,
+    isGenerator: boolean,
     typeParameters: TypeParameter[] | undefined,
     parameters: Parameter[],
     returnType: TypeExpression | null,
     body: Block) {
     this.location = location;
+    this.isGenerator = isGenerator;
     this.typeParameters = typeParameters;
     this.parameters = parameters;
     this.returnType = returnType;

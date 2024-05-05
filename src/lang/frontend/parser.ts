@@ -313,6 +313,11 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       i++;
       return new ast.NumberLiteral({ uri, range: peek.range }, peek.value);
     }
+    if (consume('yield')) {
+      const value = parseExpression();
+      const range: Range = { start: peek.range.start, end: value.location.range.end };
+      return new ast.Yield({ uri, range }, value);
+    }
     if (peek.type === 'STRING') {
       return parseStringLiteral();
     }
@@ -328,6 +333,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         const range = { start: identifier.location.range.start, end: body.location.range.end };
         return new ast.FunctionDisplay(
           { uri, range },
+          false,
           undefined,
           [new ast.Parameter(identifier.location, true, identifier, null, null, null)],
           null,
@@ -342,7 +348,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         expect('=>');
         const body = parseBlockOrQuickReturnExpression();
         const range = { start: peek.range.start, end: body.location.range.end };
-        return new ast.FunctionDisplay({ uri, range }, undefined, parameters, returnType, body);
+        return new ast.FunctionDisplay({ uri, range }, false, undefined, parameters, returnType, body);
       }
       i++;
       const innerExpression = parseExpression();
@@ -760,6 +766,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
 
   function parseFunctionDefinition(isExported: boolean): ast.Declaration {
     const startPos = expect('function').range.start;
+    const isGenerator = consume('*');
     const identifier = parsePropertyIdentifier();
     const comments = at('STRING') ? parseStringLiteral() : null;
     const typeParameters = at('[') ? parseTypeParameters() : undefined;
@@ -773,7 +780,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.Declaration(
       location,
       isExported, false, identifier, null, comments,
-      new ast.FunctionDisplay(location, typeParameters, parameters, returnType, body));
+      new ast.FunctionDisplay(location, isGenerator, typeParameters, parameters, returnType, body));
   }
 
   function parseClassDefinition(isExported: boolean): ast.ClassDefinition {

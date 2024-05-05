@@ -142,6 +142,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   private readonly stack: Set<string>; // for detecting recursion
 
   private currentReturnType: Type | null = null;
+  private currentYieldType: Type | null = null;
   private hint: Type = AnyType;
   private mustSatisfyHint: boolean = false;
   private scope: Scope = Object.create(BASE_SCOPE);
@@ -1031,6 +1032,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'native' });
         completions.push({ name: 'inline' });
         completions.push({ name: 'return' });
+        completions.push({ name: 'yield' });
         completions.push({ name: 'interface' });
         completions.push({ name: 'class' });
         completions.push({ name: 'enum' });
@@ -1062,6 +1064,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         } : undefined,
       ir: variable.inlineIR ?? n,
     };
+  }
+  visitYield(n: ast.Yield): EResult {
+    const yieldType = this.currentYieldType;
+    if (!yieldType) {
+      const value = this.solveExpr(n.value);
+      this.error(n.location, `yield cannot appear outside of a generator function`);
+      return { type: AnyType, ir: new ast.Yield(n.location, value.ir) };
+    }
+    const value = this.solveExpr(n.value, yieldType);
+    return { type: AnyType, ir: new ast.Yield(n.location, value.ir) };
   }
   visitAssignment(n: ast.Assignment): EResult {
     const rhs = this.solveExpr(n.value);
@@ -1192,7 +1204,16 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         type: (p.type ? this.solveType(p.type) : null) || (hint?.parameterTypes[i] || AnyType),
         defaultValue: p.value || undefined,
       }));
-      const returnType = n.returnType ? this.solveType(n.returnType) : (hint?.returnType || AnyType);
+      const returnType =
+        n.returnType ?
+          this.solveType(n.returnType) :
+          (hint?.returnType || (n.isGenerator ? AnyType.iterable() : AnyType));
+      if (n.isGenerator && !returnType.iterableTypeData) {
+        // TODO: in the future I may want to add a 'Generator<T, TNext, TReturn>' type
+        // for use with generators so that I can have asymmetric coroutines.
+        // But for now, to keep things simple, we just assume generators are always Iterables.
+        this.error(n.returnType?.location ?? n.location, `Generator must return iterable`);
+      }
       const lambdaType = newLambdaType(typeParameters, parameters, returnType);
       this.lambdaTypeCache.set(n, lambdaType);
       return lambdaType;
@@ -1212,8 +1233,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       const parameters = lambdaType.lambdaTypeData.parameters;
       const tentativeReturnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
       const outerReturnType = this.currentReturnType;
+      const outerYieldType = this.currentYieldType;
       try {
         this.currentReturnType = tentativeReturnType;
+        if (n.isGenerator) {
+          this.currentYieldType = tentativeReturnType.iterableTypeData?.itemType ?? AnyType;
+        }
         const hasMutableParameters = parameters.some(p => p.isMutable);
         for (const parameter of parameters) {
           const variable: Variable = {
@@ -1234,30 +1259,31 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             type: n.returnType ?
               lambdaType :
               newLambdaType(typeParameters, lambdaType.lambdaTypeData.parameters, bodyResult.type),
-            value: value !== undefined ?
-              () => value :
-              (!hasMutableParameters && thunk) ?
-                (...args: Value[]) => {
-                  const staticEvalScope: Scope = Object.create(outerScope);
-                  for (let i = 0; i < parameters.length; i++) {
-                    const parameter = parameters[i];
-                    const variable: Variable = {
-                      identifier: parameter.identifier,
-                      type: parameter.type,
-                      value: args[i],
-                    };
-                    staticEvalScope[parameter.identifier.name] = variable;
-                  }
-                  return thunk(staticEvalScope);
-                } :
-                undefined,
+            value: this.getErrorCount() !== startErrorCount ? undefined :
+              value !== undefined ?
+                () => value :
+                (!hasMutableParameters && thunk) ?
+                  (...args: Value[]) => {
+                    const staticEvalScope: Scope = Object.create(outerScope);
+                    for (let i = 0; i < parameters.length; i++) {
+                      const parameter = parameters[i];
+                      const variable: Variable = {
+                        identifier: parameter.identifier,
+                        type: parameter.type,
+                        value: args[i],
+                      };
+                      staticEvalScope[parameter.identifier.name] = variable;
+                    }
+                    return thunk(staticEvalScope);
+                  } :
+                  undefined,
             ir: new ast.FunctionDisplay(
-              n.location, undefined, n.parameters, n.returnType,
+              n.location, n.isGenerator, undefined, n.parameters, n.returnType,
               new ast.Block(n.body.location, [new ast.Return(n.body.statements[0].location, bodyResult.ir)])),
           };
         } else {
           const result = this.solveBlock(n.body);
-          if (result.status !== Jumps && !NullType.isAssignableTo(tentativeReturnType)) {
+          if (result.status !== Jumps && !(n.isGenerator || NullType.isAssignableTo(tentativeReturnType))) {
             this.error(
               (n.returnType ?? n).location,
               `A function that cannot return null must always explicitly return`);
@@ -1265,11 +1291,12 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           return {
             type: lambdaType,
             ir: new ast.FunctionDisplay(
-              n.location, undefined, n.parameters, n.returnType, result.ir),
+              n.location, n.isGenerator, undefined, n.parameters, n.returnType, result.ir),
           };
         }
       } finally {
         this.currentReturnType = outerReturnType;
+        this.currentYieldType = outerYieldType;
       }
     });
   }
@@ -1845,7 +1872,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     });
   }
   visitReturn(n: ast.Return): SResult {
-    const returnType = this.currentReturnType;
+    const returnType = this.currentYieldType ? AnyType : this.currentReturnType;
     if (!returnType) {
       this.solveExpr(n.value);
       this.error(n.location, `return cannot appear outside a function`);

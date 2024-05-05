@@ -96,6 +96,9 @@ class Translator implements ast.NodeVisitor<string> {
   visitIdentifierNode(n: ast.IdentifierNode): string {
     return translateVariableName(n.name);
   }
+  visitYield(n: ast.Yield): string {
+    return `(yield ${n.value.accept(this)})`;
+  }
   visitAssignment(n: ast.Assignment): string {
     return `(${translateVariableName(n.identifier.name)} = ${n.value.accept(this)})`;
   }
@@ -108,7 +111,11 @@ class Translator implements ast.NodeVisitor<string> {
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): string {
     const parameters = n.parameters.map(p => translateVariableName(p.identifier.name));
-    return `((${parameters.join(',')}) => ${n.body.accept(this)})`;
+    const body = n.body.accept(this);
+    if (n.isGenerator) {
+      return `(function*(${parameters.join(',')}) ${body}).bind(this)`;
+    }
+    return `((${parameters.join(',')}) => ${body})`;
   }
   visitMethodCall(n: ast.MethodCall): string {
     const owner = n.owner.accept(this);
@@ -242,6 +249,7 @@ class Translator implements ast.NodeVisitor<string> {
         const name = stmt.identifier.name;
         const value = stmt.value;
         if ((value instanceof ast.FunctionDisplay) && !stmt.type) {
+          const prefix = value.isGenerator ? '*' : '';
           if (builtinOnlyMethodNames.has(name)) {
             this.warnings.push({
               location: stmt.identifier.location,
@@ -252,14 +260,14 @@ class Translator implements ast.NodeVisitor<string> {
           const body = value.body.accept(this);
           const suffix = `(${parameters.join(',')})${body}`;
           if (parameters.length === 0) {
-            if (name.startsWith('__get___js_')) return `get ${name.substring(11)}${suffix}`;
-            if (name.startsWith('__get_')) return `get YAL${name.substring(6)}${suffix}`;
+            if (name.startsWith('__get___js_')) return `get${prefix} ${name.substring(11)}${suffix}`;
+            if (name.startsWith('__get_')) return `get${prefix} YAL${name.substring(6)}${suffix}`;
           } else if (parameters.length === 1) {
-            if (name.startsWith('__set__js_')) return `set ${name.substring(11)}${suffix}`;
-            if (name.startsWith('__set_')) return `set YAL${name.substring(6)}${suffix}`;
+            if (name.startsWith('__set__js_')) return `set${prefix} ${name.substring(11)}${suffix}`;
+            if (name.startsWith('__set_')) return `set${prefix} YAL${name.substring(6)}${suffix}`;
           }
-          if (name.startsWith('__js_')) return `${name.substring(5)}${suffix}`;
-          return `${translateMethodName(name, parameters.length)}${suffix}`;
+          if (name.startsWith('__js_')) return `${prefix}${name.substring(5)}${suffix}`;
+          return `${prefix}${translateMethodName(name, parameters.length)}${suffix}`;
         }
       }
       return [];

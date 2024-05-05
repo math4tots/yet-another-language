@@ -39,6 +39,6 @@ export function getCommentFromEnumDefinition(cd: ast.EnumDefinition): ast.String
 }
 
 export function getBodyIfFunctionHasSimpleBody(fd: ast.FunctionDisplay): ast.Expression | undefined {
-  return (fd.body.statements.length === 1 && fd.body.statements[0] instanceof ast.Return) ?
+  return (!fd.isGenerator && fd.body.statements.length === 1 && fd.body.statements[0] instanceof ast.Return) ?
     fd.body.statements[0].value : undefined;
 }
