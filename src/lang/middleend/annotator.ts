@@ -60,6 +60,7 @@ import {
   CompileTimeConfigs,
   RunTarget,
   TypeParameterVariable,
+  INVARIANT,
 } from './annotation';
 import { Scope, BASE_SCOPE } from './scope';
 import { ModuleValue, RecordValue, Value, evalMethodCallCatchExc } from './value';
@@ -1521,10 +1522,15 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         if (typeTemplate.functionTypeData && actualType.functionTypeData) {
           const templateData = typeTemplate.functionTypeData;
           const actualData = actualType.functionTypeData;
-          if (templateData.parameterTypes.length !== actualData.parameterTypes.length) return false;
+          const tplen = templateData.parameterTypes.length;
+          const aplen = actualData.parameterTypes.length;
+          if (variance === COVARIANT && aplen < tplen) return false;
+          if (variance === CONTRAVARIANT && aplen > tplen) return false;
+          if (variance === INVARIANT && aplen !== aplen) return false;
+          const len = Math.min(aplen, tplen);
           if (!bind(templateData.returnType, actualData.returnType, variance)) return false;
           const flippedVariance = flipVariance(variance);
-          for (let i = 0; i < actualData.parameterTypes.length; i++) {
+          for (let i = 0; i < len; i++) {
             if (!bind(templateData.parameterTypes[i], actualData.parameterTypes[i], flippedVariance)) return false;
           }
           return true;

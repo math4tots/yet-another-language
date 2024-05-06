@@ -19,6 +19,7 @@ const specialUnaryOperatorMap = new Map<string, (e: string) => string>([
   ['__op_hasvalue__', e => `((${e}??null)!==null)`],
   ['__op_nullget__', e => `nullGet(${e})`],
   ['__op_noop__', e => e],
+  ['__op_clearlength__', e => `(${e}.length=0)`],
   ['__op_0__', e => `${e}[0]`],
   ['__op_1__', e => `${e}[1]`],
   ['__op_2__', e => `${e}[2]`],

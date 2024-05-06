@@ -175,10 +175,10 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     let end = identifier.location.range.end;
     if (consume('[')) {
       while (!atEOF() && !at(']')) {
-        consume('COMMENT');
+        while (consume('COMMENT'));
         args.push(parseTypeExpression());
         if (!consume(',')) break;
-        consume('COMMENT');
+        while (consume('COMMENT'));
       }
       end = expect(']').range.end;
     }
@@ -251,12 +251,12 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     expect('[');
     const typeParameters: ast.TypeParameter[] = [];
     while (!atEOF() && !at(']')) {
-      consume('COMMENT');
+      while (consume('COMMENT'));
       typeParameters.push(parseTypeParameter());
       if (!consume(',')) {
         break;
       }
-      consume('COMMENT');
+      while (consume('COMMENT'));
     }
     expect(']');
     return typeParameters;
@@ -284,12 +284,12 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     expect('(');
     const parameters: ast.Parameter[] = [];
     while (!atEOF() && !at(')')) {
-      consume('COMMENT');
+      while (consume('COMMENT'));
       parameters.push(parseParameter());
       if (!consume(',')) {
         break;
       }
-      consume('COMMENT');
+      while (consume('COMMENT'));
     }
     expect(')');
     return parameters;
@@ -369,10 +369,10 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const start = peek.range.start;
       const elements: ast.Expression[] = [];
       while (!atEOF() && !at(']')) {
-        consume('COMMENT');
+        while (consume('COMMENT'));
         elements.push(parseExpression());
         if (!consume(',')) break;
-        consume('COMMENT');
+        while (consume('COMMENT'));
       }
       const end = expect(']').range.end;
       return new ast.ListDisplay({ uri, range: { start, end } }, elements);
@@ -382,15 +382,15 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const start = peek.range.start;
       const entries: ast.RecordDisplayEntry[] = [];
       while (!atEOF() && !at('}')) {
-        consume('COMMENT');
+        while (consume('COMMENT'));
         const isMutable = consume('var');
         const identifier = parseIdentifier();
         expect(':');
-        consume('COMMENT');
+        while (consume('COMMENT'));
         const value = parseExpression();
         entries.push({ isMutable, identifier, value });
         if (!consume(',')) break;
-        consume('COMMENT');
+        while (consume('COMMENT'));
       }
       const end = expect('}').range.end;
       return new ast.RecordDisplay({ uri, range: { start, end } }, entries);
@@ -476,12 +476,12 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const args: ast.Expression[] = [];
     expect('(');
     while (!atEOF() && !at(')')) {
-      consume('COMMENT'); // allow preceeding comments in argument lists
+      while (consume('COMMENT')); // allow preceeding comments in argument lists
       args.push(parseExpression());
       if (!consume(',')) {
         break;
       }
-      consume('COMMENT'); // allow trailing comments in argument lists
+      while (consume('COMMENT')); // allow trailing comments in argument lists
     }
     expect(')');
     return args;

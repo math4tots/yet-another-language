@@ -343,9 +343,9 @@ export class Type {
       const sourceReturnType = source.functionTypeData.returnType;
       const targetParameterTypes = target.functionTypeData.parameterTypes;
       const targetReturnType = target.functionTypeData.returnType;
-      if (sourceParameterTypes.length !== targetParameterTypes.length) return false;
+      if (sourceParameterTypes.length > targetParameterTypes.length) return false;
       if (!sourceReturnType.isAssignableTo(targetReturnType)) return false;
-      for (let i = 0; i < targetParameterTypes.length; i++) {
+      for (let i = 0; i < sourceParameterTypes.length; i++) {
         if (!targetParameterTypes[i].isAssignableTo(sourceParameterTypes[i])) return false;
       }
       return true;
@@ -1166,6 +1166,12 @@ function addListMethods(listType: ListType) {
     sourceVariable: { identifier: { name: 'size' }, type: NumberType },
   });
   listType.addMethod({
+    identifier: { name: 'clear' },
+    parameters: [],
+    returnType: AnyType,
+    aliasFor: '__op_clearlength__',
+  });
+  listType.addMethod({
     identifier: { name: '__getitem__' },
     parameters: [{ identifier: { name: 'index' }, type: NumberType }],
     returnType: itemType,
@@ -1196,6 +1202,14 @@ function addListMethods(listType: ListType) {
     returnType: itemType,
     aliasFor: '__fn_Array.prototype.push.apply',
   });
+  listType.addMethod({
+    identifier: { name: 'filter' },
+    parameters: [
+      { identifier: { name: 'f' }, type: newFunctionType([itemType], BoolType) },
+    ],
+    returnType: listType,
+    aliasFor: '__js_filter',
+  });
   {
     const RType = newTypeParameterTypeType({ name: 'R' });
     const R = RType.typeTypeData.type;
@@ -1203,7 +1217,7 @@ function addListMethods(listType: ListType) {
       identifier: { name: 'map' },
       typeParameters: [RType],
       parameters: [
-        { identifier: { name: 'f' }, type: newFunctionType([itemType], R) },
+        { identifier: { name: 'f' }, type: newFunctionType([itemType, NumberType], R) },
       ],
       returnType: R.list(),
       aliasFor: '__js_map',

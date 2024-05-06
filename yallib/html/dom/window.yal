@@ -1,6 +1,9 @@
 
 
 export interface Window {
+
+  var onload: Function[Any] = aliasFor(__js_onload)
+
   function requestAnimationFrame(callback: Function[Number, Any]) {
     """
     https://developer.mozilla.org/en-US/docs/Web/API/window/requestAnimationFrame
