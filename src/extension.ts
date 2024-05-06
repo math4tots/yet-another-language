@@ -3,9 +3,9 @@ import * as yal from './lang/yal';
 import { tokenizeCommand } from './extension/tokenize';
 import { parseCommand } from './extension/parse';
 import { runCommand } from './extension/run';
-import { translateToJSCommand } from './extension/translate-to-js';
 import { newDefinitionProvider } from './extension/definitionprovider';
 import { newHoverProvider } from './extension/hoverprovider';
+import { translateCommand } from './extension/translate';
 import { newCompletionProvider } from './extension/completionprovider';
 import { newInlayHintsProvider } from './extension/inlayhintsprovider';
 import { newSignatureHelpProvider } from './extension/signaturehelpprovider';
@@ -54,8 +54,8 @@ export function activate(context: vscode.ExtensionContext) {
     'yal.run',
     () => runCommand(context)));
   sub(vscode.commands.registerCommand(
-    'yal.translateToJavascript',
-    translateToJSCommand));
+    'yal.translate',
+    () => translateCommand(context)));
   sub(vscode.commands.registerCommand(
     'yal.index',
     indexCommand));

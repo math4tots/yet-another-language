@@ -71,8 +71,8 @@
                 "title": "yal: Run/Eval yal File"
             },
             {
-                "command": "yal.translateToJavascript",
-                "title": "yal: Translate YAL code to Javascript (JS)"
+                "command": "yal.translate",
+                "title": "yal: Translate YAL code to JavaScript/HTML"
             },
             {
                 "command": "yal.index",
@@ -101,7 +101,7 @@
                     "when": "editorLangId == yal"
                 },
                 {
-                    "command": "yal.translateToJavascript",
+                    "command": "yal.translate",
                     "when": "editorLangId == yal"
                 }
             ]
