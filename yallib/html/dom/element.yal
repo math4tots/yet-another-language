@@ -15,5 +15,10 @@ export interface Element extends Node {
   var innerHTML: String = aliasFor(__js_innerHTML)
   const tagName: String = aliasFor(__js_tagName)
   var textContent: String = aliasFor(__js_textContent)
-  function append(node: Node) { aliasFor(__js_append) }
+  function append(node: Node | String) { aliasFor(__js_append) }
+  function append(n1: Node | String, n2: Node | String) { aliasFor(__js_append) }
+  function append(n1: Node | String, n2: Node | String, n3: Node | String) { aliasFor(__js_append) }
+  function append(n1: Node | String, n2: Node | String, n3: Node | String, n3: Node | String) {
+    aliasFor(__js_append)
+  }
 }

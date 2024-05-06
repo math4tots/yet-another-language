@@ -301,6 +301,10 @@ export class Type {
       return sourceItemType.isAssignableTo(target.iterableTypeData.itemType);
     }
 
+    if (source.promiseTypeData && target.promiseTypeData) {
+      return source.promiseTypeData.valueType.isAssignableTo(target.promiseTypeData.valueType);
+    }
+
     if (target.interfaceTypeData) {
 
       // Only unions or types that are allowed as part of unions are allowed to implement interfaces.

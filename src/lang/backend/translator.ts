@@ -99,6 +99,9 @@ class Translator implements ast.NodeVisitor<string> {
   visitYield(n: ast.Yield): string {
     return `(yield ${n.value.accept(this)})`;
   }
+  visitAwait(n: ast.Await): string {
+    return `(await ${n.value.accept(this)})`;
+  }
   visitAssignment(n: ast.Assignment): string {
     return `(${translateVariableName(n.identifier.name)} = ${n.value.accept(this)})`;
   }
@@ -112,8 +115,14 @@ class Translator implements ast.NodeVisitor<string> {
   visitFunctionDisplay(n: ast.FunctionDisplay): string {
     const parameters = n.parameters.map(p => translateVariableName(p.identifier.name));
     const body = n.body.accept(this);
+    if (n.isAsync && n.isGenerator) {
+      return `(async function*(${parameters.join(',')}) ${body}).bind(this)`;
+    }
     if (n.isGenerator) {
       return `(function*(${parameters.join(',')}) ${body}).bind(this)`;
+    }
+    if (n.isAsync) {
+      return `(async(${parameters.join(',')}) => ${body})`;
     }
     return `((${parameters.join(',')}) => ${body})`;
   }

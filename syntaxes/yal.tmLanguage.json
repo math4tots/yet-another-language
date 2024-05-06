@@ -31,7 +31,7 @@
 				},
 				{
 					"name": "keyword.control.yal",
-					"match": "\\b(native|if|then|else|for|while|break|continue|return|yield|import|export|from|as|and|or|not|in|is|raise|try)\\b"
+					"match": "\\b(native|if|then|else|for|while|break|continue|return|yield|async|await|import|export|from|as|and|or|not|in|is|raise|try)\\b"
 				},
 				{
 					"comment": "Globals provided by the runtime (functions)",
@@ -56,7 +56,7 @@
 				{
 					"comment": "Reserved keyword",
 					"name": "invalid.deprecated.yal",
-					"match": "\\b(assert|async|await|break|continue|del|except|finally|global|with)\\b"
+					"match": "\\b(assert|break|continue|del|except|finally|global|with)\\b"
 				}
 			]
 		},

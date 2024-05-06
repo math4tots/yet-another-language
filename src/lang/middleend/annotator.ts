@@ -143,6 +143,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
   private currentReturnType: Type | null = null;
   private currentYieldType: Type | null = null;
+  private currentAsyncType: Type | null = null;
   private hint: Type = AnyType;
   private mustSatisfyHint: boolean = false;
   private scope: Scope = Object.create(BASE_SCOPE);
@@ -1036,6 +1037,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         completions.push({ name: 'inline' });
         completions.push({ name: 'return' });
         completions.push({ name: 'yield' });
+        completions.push({ name: 'async' });
+        completions.push({ name: 'await' });
         completions.push({ name: 'interface' });
         completions.push({ name: 'class' });
         completions.push({ name: 'enum' });
@@ -1077,6 +1080,19 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
     const value = this.solveExpr(n.value, yieldType);
     return { type: AnyType, ir: new ast.Yield(n.location, value.ir) };
+  }
+  visitAwait(n: ast.Await): EResult {
+    const asyncType = this.currentAsyncType;
+    if (!asyncType) {
+      const value = this.solveExpr(n.value);
+      this.error(n.location, `await cannot appear outside of an async function`);
+      return { type: AnyType, ir: new ast.Yield(n.location, value.ir) };
+    }
+    const value = this.solveExpr(n.value, this.hint.promiseTypeData?.valueType);
+    if (!value.type.promiseTypeData) {
+      this.error(n.location, `await expects a Promise value`);
+    }
+    return { type: value.type.promiseTypeData?.valueType ?? AnyType, ir: new ast.Await(n.location, value.ir) };
   }
   visitAssignment(n: ast.Assignment): EResult {
     const rhs = this.solveExpr(n.value);
@@ -1224,6 +1240,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   }
   visitFunctionDisplay(n: ast.FunctionDisplay): EResult {
     const startErrorCount = this.getErrorCount();
+    if (n.isAsync && n.isGenerator) {
+      this.error(n.location, `async generators are not yet supported`);
+    }
     const lambdaType = this.solveFunctionDisplayType(n, this.hint);
     const outerScope = this.scope;
     return this.scoped(() => {
@@ -1237,10 +1256,14 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       const tentativeReturnType = lambdaType.lambdaTypeData.functionType.functionTypeData.returnType;
       const outerReturnType = this.currentReturnType;
       const outerYieldType = this.currentYieldType;
+      const outerAsyncType = this.currentAsyncType;
       try {
         this.currentReturnType = tentativeReturnType;
         if (n.isGenerator) {
           this.currentYieldType = tentativeReturnType.iterableTypeData?.itemType ?? AnyType;
+        }
+        if (n.isAsync) {
+          this.currentAsyncType = tentativeReturnType.promiseTypeData?.valueType ?? AnyType;
         }
         const hasMutableParameters = parameters.some(p => p.isMutable);
         for (const parameter of parameters) {
@@ -1281,7 +1304,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
                   } :
                   undefined,
             ir: new ast.FunctionDisplay(
-              n.location, n.isGenerator, undefined, n.parameters, n.returnType,
+              n.location, n.isAsync, n.isGenerator, undefined, n.parameters, n.returnType,
               new ast.Block(n.body.location, [new ast.Return(n.body.statements[0].location, bodyResult.ir)])),
           };
         } else {
@@ -1294,12 +1317,13 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           return {
             type: lambdaType,
             ir: new ast.FunctionDisplay(
-              n.location, n.isGenerator, undefined, n.parameters, n.returnType, result.ir),
+              n.location, n.isAsync, n.isGenerator, undefined, n.parameters, n.returnType, result.ir),
           };
         }
       } finally {
         this.currentReturnType = outerReturnType;
         this.currentYieldType = outerYieldType;
+        this.currentAsyncType = outerAsyncType;
       }
     });
   }
@@ -1881,7 +1905,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     });
   }
   visitReturn(n: ast.Return): SResult {
-    const returnType = this.currentYieldType ? AnyType : this.currentReturnType;
+    const returnType = this.currentAsyncType ?? (this.currentYieldType ? AnyType : this.currentReturnType);
     if (!returnType) {
       this.solveExpr(n.value);
       this.error(n.location, `return cannot appear outside a function`);

@@ -24,6 +24,7 @@ export interface ExpressionVisitor<R> {
   visitStringLiteral(n: StringLiteral): R;
   visitIdentifierNode(n: IdentifierNode): R;
   visitYield(n: Yield): R;
+  visitAwait(n: Await): R;
   visitAssignment(n: Assignment): R;
   visitListDisplay(n: ListDisplay): R;
   visitRecordDisplay(n: RecordDisplay): R;
@@ -165,6 +166,16 @@ export class Yield implements Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitYield(this); }
 }
 
+export class Await implements Expression {
+  readonly location: Location;
+  readonly value: Expression;
+  constructor(location: Location, value: Expression) {
+    this.location = location;
+    this.value = value;
+  }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitAwait(this); }
+}
+
 export class Assignment implements Expression {
   readonly location: Location;
   readonly identifier: IdentifierNode;
@@ -237,6 +248,7 @@ export class Parameter {
 
 export class FunctionDisplay implements Expression {
   readonly location: Location;
+  readonly isAsync: boolean;
   readonly isGenerator: boolean;
   readonly typeParameters: TypeParameter[] | undefined;
   readonly parameters: Parameter[];
@@ -244,12 +256,14 @@ export class FunctionDisplay implements Expression {
   readonly body: Block;
   constructor(
     location: Location,
+    isAsync: boolean,
     isGenerator: boolean,
     typeParameters: TypeParameter[] | undefined,
     parameters: Parameter[],
     returnType: TypeExpression | null,
     body: Block) {
     this.location = location;
+    this.isAsync = isAsync;
     this.isGenerator = isGenerator;
     this.typeParameters = typeParameters;
     this.parameters = parameters;

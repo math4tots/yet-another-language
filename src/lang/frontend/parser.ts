@@ -318,6 +318,11 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const range: Range = { start: peek.range.start, end: value.location.range.end };
       return new ast.Yield({ uri, range }, value);
     }
+    if (consume('await')) {
+      const value = parseExpression();
+      const range: Range = { start: peek.range.start, end: value.location.range.end };
+      return new ast.Await({ uri, range }, value);
+    }
     if (peek.type === 'STRING') {
       return parseStringLiteral();
     }
@@ -334,6 +339,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
         return new ast.FunctionDisplay(
           { uri, range },
           false,
+          false,
           undefined,
           [new ast.Parameter(identifier.location, true, identifier, null, null, null)],
           null,
@@ -341,14 +347,17 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       }
       return identifier;
     }
-    if (peek.type === '(') {
-      if (atFunctionDisplay()) {
+    if (peek.type === '(' || peek.type === 'async' || peek.type === 'function') {
+      if (peek.type === 'function' || peek.type === 'async' || atFunctionDisplay()) {
+        const isAsync = consume('async');
+        consume('function');
+        const isGenerator = consume('*');
         const parameters = parseParameters();
         const returnType = consume(':') ? parseTypeExpression() : null;
         expect('=>');
         const body = parseBlockOrQuickReturnExpression();
         const range = { start: peek.range.start, end: body.location.range.end };
-        return new ast.FunctionDisplay({ uri, range }, false, undefined, parameters, returnType, body);
+        return new ast.FunctionDisplay({ uri, range }, isAsync, isGenerator, undefined, parameters, returnType, body);
       }
       i++;
       const innerExpression = parseExpression();
@@ -618,7 +627,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('static')) return parseStatic();
     if (at('var') || at('const')) return parseDeclaration(false);
     if (at('native')) return parseNativeFunctionDefinition(false);
-    if (at('function')) return parseFunctionDefinition(false);
+    if (at('function') || at('async')) return parseFunctionDefinition(false);
     if (at('class') || at('abstract')) return parseClassDefinition(false);
     if (at('interface')) return parseInterfaceDefinition(false);
     if (at('enum')) return parseEnumDefinition(false);
@@ -627,7 +636,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('from')) return parseFromImport();
     if (consume('export')) {
       if (at('native')) return parseNativeFunctionDefinition(true);
-      if (at('function')) return parseFunctionDefinition(true);
+      if (at('function') || at('async')) return parseFunctionDefinition(true);
       if (at('class') || at('abstract')) return parseClassDefinition(true);
       if (at('interface')) return parseInterfaceDefinition(true);
       if (at('enum')) return parseEnumDefinition(true);
@@ -765,7 +774,9 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   }
 
   function parseFunctionDefinition(isExported: boolean): ast.Declaration {
-    const startPos = expect('function').range.start;
+    const startPos = tokens[i].range.start;
+    const isAsync = consume('async');
+    expect('function');
     const isGenerator = consume('*');
     const identifier = parsePropertyIdentifier();
     const comments = at('STRING') ? parseStringLiteral() : null;
@@ -780,7 +791,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.Declaration(
       location,
       isExported, false, identifier, null, comments,
-      new ast.FunctionDisplay(location, isGenerator, typeParameters, parameters, returnType, body));
+      new ast.FunctionDisplay(location, isAsync, isGenerator, typeParameters, parameters, returnType, body));
   }
 
   function parseClassDefinition(isExported: boolean): ast.ClassDefinition {

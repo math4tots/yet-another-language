@@ -81,6 +81,13 @@ class Printer implements yal.ast.NodeVisitor<void> {
     n.value.accept(this);
     this.depth--;
   }
+  visitAwait(n: yal.ast.Await): void {
+    this.indent();
+    this.out += `YIELD`;
+    this.depth++;
+    n.value.accept(this);
+    this.depth--;
+  }
   visitDeclaration(n: yal.ast.Declaration): void {
     this.indent();
     this.out += `DECLARATION ${n.identifier.name}${n.isMutable ? '' : ' const'}`;
