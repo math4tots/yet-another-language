@@ -19,6 +19,7 @@ type TypeConstructorParameters = {
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
   readonly iterableTypeData?: IterableTypeData;
+  readonly promiseTypeData?: PromiseTypeData;
   readonly typeParameterTypeData?: TypeParameterTypeData;
 };
 
@@ -99,6 +100,10 @@ type IterableTypeData = {
   readonly itemType: Type;
 };
 
+type PromiseTypeData = {
+  readonly valueType: Type;
+};
+
 type TypeParameterTypeData = {};
 
 /** The basic types are Bool, Number and String. Null was intentionally excluded */
@@ -120,6 +125,7 @@ export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
 export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
 export type IterableType = Type & { readonly iterableTypeData: IterableTypeData; };
+export type PromiseType = Type & { readonly promiseTypeData: PromiseTypeData; };
 
 export type TypeParameterType = Type & { readonly typeParameterTypeData: TypeParameterTypeData; };
 export type TypeParameterTypeType = Type & { readonly typeTypeData: { readonly type: TypeParameterType; }; };
@@ -139,6 +145,7 @@ export class Type {
   private _list?: ListType;
   private _nullable?: NullableType;
   private _iterable?: IterableType;
+  private _promise?: PromiseType;
   private _addMethods?: (() => void);
   readonly typeTypeData?: TypeTypeData;
   readonly basicTypeData?: BasicTypeData;
@@ -153,6 +160,7 @@ export class Type {
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
   readonly iterableTypeData?: IterableTypeData;
+  readonly promiseTypeData?: PromiseTypeData;
   readonly typeParameterTypeData?: TypeParameterTypeData;
   private readonly _methods: Method[] = [];
   private readonly _methodMap = new Map<string, Method[]>();
@@ -200,6 +208,9 @@ export class Type {
     if (params.iterableTypeData) {
       this.iterableTypeData = params.iterableTypeData;
     }
+    if (params.promiseTypeData) {
+      this.promiseTypeData = params.promiseTypeData;
+    }
     if (params.typeParameterTypeData) {
       this.typeParameterTypeData = params.typeParameterTypeData;
     }
@@ -215,6 +226,7 @@ export class Type {
       this.basicTypeData ||
       this.listTypeData ||
       this.tupleTypeData ||
+      this.promiseTypeData ||
       this.classTypeData ||
       this.interfaceTypeData ||
       this.enumTypeData);
@@ -226,6 +238,7 @@ export class Type {
       this.tupleTypeData?.itemTypes.some(e => e.hasTypeVariable()) ||
       this.nullableTypeData?.itemType.hasTypeVariable() ||
       this.unionTypeData?.types.some(t => t.hasTypeVariable()) ||
+      this.promiseTypeData?.valueType.hasTypeVariable() ||
       this.iterableTypeData?.itemType.hasTypeVariable() ||
       this.functionTypeData?.returnType.hasTypeVariable() ||
       this.functionTypeData?.parameterTypes.some(p => p.hasTypeVariable()));
@@ -453,6 +466,18 @@ export class Type {
     }) as IterableType;
     this._iterable = iterableType;
     return iterableType;
+  }
+
+  promise(): PromiseType {
+    const cached = this._promise;
+    if (cached) return cached;
+    const promiseType = new Type({
+      identifier: { name: `Promise[${this.identifier.name}]` },
+      promiseTypeData: { valueType: this },
+    }) as PromiseType;
+    promiseType._addMethods = () => addPromiseMethods(promiseType);
+    this._promise = promiseType;
+    return promiseType;
   }
 
   private prepareMethods() {
@@ -1193,6 +1218,55 @@ function addTupleMethods(tupleType: TupleType) {
       returnType: itemType,
       aliasFor: `__op_${i}__`,
     });
+  });
+}
+
+// PromiseType
+
+function addPromiseMethods(promiseType: PromiseType) {
+  const valueType = promiseType.promiseTypeData.valueType;
+  {
+    const RType = newTypeParameterTypeType({ name: 'R' });
+    const R = RType.typeTypeData.type;
+    promiseType.addMethod({
+      identifier: { name: 'map' },
+      typeParameters: [RType],
+      parameters: [
+        { identifier: { name: 'f' }, type: newFunctionType([valueType], R) },
+      ],
+      returnType: promiseType,
+      aliasFor: '__js_then',
+    });
+  }
+  {
+    const RType = newTypeParameterTypeType({ name: 'R' });
+    const R = RType.typeTypeData.type;
+    promiseType.addMethod({
+      identifier: { name: 'flatMap' },
+      parameters: [
+        { identifier: { name: 'f' }, type: newFunctionType([valueType], R.promise()) },
+      ],
+      returnType: promiseType,
+      aliasFor: '__js_then',
+    });
+  }
+  {
+    const RType = newTypeParameterTypeType({ name: 'R' });
+    const R = RType.typeTypeData.type;
+    promiseType.addMethod({
+      identifier: { name: 'catch' },
+      parameters: [
+        { identifier: { name: 'f' }, type: newFunctionType([AnyType], R.promise().nullable()) },
+      ],
+      returnType: R.promise(),
+      aliasFor: '__js_catch',
+    });
+  }
+  promiseType.addMethod({
+    identifier: { name: 'finally' },
+    parameters: [{ identifier: { name: 'f' }, type: newFunctionType([], AnyType) }],
+    returnType: promiseType,
+    aliasFor: '__js_finally',
   });
 }
 

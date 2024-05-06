@@ -299,6 +299,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       const types = e.args.map(arg => this.solveType(arg));
       return newTupleType(types);
     }
+    if (e.args.length === 1 && e.identifier.name === 'Promise') {
+      return this.solveType(e.args[0]).promise();
+    }
     if (e.args.length > 0 && e.identifier.name === 'Function') {
       const argTypes = e.args.map(arg => this.solveType(arg));
       const parameterTypes = argTypes.slice(0, argTypes.length - 1);
@@ -390,7 +393,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         // If a type is required, we want to add an error message.
         // However, if there were already errors while evaluating the expression, it might just add
         // clutter if we complain again - so we omit it in such cases.
-        if (required && startErrorCount === this.getErrorCount()) {
+        if (required) {
           this.error(e.location, `Expected expression of type ${hint} but got expression of type ${info.type}`);
         }
       }
@@ -1249,7 +1252,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           this.declareVariable(variable);
         }
         const simpleBody = getBodyIfFunctionHasSimpleBody(n);
-        if (simpleBody) {
+        if (simpleBody && !n.returnType) {
           // if the function display's body is just a single return statement, we can
           // try and infer the return type based on the return expression.
           const bodyResult = this.solveExpr(simpleBody);
@@ -1487,6 +1490,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         if (typeTemplate.iterableTypeData && actualType.iterableTypeData) {
           return bind(typeTemplate.iterableTypeData.itemType, actualType.iterableTypeData.itemType, variance);
         }
+        if (typeTemplate.promiseTypeData && actualType.promiseTypeData) {
+          return bind(typeTemplate.promiseTypeData.valueType, actualType.promiseTypeData.valueType, variance);
+        }
 
         if (typeTemplate.functionTypeData && actualType.functionTypeData) {
           const templateData = typeTemplate.functionTypeData;
@@ -1529,6 +1535,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         }
         if (type.listTypeData) {
           return substitute(type.listTypeData.itemType, variance).list();
+        }
+        if (type.promiseTypeData) {
+          return substitute(type.promiseTypeData.valueType, variance).promise();
         }
         if (type.unionTypeData) {
           return type.unionTypeData.types.map(

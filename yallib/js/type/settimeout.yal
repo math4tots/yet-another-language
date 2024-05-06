@@ -1,0 +1,6 @@
+
+
+
+export const setTimeout = native function(f: Function[Null], delay: Number): Number {
+  returns("setTimeout(f, delay)")
+}

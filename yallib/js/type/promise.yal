@@ -1,0 +1,10 @@
+
+
+export interface Promise {
+  static {
+    aliasFor(native constexpr "Promise")
+    function new[T](handler: Function[Function[T, Null], Function[Any, Null], Any]): Promise[T] {
+      aliasFor(__op_new__)
+    }
+  }
+}
