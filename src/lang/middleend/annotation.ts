@@ -118,7 +118,7 @@ export type RunTarget = 'default' | 'html';
  */
 export type CompileTimeConfigs = {
   readonly target?: RunTarget;
-  readonly jsLibs: Set<string>;
+  readonly addJS: Set<string>;
 };
 
 export type LimitedAnnotation = {

@@ -74,8 +74,8 @@ export type TranslationWarning = {
   readonly message: string;
 };
 
-export type TranslationOptions = {
-  readonly addToPrelude?: string;
+export type JavascriptTranslationOptions = {
+  readonly addToPrelude?: string[];
   readonly omitDefaultPrintFunction?: boolean;
 };
 
@@ -303,9 +303,20 @@ class Translator implements ast.NodeVisitor<string> {
   }
 }
 
-export async function getTranslationForDocument(
+export type JSTranslation = {
+  readonly type: 'javascript';
+  readonly javascript: string;
+};
+export type HTMLTranslation = {
+  readonly type: 'html';
+  readonly html: string;
+};
+
+export type Translation = JSTranslation | HTMLTranslation;
+
+export async function getJavascriptTranslationForDocument(
   document: vscode.TextDocument,
-  options?: TranslationOptions): Promise<string> {
+  options?: JavascriptTranslationOptions): Promise<string> {
   const opts = options || {};
   const translator = new Translator();
   const annotationToID = new Map<Annotation, string>();
@@ -328,7 +339,7 @@ export async function getTranslationForDocument(
     STR_FUNCTION_DEFINITION,
   ];
   if (!opts.omitDefaultPrintFunction) parts.push(PRINT_FUNCTION_DEFINITION);
-  if (opts.addToPrelude) parts.push(opts.addToPrelude);
+  if (opts.addToPrelude) parts.push(...opts.addToPrelude);
   const annotation = await getAnnotationForDocument(document);
   const stack = [annotation];
   const seen = new Set(stack);
@@ -383,4 +394,35 @@ export async function getTranslationForDocument(
   parts.push(`${getAnnotationID(annotation)}();`);
   parts.push('})();');
   return parts.join('');
+}
+
+export async function getTranslationForDocument(
+  document: vscode.TextDocument,
+  options?: JavascriptTranslationOptions): Promise<Translation> {
+  const opts = options || {};
+  const annotation = await getAnnotationForDocument(document);
+  const configs = annotation.compileTimeConfigs;
+  const addToPrelude = Array.from(options?.addToPrelude || []);
+  for (const js of configs.addJS) {
+    addToPrelude.push(js);
+  }
+  const javascript = await getJavascriptTranslationForDocument(document, {
+    ...opts,
+    addToPrelude,
+  });
+  if (configs.target === 'html') {
+    const html = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>YAL VIEW</title>
+    </head>
+    <body>
+      <script>${javascript}</script>
+    </body>
+    </html>`;
+    return { type: 'html', html };
+  }
+  return { type: 'javascript', javascript };
 }

@@ -1,25 +1,21 @@
 import * as vscode from 'vscode';
 import { writeToNewEditor } from './utils';
-import { getTranslationForDocument } from '../lang/backend/translator';
+import { getJavascriptTranslationForDocument, getTranslationForDocument } from '../lang/backend/translator';
 import { strFunction } from '../lang/middleend/functions';
-import { getAnnotationForDocument } from '../lang/middleend/annotator';
-import { joinUri } from '../lang/middleend/paths';
 
 export async function runCommand(context: vscode.ExtensionContext) {
-  const extensionURI = context.extensionUri;
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     return;
   }
+  const translation = await getTranslationForDocument(editor.document, {
+    omitDefaultPrintFunction: true,
+  });
 
-  const annotation = await getAnnotationForDocument(editor.document);
-  const configs = annotation.compileTimeConfigs;
-  const libUris = Array.from(configs.jsLibs).map(lib => joinUri(extensionURI, 'jslib', lib));
-  switch (configs.target) {
+  switch (translation.type) {
     case 'html': {
       // The html runner will create a dummy HTML page and allow the generated code
       // to manipulate the dom as needed.
-      const translation = await getTranslationForDocument(editor.document);
       const panel = vscode.window.createWebviewPanel(
         'yalhtml',
         'YAL',
@@ -28,36 +24,16 @@ export async function runCommand(context: vscode.ExtensionContext) {
           enableScripts: true,
         }
       );
-      const libs = libUris.map(uri => `<script src="${panel.webview.asWebviewUri(uri)}"></script>`).join('');
-      const html = `<!DOCTYPE html>
-  <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YAL VIEW</title>${libs}
-  </head>
-  <body>
-    <script type='module'>${translation}</script>
-  </body>
-  </html>`;
-      panel.webview.html = html;
+      panel.webview.html = translation.html;
       break;
     }
-    case 'default':
+    case 'javascript':
     default: {
       // The default runner will print stdout and errors messages to a new buffer
       const printValues: string[] = [];
-      const libSources = [];
-      for (const uri of libUris) {
-        libSources.push((await vscode.workspace.openTextDocument(uri)).getText());
-      }
-      const translation = await getTranslationForDocument(editor.document, {
-        omitDefaultPrintFunction: true,
-        addToPrelude: libSources.join(''),
-      });
       try {
         // TODO: set timeout
-        Function("YALprint", translation).bind({ printValues })(
+        Function("YALprint", translation.javascript).bind({ printValues })(
           (x: any) => printValues.push(x));
       } catch (e) {
         if (e instanceof Error) {

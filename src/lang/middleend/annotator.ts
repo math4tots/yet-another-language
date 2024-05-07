@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as vscode from 'vscode';
 import * as ast from '../frontend/ast';
 import {
@@ -12,6 +13,8 @@ import { getAstForDocument } from '../frontend/parser';
 import { Position, Range } from '../frontend/lexer';
 import {
   getImportPath,
+  getParentUri,
+  joinUri,
   resolveURI,
 } from './paths';
 import {
@@ -70,7 +73,7 @@ import { translateVariableName } from './names';
 
 type CompileTimeConfigsWIP = {
   target?: RunTarget;
-  jsLibs: Set<string>;
+  addJS: Set<string>;
 };
 
 type AnnotatorParameters = {
@@ -160,6 +163,25 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     this.annotation = params.annotation;
     this.stack = params.stack;
     this.cached = params.cached;
+
+    // Add a mechanism for including file resources at compile time
+    // This is meant to work with __addJS
+    this.declareVariable({
+      identifier: { name: '__readFile' },
+      type: newFunctionType([StringType], StringType),
+      value: (relativePath: string): string | undefined => {
+        const parentURI = getParentUri(this.annotation.uri);
+        if (!relativePath.startsWith('./')) {
+          throw new Error(`__readFile argument must all start with './'`);
+        }
+        if (relativePath.includes('/..')) {
+          throw new Error('__readFile argument must not contain ".."');
+        }
+        const uri = joinUri(parentURI, relativePath);
+        const fsPath = uri.fsPath;
+        return fs.readFileSync(fsPath, { encoding: 'utf8' });
+      },
+    });
   }
 
   private error(location: ast.Location, message: string) {
@@ -443,9 +465,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
 
   async handle(n: ast.File): Promise<FResult> {
     // resolve imports
-    const compileTimeConfigs: CompileTimeConfigsWIP = {
-      jsLibs: new Set(),
-    };
+    const compileTimeConfigs: CompileTimeConfigsWIP = { addJS: new Set() };
     const srcURI = n.location.uri;
     let canUseCached = n.documentVersion === this.cached?.documentVersion;
     for (const statement of n.statements) {
@@ -469,8 +489,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
           this.annotation.importMap.set(uriString, importModuleAnnotation);
           const importConfig = importModuleAnnotation.compileTimeConfigs;
           compileTimeConfigs.target = importConfig.target ?? compileTimeConfigs.target;
-          for (const item of importModuleAnnotation.compileTimeConfigs.jsLibs) {
-            compileTimeConfigs.jsLibs.add(item);
+          for (const item of importModuleAnnotation.compileTimeConfigs.addJS) {
+            compileTimeConfigs.addJS.add(item);
           }
         }
         if (cachedImportModuleAnnotation !== importModuleAnnotation) {
@@ -560,17 +580,17 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
                 }
                 break;
               }
-              case '__jsLibs': {
+              case '__addJS': {
                 includeIR = false;
                 const value = variable.value;
                 if (value === undefined) {
-                  this.error(location, '__jsLibs value could not be determined at compile time');
+                  this.error(location, '__addJS value could not be determined at compile time');
                 } else if (!Array.isArray(value) || !value.every(v => typeof v === 'string')) {
-                  this.error(location, `__jsLibs value must be an array of strings`);
+                  this.error(location, `__addJS value must be an array of strings`);
                 } else {
                   for (const item of value) {
                     if (typeof item !== 'string') continue;
-                    compileTimeConfigs.jsLibs.add(item);
+                    compileTimeConfigs.addJS.add(item);
                   }
                 }
                 break;
@@ -2188,7 +2208,7 @@ export async function getAnnotationForURI(uri: vscode.Uri, stack = new Set<strin
       importMap: new Map(),
       importAliasVariables: [],
       memberImports: [],
-      compileTimeConfigs: { jsLibs: new Set() },
+      compileTimeConfigs: { addJS: new Set() },
       ir: new ast.File(LOC, -1, [], []),
     };
   }
