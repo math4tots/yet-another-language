@@ -61,10 +61,13 @@ def lex(s: str) -> typing.List[Token]:
             continue
         c = s[i]
         if c.isdigit():
-            if s.startswith('0x', i):
+            if s.startswith('0x', start):
                 i += 2
-            while i < len(s) and s[i].isdigit():
-                i += 1
+                while i < len(s) and (s[i].isdigit() or s[i] in 'ABCDEF'):
+                    i += 1
+            else:
+                while i < len(s) and s[i].isdigit():
+                    i += 1
             if i < len(s) and s[i] == '.':
                 i += 1
             while i < len(s) and s[i].isdigit():
@@ -116,6 +119,7 @@ class InterfaceDefinition(typing.NamedTuple):
     comment: typing.Optional[Token]
     name: str
     extends: typing.List[TypeExpression]
+    declarations: typing.List['Declaration']
 
 class TypeAlias(typing.NamedTuple):
     i: int
@@ -126,11 +130,16 @@ class TypeAlias(typing.NamedTuple):
 class VariableDeclaration(typing.NamedTuple):
     i: int
     comment: typing.Optional[Token]
+    isConst: bool
     name: str
     type: TypeExpression
 
     def signature(self) -> str:
         return f"{self.name}: {self.type}"
+
+class UnknownDeclaration(typing.NamedTuple):
+    i: int
+    name: str = '(unknown)'
 
 class NamespaceDeclaration(typing.NamedTuple):
     i: int
@@ -166,7 +175,8 @@ Declaration = typing.Union[
     TypeAlias,
     VariableDeclaration,
     NamespaceDeclaration,
-    FunctionDeclaration]
+    FunctionDeclaration,
+    UnknownDeclaration]
 
 
 def parse(s: str) -> typing.List[Declaration]:
@@ -176,11 +186,12 @@ def parse(s: str) -> typing.List[Declaration]:
 
     last_comment: typing.Optional[Token] = None
 
-    def at(type: str, value: typing.Optional[str] = None) -> bool:
+    def at(type: str, value: typing.Optional[str] = None, lookahead: int = 0) -> bool:
+        j = i + lookahead
         return (
-            i < len(tokens) and
-            tokens[i].type == type and
-            (value is None or tokens[i].value == value)
+            j < len(tokens) and
+            tokens[j].type == type and
+            (value is None or tokens[j].value == value)
         )
     
     def next() -> Token:
@@ -236,7 +247,11 @@ def parse(s: str) -> typing.List[Declaration]:
     def parsePrimaryTypeExpression() -> TypeExpression:
         if at('STRING'):
             token = expect('STRING')
-            return TypeExpression(token.i, token.value)
+            return TypeExpression(token.i, f"STRING({token.value})")
+        if at('NUMBER') or (at('-') and at('NUMBER', None, 1)):
+            prefix = '-' if consume('-') else ''
+            token = expect('NUMBER')
+            return TypeExpression(token.i, f"NUMBER({prefix}{token.value})")
         if at('NAME', 'typeof') or at('NAME', 'keyof'):
             kind = tokens[i].type
             start = next().i
@@ -312,12 +327,45 @@ def parse(s: str) -> typing.List[Declaration]:
         expect(';')
         return TypeAlias(start, last_comment, name, typeExpression)
 
-    def parseMemberDeclaration() -> None:
-        while not at('}') and not at(';'):
+    def parseMemberDeclaration() -> Declaration:
+        start = tokens[i].i
+        comment = last_comment
+        if ((at('NAME', 'get') or at('NAME', 'set')) and at('NAME', None, 1)) or (
+            at('NAME') and (at('<', None, 1) or at('(', None, 1))) or at('('):
+            if at('('):
+                name = '__call__'
+            else:
+                prefix = expect('NAME').value if (
+                    (at('NAME', 'get') or at('NAME', 'set')) and at('NAME', None, 1)) else ''
+                name = prefix + expect('NAME').value
+            if at('<'):
+                parseTypeParameters()
+            parameters = parseParameters()
+            returnType = parseTypeExpression() if consume(':') else TypeExpression(start, 'ANY')
+            expect(';')
+            return FunctionDeclaration(start, comment, name, parameters, returnType)
+        if at('NAME') or at('STRING'):
+            isConst = not not consume('NAME', 'readonly')
+            name = (expect('STRING') if at('STRING') else expect('NAME')).value
+            isOptional = not not consume('?')
+            expect(':')
+            type = parseTypeExpression()
+            if isOptional:
+                type = TypeExpression(type.i, 'OPTIONAL', [type])
+            expect(';')
+            return VariableDeclaration(start, comment, isConst, name, type)
+        if at('['): # computed property
             skip()
-        consume(';')
+            expect(':')
+            parseTypeExpression()
+            expect(';')
+            return UnknownDeclaration(start)
+        line = s.count('\n', 0, tokens[i].i) + 1
+        raise Exception(f"Expected member declaration but got {tokens[i]} @ {line}")
 
     def parseInterfaceDefinition() -> InterfaceDefinition:
+        nonlocal last_comment
+        comment = last_comment
         start = expect('NAME', 'interface').i
         name = expect('NAME').value
         extends: typing.List[TypeExpression] = []
@@ -328,21 +376,25 @@ def parse(s: str) -> typing.List[Declaration]:
                 extends.append(parseTypeExpression())
                 if not consume(','):
                     break
+        declarations: typing.List[Declaration] = []
         expect('{')
         while not at('EOF') and not at('}'):
-            parseMemberDeclaration()
+            if at('COMMENT'):
+                last_comment = expect('COMMENT')
+            declarations.append(parseMemberDeclaration())
         expect('}')
         return InterfaceDefinition(
             i=start,
-            comment=last_comment,
+            comment=comment,
             name=name,
-            extends=extends)
+            extends=extends,
+            declarations=declarations)
     
     def parseVariableDeclaration() -> VariableDeclaration:
         nonlocal last_comment
         start = tokens[i].i
         comment = last_comment
-        _ = consume('NAME', 'const') or expect('NAME', 'var')
+        _ = (isConst := not not consume('NAME', 'const')) or expect('NAME', 'var')
         name = expect('NAME').value
         expect(':')
         type = parseTypeExpression()
@@ -350,6 +402,7 @@ def parse(s: str) -> typing.List[Declaration]:
         return VariableDeclaration(
             i=start,
             comment=comment,
+            isConst=isConst,
             name=name,
             type=type)
     
@@ -432,12 +485,22 @@ def printDeclaration(decl: Declaration, depth: int):
     if isinstance(decl, FunctionDeclaration):
         print(f"function {decl.signature()}")
         return
-    if isinstance(decl, VariableDeclaration):
-        print(f"var {decl.signature()}")
-    print(f"{type(decl).__name__} {decl.name}")
-    if isinstance(decl, NamespaceDeclaration):
+    if isinstance(decl, InterfaceDefinition):
+        print(f"interface {decl.name}")
+        for superi in decl.extends:
+            print('  ' * (depth + 2) + 'extends ' + str(superi))
         for member in decl.declarations:
             printDeclaration(member, depth + 1)
+        return
+    if isinstance(decl, NamespaceDeclaration):
+        print(f"namespace {decl.name}")
+        for member in decl.declarations:
+            printDeclaration(member, depth + 1)
+        return
+    if isinstance(decl, VariableDeclaration):
+        print(f"var {decl.signature()}")
+        return
+    print(f"{type(decl).__name__} {decl.name}")
 
 
 with open(TS_PATH) as f:
