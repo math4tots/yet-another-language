@@ -146,6 +146,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
   private currentYieldType: Type | null = null;
   private currentAsyncType: Type | null = null;
   private hint: Type = AnyType;
+  private hintExplicitlyProvided: boolean = false;
   private mustSatisfyHint: boolean = false;
   private scope: Scope = Object.create(BASE_SCOPE);
   private readonly cached?: Annotation;
@@ -376,32 +377,35 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return type;
   }
 
-  private solveExpr(e: ast.Expression, hint: Type = AnyType, required: boolean = true): EResult {
+  private solveExpr(e: ast.Expression, hint: Type | undefined = undefined, required: boolean = true): EResult {
     const startErrorCount = this.getErrorCount();
     const oldHint = this.hint;
+    const oldHintExplicitlyProvided = this.hintExplicitlyProvided;
     const oldMustStasifyHint = this.mustSatisfyHint;
-    this.hint = hint;
+    this.hint = hint ?? AnyType;
+    this.hintExplicitlyProvided = hint !== undefined;
     this.mustSatisfyHint = required;
     const info = e.accept(this);
     try {
-      if (!info.type.isAssignableTo(hint)) {
+      if (!info.type.isAssignableTo(this.hint)) {
         // At first glance, the type doesn't seem to fit. But if the statically known value matches
         // the correct enum values for the type, then we don't actually have an error
         const value = info.value;
-        if ((typeof value === 'number' || typeof value === 'string') && hint.getEnumConstVariableByValue(value)) {
-          return { ...info, type: hint };
+        if ((typeof value === 'number' || typeof value === 'string') && this.hint.getEnumConstVariableByValue(value)) {
+          return { ...info, type: this.hint };
         }
 
         // If a type is required, we want to add an error message.
         // However, if there were already errors while evaluating the expression, it might just add
         // clutter if we complain again - so we omit it in such cases.
         if (required) {
-          this.error(e.location, `Expected expression of type ${hint} but got expression of type ${info.type}`);
+          this.error(e.location, `Expected expression of type ${this.hint} but got expression of type ${info.type}`);
         }
       }
       return info;
     } finally {
       this.hint = oldHint;
+      this.hintExplicitlyProvided = oldHintExplicitlyProvided;
       this.mustSatisfyHint = oldMustStasifyHint;
     }
   }
@@ -1211,7 +1215,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return this.scoped(() => {
       const typeParameters: TypeParameterVariable[] | undefined = n.typeParameters?.map(tp => ({
         identifier: tp.identifier,
-        type: newTypeParameterTypeType(tp.identifier),
+        type: newTypeParameterTypeType(tp.identifier, tp.constraint ? this.solveType(tp.constraint) : AnyType),
       }));
       if (typeParameters) {
         for (const tpVariable of typeParameters) {
@@ -1440,7 +1444,15 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
                 return actualType.isAssignableTo(boundType) && boundType.isAssignableTo(actualType);
             }
           } else {
+            const name = binding.typeParameter.typeTypeData.type.identifier.name;
+            const constraint = binding.typeParameter.typeTypeData.type.typeParameterTypeData.constraint;
             binding.type = actualType;
+            if (!actualType.isAssignableTo(constraint)) {
+              this.error(
+                n.identifier.location,
+                `${actualType} cannot be assigned to type parameter ${name} with constraint ${constraint}`);
+              return false;
+            }
             return true;
           }
         }
@@ -1586,8 +1598,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         return type;
       };
       try {
-        if (!bind(method.returnType, this.hint, COVARIANT)) {
-          return failBinding('incompatible return type');
+        if (this.hintExplicitlyProvided) {
+          if (!bind(method.returnType, this.hint, COVARIANT)) {
+            return failBinding('incompatible return type');
+          }
         }
         const boundParameters: Parameter[] = [];
         for (let i = 0; i < method.parameters.length; i++) {

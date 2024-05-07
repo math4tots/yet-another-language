@@ -217,9 +217,11 @@ export class RecordDisplay implements Expression {
 export class TypeParameter {
   readonly location: Location;
   readonly identifier: IdentifierNode;
-  constructor(location: Location, identifier: IdentifierNode) {
+  readonly constraint: TypeExpression | undefined;
+  constructor(location: Location, identifier: IdentifierNode, constraint: TypeExpression | undefined) {
     this.location = location;
     this.identifier = identifier;
+    this.constraint = constraint;
   }
 }
 

@@ -104,7 +104,9 @@ type PromiseTypeData = {
   readonly valueType: Type;
 };
 
-type TypeParameterTypeData = {};
+type TypeParameterTypeData = {
+  readonly constraint: Type;
+};
 
 /** The basic types are Bool, Number and String. Null was intentionally excluded */
 export type BasicType = Type & { readonly basicTypeData: BasicTypeData; };
@@ -213,6 +215,12 @@ export class Type {
     }
     if (params.typeParameterTypeData) {
       this.typeParameterTypeData = params.typeParameterTypeData;
+      const constraint = params.typeParameterTypeData.constraint;
+      this._addMethods = () => {
+        for (const method of constraint.getAllMethods()) {
+          this.addMethod(method);
+        }
+      };
     }
   }
 
@@ -764,7 +772,13 @@ export function newLambdaType(
   parameters: Parameter[],
   returnType: Type): LambdaType {
   const functionType = newFunctionType(parameters.map(p => p.type), returnType);
-  const name = '(' + parameters.map(p => `${p.identifier.name}: ${p.type}`).join(', ') + ') => ' + returnType;
+  const name =
+    (typeParameters ? '[' + typeParameters.map(
+      tp => tp.type.typeTypeData.type.typeParameterTypeData.constraint !== AnyType ?
+        `${tp.identifier.name}: ${tp.type.typeTypeData.type.typeParameterTypeData.constraint}` :
+        `${tp.identifier.name}`).join(', ') + ']' : '') +
+    '(' + parameters.map(p => `${p.identifier.name}: ${p.type}`).join(', ') + ') => ' +
+    returnType;
   const lambdaType = new Type({
     identifier: { name },
     lambdaTypeData: {
@@ -1003,10 +1017,10 @@ export function newEnumTypeType(
   return enumTypeType;
 }
 
-export function newTypeParameterTypeType(identifier: Identifier): TypeParameterTypeType {
+export function newTypeParameterTypeType(identifier: Identifier, constraint: Type): TypeParameterTypeType {
   const typeParameterType = new Type({
     identifier,
-    typeParameterTypeData: {},
+    typeParameterTypeData: { constraint },
   }) as TypeParameterType;
   const typeParameterTypeType = new Type({
     identifier: { name: `(typevar ${identifier.name})`, location: identifier.location },
@@ -1211,7 +1225,7 @@ function addListMethods(listType: ListType) {
     aliasFor: '__js_filter',
   });
   {
-    const RType = newTypeParameterTypeType({ name: 'R' });
+    const RType = newTypeParameterTypeType({ name: 'R' }, AnyType);
     const R = RType.typeTypeData.type;
     listType.addMethod({
       identifier: { name: 'map' },
@@ -1244,7 +1258,7 @@ function addTupleMethods(tupleType: TupleType) {
 function addPromiseMethods(promiseType: PromiseType) {
   const valueType = promiseType.promiseTypeData.valueType;
   {
-    const RType = newTypeParameterTypeType({ name: 'R' });
+    const RType = newTypeParameterTypeType({ name: 'R' }, AnyType);
     const R = RType.typeTypeData.type;
     promiseType.addMethod({
       identifier: { name: 'map' },
@@ -1257,7 +1271,7 @@ function addPromiseMethods(promiseType: PromiseType) {
     });
   }
   {
-    const RType = newTypeParameterTypeType({ name: 'R' });
+    const RType = newTypeParameterTypeType({ name: 'R' }, AnyType);
     const R = RType.typeTypeData.type;
     promiseType.addMethod({
       identifier: { name: 'flatMap' },
@@ -1269,7 +1283,7 @@ function addPromiseMethods(promiseType: PromiseType) {
     });
   }
   {
-    const RType = newTypeParameterTypeType({ name: 'R' });
+    const RType = newTypeParameterTypeType({ name: 'R' }, AnyType);
     const R = RType.typeTypeData.type;
     promiseType.addMethod({
       identifier: { name: 'catch' },

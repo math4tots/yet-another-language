@@ -161,6 +161,17 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return parseIdentifier();
   }
 
+  /** A Type expression is expected, but if not found, add an error and return gracefully
+   * with a dummy type expression */
+  function tryParseTypeExpression(): ast.TypeExpression {
+    if (at('IDENTIFIER')) return parseTypeExpression();
+    const range = tokens[i].range;
+    const location = { uri, range };
+    errors.push({ location, message: 'Expected type expression' });
+    const identifier = new ast.IdentifierNode(location, 'Null');
+    return new ast.TypeExpression(location, null, identifier, []);
+  }
+
   function parseTypeExpression(): ast.TypeExpression {
     const firstIdentifier = parseIdentifier();
     const start = firstIdentifier.location.range.start;
@@ -244,7 +255,8 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
 
   function parseTypeParameter(): ast.TypeParameter {
     const identifier = parseIdentifier();
-    return new ast.TypeParameter(identifier.location, identifier);
+    const constraint = consume(':') ? tryParseTypeExpression() : undefined;
+    return new ast.TypeParameter(identifier.location, identifier, constraint);
   }
 
   function parseTypeParameters(): ast.TypeParameter[] {
@@ -265,7 +277,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   function parseParameter(): ast.Parameter {
     const isMutable = consume('var');
     const identifier = parseIdentifier();
-    const type = consume(':') ? parseTypeExpression() : null;
+    const type = consume(':') ? tryParseTypeExpression() : null;
     const value = consume('=') ? parseLiteral() : null;
     const location = {
       uri,
@@ -281,6 +293,12 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   }
 
   function parseParameters(): ast.Parameter[] {
+    if (!at('(')) {
+      // We want the parse to succeed so that we can still have IDE functionality,
+      // but we still want to flag an error
+      errors.push({ location: { uri, range: tokens[i].range }, message: "Expected '('" });
+      return [];
+    }
     expect('(');
     const parameters: ast.Parameter[] = [];
     while (!atEOF() && !at(')')) {
