@@ -1449,7 +1449,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
             binding.type = actualType;
             if (!actualType.isAssignableTo(constraint)) {
               this.error(
-                n.identifier.location,
+                n.location,
                 `${actualType} cannot be assigned to type parameter ${name} with constraint ${constraint}`);
               return false;
             }
@@ -1849,8 +1849,8 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     return { status: Continues, ir: n };
   }
   visitDeclaration(n: ast.Declaration): SResult {
-    const explicitType = n.type ? this.solveType(n.type) : null;
-    const valueInfo = n.value ? this.solveExpr(n.value, explicitType || AnyType) : null;
+    const explicitType = n.type ? this.solveType(n.type) : undefined;
+    const valueInfo = n.value ? this.solveExpr(n.value, explicitType) : null;
     if (!explicitType && !valueInfo) {
       this.error(n.location, `At least one of value or type of the variable must be specified`);
       return { status: Continues, ir: n };
