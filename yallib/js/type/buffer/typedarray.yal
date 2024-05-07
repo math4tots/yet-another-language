@@ -13,4 +13,8 @@ export interface TypedArray extends ArrayBufferView {
   function __setitem__(index: Number, value: Number): Number {
     aliasFor(__op_setitem__)
   }
+
+  function asIterable(): Iterable[Number] {
+    aliasFor(__op_noop__)
+  }
 }
