@@ -1,9 +1,0 @@
-
-
-class SomeClass {
-  function someMethod(): Number {
-    return 123
-  }
-}
-
-print(SomeClass.new().someMethod())

@@ -1,9 +1,0 @@
-from './recursive-a' import ClassA
-from './recursive-a' import RecursiveA
-
-
-export interface RecursiveB extends RecursiveA {}
-
-export class ClassB extends ClassA {}
-
-print("RECURSIVE-B")

@@ -1,6 +1,0 @@
-from './element' import Element
-
-
-export interface HTMLElement extends Element {
-  const __marker_HTMLElement: Any
-}

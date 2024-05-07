@@ -1,9 +1,0 @@
-# from './recursive-b' import ClassB
-# from './recursive-b' import RecursiveB
-
-
-export interface RecursiveA {}
-
-export class ClassA {}
-
-print("RECURSIVE-A")
