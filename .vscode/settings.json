@@ -3,5 +3,6 @@
         "editor.tabSize": 2
     },
     "typescript.format.semicolons": "insert",
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "python.analysis.typeCheckingMode": "strict"
 }
