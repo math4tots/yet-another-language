@@ -55,7 +55,12 @@ const specialBinaryOperatorMap = new Map<string, (a: string, b: string) => strin
   ['__op_nullmap__', (a, b) => `nullMap(${a},${b})`],
 ]);
 
+const specialTernaryOperatorMap = new Map<string, (a: string, b: string, c: string) => string>([
+  ['__op_newarray__', (a, b, c) => `Array(${b}).fill(${c})`],
+]);
+
 const builtinOnlyMethodNames = new Set([
+  ...specialTernaryOperatorMap.keys(),
   ...specialBinaryOperatorMap.keys(),
   ...specialUnaryOperatorMap.keys(),
   '__op_getitem__',
@@ -144,6 +149,8 @@ class Translator implements ast.NodeVisitor<string> {
       if (name.startsWith('__set_')) return `(${owner}.${translateFieldName(name.substring(6))}=${args[0]})`;
     } else if (args.length === 2) {
       if (name === '__op_setitem__') return `(${owner}[${args[0]}]=${args[1]})`;
+      const op = specialTernaryOperatorMap.get(name);
+      if (op) return op(owner, args[0], args[1]);
     }
     if (name.startsWith('__js_')) return `${owner}.${name.substring(5)}(${args.join(',')})`;
     if (name.startsWith('__fn_')) return `${name.substring(5)}(${[owner].concat(args).join(',')})`; // "function"

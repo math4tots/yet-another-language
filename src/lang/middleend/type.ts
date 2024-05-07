@@ -1192,6 +1192,12 @@ function addListMethods(listType: ListType) {
     aliasFor: '__op_getitem__',
   });
   listType.addMethod({
+    identifier: { name: 'at' },
+    parameters: [{ identifier: { name: 'index' }, type: NumberType }],
+    returnType: itemType,
+    aliasFor: '__js_at',
+  });
+  listType.addMethod({
     identifier: { name: '__setitem__' },
     parameters: [
       { identifier: { name: 'index' }, type: NumberType },

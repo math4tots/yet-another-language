@@ -5,6 +5,13 @@ export interface Array {
   static {
     aliasFor(native constexpr "Array")
 
+    function __call__[T](length: Number, value: T): List[T] {
+      """
+      Translates to JavaScript: Array(length).fill(value)
+      """
+      aliasFor(__op_newarray__)
+    }
+
     function from[T](values: Iterable[T]): List[T] {
       aliasFor(__js_from)
     }

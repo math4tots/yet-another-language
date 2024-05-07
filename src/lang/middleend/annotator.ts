@@ -1434,14 +1434,36 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         const binding = bindings.get(typeTemplate as TypeParameterType);
         if (binding) {
           const boundType = binding.type;
+          const name = binding.typeParameter.typeTypeData.type.identifier.name;
           if (boundType) {
             switch (variance) {
               case COVARIANT:
-                return actualType.isAssignableTo(boundType);
+                if (!actualType.isAssignableTo(boundType)) {
+                  this.error(
+                    n.location,
+                    `Bound variable conflict (covariant), ` +
+                    `already have ${name}=${boundType}, but got ${actualType}`);
+                  return false;
+                }
+                return true;
               case CONTRAVARIANT:
-                return boundType.isAssignableTo(actualType);
+                if (!boundType.isAssignableTo(actualType)) {
+                  this.error(
+                    n.location,
+                    `Bound variable conflict (contravariant), ` +
+                    `already have ${name}=${boundType}, but got ${actualType}`);
+                  return false;
+                }
+                return true;
               default:
-                return actualType.isAssignableTo(boundType) && boundType.isAssignableTo(actualType);
+                if (!(actualType.isAssignableTo(boundType) && boundType.isAssignableTo(actualType))) {
+                  this.error(
+                    n.location,
+                    `Bound variable conflict (invariant), ` +
+                    `already have ${name}=${boundType}, but got ${actualType}`);
+                  return false;
+                }
+                return true;
             }
           } else {
             const name = binding.typeParameter.typeTypeData.type.identifier.name;
