@@ -486,7 +486,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       ]);
     }
 
-    // Otherwise, we have a block of 
+    // Otherwise, we have a block
     return parseBlock();
   }
 
