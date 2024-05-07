@@ -1,3 +1,4 @@
+from './arraybuffer' import ArrayBuffer
 from './arraybufferview' import ArrayBufferView
 from './typedarray' import TypedArray
 
@@ -5,5 +6,17 @@ from './typedarray' import TypedArray
 export interface Int32Array extends TypedArray {
   static {
     aliasFor(native constexpr "Int32Array")
+
+    function new(valuesOrLength: List[Number] | TypedArray | ArrayBuffer | Number): Int32Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number, length: Number): Int32Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number): Int32Array {
+      aliasFor(__op_new__)
+    }
   }
 }

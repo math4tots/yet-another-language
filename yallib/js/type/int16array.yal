@@ -1,0 +1,22 @@
+from './arraybuffer' import ArrayBuffer
+from './arraybufferview' import ArrayBufferView
+from './typedarray' import TypedArray
+
+
+export interface Int16Array extends TypedArray {
+  static {
+    aliasFor(native constexpr "Int16Array")
+
+    function new(valuesOrLength: List[Number] | TypedArray | ArrayBuffer | Number): Int16Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number, length: Number): Int16Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number): Int16Array {
+      aliasFor(__op_new__)
+    }
+  }
+}

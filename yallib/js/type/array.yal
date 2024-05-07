@@ -15,5 +15,9 @@ export interface Array {
     function from[T](values: Iterable[T]): List[T] {
       aliasFor(__js_from)
     }
+
+    function isArray(value: Any): Bool {
+      aliasFor(__js_isArray)
+    }
   }
 }

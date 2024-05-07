@@ -1,0 +1,22 @@
+from './arraybuffer' import ArrayBuffer
+from './arraybufferview' import ArrayBufferView
+from './typedarray' import TypedArray
+
+
+export interface Uint8Array extends TypedArray {
+  static {
+    aliasFor(native constexpr "Uint8Array")
+
+    function new(valuesOrLength: List[Number] | TypedArray | ArrayBuffer | Number): Uint8Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number, length: Number): Uint8Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number): Uint8Array {
+      aliasFor(__op_new__)
+    }
+  }
+}

@@ -1,0 +1,22 @@
+from './arraybuffer' import ArrayBuffer
+from './arraybufferview' import ArrayBufferView
+from './typedarray' import TypedArray
+
+
+export interface Float64Array extends TypedArray {
+  static {
+    aliasFor(native constexpr "Float64Array")
+
+    function new(valuesOrLength: List[Number] | TypedArray | ArrayBuffer | Number): Float64Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number, length: Number): Float64Array {
+      aliasFor(__op_new__)
+    }
+
+    function new(buffer: ArrayBuffer, byteOffset: Number): Float64Array {
+      aliasFor(__op_new__)
+    }
+  }
+}
