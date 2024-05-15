@@ -18,6 +18,7 @@ type TypeConstructorParameters = {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
+  readonly valueTypeData?: ValueTypeData;
   readonly iterableTypeData?: IterableTypeData;
   readonly promiseTypeData?: PromiseTypeData;
   readonly typeParameterTypeData?: TypeParameterTypeData;
@@ -96,6 +97,11 @@ type UnionTypeData = {
   readonly types: UnionElementType[];
 };
 
+type ValueTypeData = {
+  readonly value: number | string;
+  readonly decayType: Type;
+};
+
 type IterableTypeData = {
   readonly itemType: Type;
 };
@@ -126,6 +132,7 @@ export type InterfaceTypeType = Type & { readonly typeTypeData: { readonly type:
 export type EnumType = Type & { readonly enumTypeData: EnumTypeData; };
 export type EnumTypeType = Type & { readonly typeTypeData: { readonly type: EnumType; }; };
 export type UnionType = Type & { readonly unionTypeData: UnionTypeData; };
+export type ValueType = Type & { readonly valueTypeData: ValueTypeData; };
 export type IterableType = Type & { readonly iterableTypeData: IterableTypeData; };
 export type PromiseType = Type & { readonly promiseTypeData: PromiseTypeData; };
 
@@ -161,6 +168,7 @@ export class Type {
   readonly interfaceTypeData?: InterfaceTypeData;
   readonly enumTypeData?: EnumTypeData;
   readonly unionTypeData?: UnionTypeData;
+  readonly valueTypeData?: ValueTypeData;
   readonly iterableTypeData?: IterableTypeData;
   readonly promiseTypeData?: PromiseTypeData;
   readonly typeParameterTypeData?: TypeParameterTypeData;
@@ -206,6 +214,9 @@ export class Type {
     }
     if (params.unionTypeData) {
       this.unionTypeData = params.unionTypeData;
+    }
+    if (params.valueTypeData) {
+      this.valueTypeData = params.valueTypeData;
     }
     if (params.iterableTypeData) {
       this.iterableTypeData = params.iterableTypeData;
@@ -357,6 +368,16 @@ export class Type {
         if (!targetParameterTypes[i].isAssignableTo(sourceParameterTypes[i])) return false;
       }
       return true;
+    }
+
+    if (source.valueTypeData) {
+      const sourceValue = source.valueTypeData.value;
+      if (target.valueTypeData) {
+        return sourceValue === target.valueTypeData.value;
+      }
+      if (source.valueTypeData.decayType.isAssignableTo(target)) {
+        return true;
+      }
     }
 
     // no other claim to assignability
@@ -1055,6 +1076,22 @@ function newUnionType(types: UnionElementType[]): UnionType {
     unionTypeData: { types: types },
   }) as UnionType;
   return unionType;
+}
+
+export function newValueType(value: number | string): ValueType {
+  const decayType = typeof value === 'number' ? NumberType :
+    typeof value === 'string' ? StringType : AnyType;
+  const valueType = new Type({
+    identifier: { name: JSON.stringify(value) },
+    valueTypeData: { value, decayType },
+  }) as ValueType;
+  valueType.addMethod({
+    identifier: { name: '__get_value' },
+    parameters: [],
+    returnType: decayType,
+    aliasFor: `__op_noop__`,
+  });
+  return valueType;
 }
 
 ////////////////////////
