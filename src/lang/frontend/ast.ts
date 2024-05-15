@@ -20,6 +20,7 @@ export interface ExplicitIdentifier {
 export interface TypeExpressionVisitor<R> {
   visitTypename(n: Typename): R;
   visitSpecialTypeDisplay(n: SpecialTypeDisplay): R;
+  visitFunctionTypeDisplay(n: FunctionTypeDisplay): R;
 }
 
 export interface ExpressionVisitor<R> {
@@ -127,7 +128,31 @@ export class SpecialTypeDisplay {
   toString() { return `${this.identifier.name}[${this.args.map((arg): String => arg.toString()).join(', ')}]`; }
 }
 
-export type TypeExpression = Typename | SpecialTypeDisplay;
+export class FunctionTypeDisplay {
+  readonly location: Location;
+  readonly isGenerator: boolean;
+  readonly typeParameters: TypeParameter[] | undefined;
+  readonly parameters: Parameter[];
+  readonly returnType: TypeExpression;
+
+  constructor(
+    location: Location,
+    isGenerator: boolean,
+    typeParameters: TypeParameter[] | undefined,
+    parameters: Parameter[],
+    returnType: TypeExpression) {
+    this.location = location;
+    this.isGenerator = isGenerator;
+    this.typeParameters = typeParameters;
+    this.parameters = parameters;
+    this.returnType = returnType;
+  }
+  accept<R>(visitor: TypeExpressionVisitor<R>): R { return visitor.visitFunctionTypeDisplay(this); }
+
+  toString() { return `function[${this.parameters};${this.returnType}]`; }
+}
+
+export type TypeExpression = Typename | SpecialTypeDisplay | FunctionTypeDisplay;
 
 export class NullLiteral implements Expression {
   readonly location: Location;

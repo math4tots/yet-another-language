@@ -87,7 +87,10 @@ class Translator implements ast.NodeVisitor<string> {
       translateVariableName(n.identifier.name);
   }
   visitSpecialTypeDisplay(n: ast.SpecialTypeDisplay): string {
-    return 'SPECIALTYPEDISPLAY';
+    return 'SPECIAL_TYPE_DISPLAY';
+  }
+  visitFunctionTypeDisplay(n: ast.FunctionTypeDisplay): string {
+    return 'FUNCTION_TYPE_DISPLAY';
   }
   visitNullLiteral(n: ast.NullLiteral): string {
     return 'null';

@@ -111,6 +111,15 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     throw new Exception();
   }
 
+  function noThrowExpect(type: TokenType) {
+    if (!consume(type)) {
+      errors.push({
+        location: { uri, range: tokens[i].range },
+        message: `Expected ${JSON.stringify(type)} but got ${JSON.stringify(tokens[i].type)}`,
+      });
+    }
+  }
+
   function consume(type: TokenType) {
     if (at(type)) {
       next();
@@ -164,7 +173,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   /** A Type expression is expected, but if not found, add an error and return gracefully
    * with a dummy type expression */
   function tryParseTypeExpression(): ast.TypeExpression {
-    if (at('IDENTIFIER')) return parseTypeExpression();
+    if (at('IDENTIFIER') || at('function') || at('(')) return parseTypeExpression();
     const range = tokens[i].range;
     const location = { uri, range };
     errors.push({ location, message: 'Expected type expression' });
@@ -177,6 +186,17 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       const te = parseTypeExpression();
       expect(')');
       return te;
+    }
+    if (at('function')) {
+      const start = next().range.start;
+      const isGenerator = consume('*');
+      const typeParameters = at('[') ? parseTypeParameters() : undefined;
+      const parameters = parseParameters();
+      noThrowExpect(':');
+      const returnType = tryParseTypeExpression();
+      const end = returnType.location.range.end;
+      const location: ast.Location = { uri, range: { start, end } };
+      return new ast.FunctionTypeDisplay(location, isGenerator, typeParameters, parameters, returnType);
     }
     if (!at('IDENTIFIER')) {
       const location: ast.Location = { uri, range: tokens[i].range };

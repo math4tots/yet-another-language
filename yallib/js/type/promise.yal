@@ -3,7 +3,7 @@
 export interface Promise {
   static {
     aliasFor(native constexpr "Promise")
-    function new[T](handler: Function[Function[T, Null], Function[Any, Null], Any]): Promise[T] {
+    function new[T](handler: function(resolve: function(t: T): Null, reject: function(reason: Any): Null): Any): Promise[T] {
       aliasFor(__op_new__)
     }
     function all[T](promises: Iterable[Promise[T]]): Promise[List[T]] {

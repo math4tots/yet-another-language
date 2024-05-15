@@ -154,7 +154,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
   private scope: Scope = Object.create(BASE_SCOPE);
   private readonly cached?: Annotation;
   private readonly typeSolverCache = new Map<ast.TypeExpression, Type>();
-  private readonly lambdaTypeCache = new Map<ast.FunctionDisplay, LambdaType>();
+  private readonly lambdaTypeCache = new Map<ast.FunctionDisplay | ast.FunctionTypeDisplay, LambdaType>();
   private readonly markedImports = new Set<ast.ImportAs | ast.FromImport>();
   private readonly classMap = new Map<ast.ClassDefinition, ClassVariable>();
   private readonly interfaceMap = new Map<ast.InterfaceDefinition, InterfaceVariable>();
@@ -298,6 +298,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
         completions.push({ name: 'Union' });
         completions.push({ name: 'Iterable' });
         completions.push({ name: 'Record' });
+        completions.push({ name: 'function' });
         this.addSymbolTableCompletions(completions, scopeAtLocation);
         return completions;
       },
@@ -392,6 +393,10 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     }
     this.error(e.location, `Invalid special type ${e}`);
     return AnyType;
+  }
+
+  visitFunctionTypeDisplay(n: ast.FunctionTypeDisplay): Type {
+    return this.solveFunctionDisplayType(n, AnyType);
   }
 
   private solveType(e: ast.TypeExpression): Type {
@@ -1231,7 +1236,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       value,
     };
   }
-  private solveFunctionDisplayType(n: ast.FunctionDisplay, rawHint: Type): LambdaType {
+  private solveFunctionDisplayType(n: ast.FunctionDisplay | ast.FunctionTypeDisplay, rawHint: Type): LambdaType {
     const cached = this.lambdaTypeCache.get(n);
     if (cached) return cached;
     const hint = rawHint.lambdaErasure().functionTypeData;
