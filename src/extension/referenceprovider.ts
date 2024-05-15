@@ -32,18 +32,16 @@ export function newReferenceProvider(): vscode.ReferenceProvider {
       if (variable?.isPrivate) {
         return locations;
       }
-      return new Promise((resolve, reject) => {
-        vscode.window.withProgress({
-          location: vscode.ProgressLocation.Notification,
-          title: `find references to ${variable?.identifier.name}`,
-          cancellable: true,
-        }, async (progress, secondToken) => {
-          secondToken.onCancellationRequested(() => tokenSource.cancel());
-          for await (const annotation of findAllAnnotations(token)) {
-            searchInAnnotation(annotation);
-          }
-          return locations;
-        });
+      return await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: `finding references to ${variable?.identifier.name}`,
+        cancellable: true,
+      }, async (progress, secondToken) => {
+        secondToken.onCancellationRequested(() => tokenSource.cancel());
+        for await (const annotation of findAllAnnotations(token)) {
+          searchInAnnotation(annotation);
+        }
+        return locations;
       });
     },
   };

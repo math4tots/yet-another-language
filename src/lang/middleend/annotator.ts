@@ -1214,7 +1214,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     const value = new RecordValue();
     for (const entry of n.entries) {
       // TODO: immutable member entries
-      const method = hint.getMethodHandlingArgumentCount(`__get_${entry.identifier.name}`, 0);
+      const method = hint.getMethodWithExactParameterCount(`__get_${entry.identifier.name}`, 0);
       const memberType = method?.returnType || AnyType;
       const memberResult = this.solveExpr(entry.value, memberType, this.mustSatisfyHint);
       newEntries.push({
@@ -1422,8 +1422,10 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       });
     }
 
-    const method = owner.type.getMethodHandlingArgumentCount(n.identifier.name, n.args.length);
-    if (!method) {
+    const possibleMethods = owner.type.getMethodsHandlingArgumentCount(n.identifier.name, n.args.length);
+
+    const firstGuessMethod = possibleMethods[0];
+    if (!firstGuessMethod) {
       for (const arg of n.args) this.solveExpr(arg);
       const method = owner.type.getAnyMethodWithName(n.identifier.name);
       if (method) {
@@ -1433,7 +1435,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       }
       return { type: AnyType, ir: n };
     }
-    this.markReference(method.sourceVariable, n.identifier.location.range);
+    let method = firstGuessMethod;
 
     // account for default parameters
     const argExprs = [...n.args];
@@ -1448,6 +1450,8 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     const argIRs: ast.Expression[] = [];
     let maybeReturnType: Type | undefined;
     if (method.typeParameters) {
+      this.markReference(method.sourceVariable, n.identifier.location.range);
+
       // If the method has type parameters, for the best effect, we need to handle type parameter
       // inference as we solve the expressions
       type Binding = {
@@ -1687,7 +1691,33 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
         if (e === SUBSTITUTION_FAILURE) return failBinding('substitution failure');
         throw e;
       }
+    } else if (possibleMethods.length > 1) {
+      // method is overloaded, and we use the argument types to determine which overload to use.
+      for (let i = 0; i < n.args.length; i++) {
+        const info = this.solveExpr(
+          argExprs[i],
+          possibleMethods.length === 1 ? possibleMethods[0].parameters[i].type : AnyType);
+        argResults.push(info);
+        if (info.value !== undefined) argValues.push(info.value);
+        argIRs.push(info.ir);
+        for (let j = 0; j < possibleMethods.length;) {
+          const possibleMethod = possibleMethods[j];
+          if (!info.type.isAssignableTo(possibleMethod.parameters[i].type)) {
+            possibleMethods.splice(j, 1);
+            if (possibleMethods.length === 0) {
+              this.error(n.args[i].location, `No possible overload with given argument types`);
+            }
+          } else {
+            j++;
+          }
+        }
+      }
+      // If there is at least one possible method, pick the first one.
+      method = possibleMethods[0];
+      maybeReturnType = method.returnType;
+      this.markReference(method.sourceVariable, n.identifier.location.range);
     } else {
+      this.markReference(method.sourceVariable, n.identifier.location.range);
       maybeReturnType = method.returnType;
       for (let i = 0; i < method.parameters.length; i++) {
         const info = this.solveExpr(argExprs[i], method.parameters[i].type);

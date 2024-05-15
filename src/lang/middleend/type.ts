@@ -525,27 +525,49 @@ export class Type {
   }
 
   /**
-   * Find and return the first method that can handle the given number of
-   * arguments. The actual method might have more than the given arguments
-   * but still be able to handle the given number of arguments due to default
-   * parameters.
+   * Find and return a list of methods that can handle the given number of
+   * arguments.
+   * 
+   * If there are multiple methods that could potentially handle the given number
+   * of arguments, the search is done again, but all methods with type parameters
+   * and those that satisfied the requirements only by removing default parameters
+   * are ruled out.
+   * 
+   * If this second search removes all candidates, a list with just the first result
+   * from the initial search is returned.
    * 
    * If you need a method that has exactly the given number of parameters,
    * use the method 'getMethodWithExactParameterCount' instead.
    */
-  getMethodHandlingArgumentCount(methodName: string, argumentCount: number): Method | undefined {
+  getMethodsHandlingArgumentCount(methodName: string, argumentCount: number): Method[] {
     this.prepareMethods();
     const methods = this._methodMap.get(methodName);
+    const results = [];
     if (methods) {
       for (const method of methods) {
         let argc = method.parameters.length;
         while (argc > argumentCount && method.parameters[argc - 1].defaultValue) {
           argc--;
         }
-        if (argc === argumentCount) return method;
+        if (argc === argumentCount) results.push(method);
+      }
+      if (results.length > 1) {
+        const backup = results[0];
+
+        // if there's more than one matching method, filter some of the methods
+        results.length = 0;
+        for (const method of methods) {
+          // when being picky, only pick methods with exact argument count match and
+          // exlude methods with type parameters
+          if (method.parameters.length === argumentCount && !method.typeParameters) {
+            results.push(method);
+          }
+        }
+
+        if (results.length === 0) results.push(backup);
       }
     }
-    return undefined;
+    return results;
   }
 
   /**
