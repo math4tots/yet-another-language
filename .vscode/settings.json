@@ -2,6 +2,10 @@
     "[typescript]": {
         "editor.tabSize": 2
     },
+    "[javascript]": {
+        "editor.tabSize": 2,
+        "editor.maxTokenizationLineLength": 2500
+    },
     "typescript.format.semicolons": "insert",
     "editor.formatOnSave": true,
     "python.analysis.typeCheckingMode": "strict"

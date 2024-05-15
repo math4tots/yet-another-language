@@ -352,7 +352,6 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       for (const argexpr of e.args) {
         type = type.getCommonType(this.solveType(argexpr));
       }
-      console.log(`UNION(${e.args}) => ${type}`);
       return type;
     }
     if (e.args.length === 1 && e.identifier.name === 'Iterable') {
