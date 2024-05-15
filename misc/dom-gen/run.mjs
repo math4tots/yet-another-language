@@ -1035,13 +1035,20 @@ function translate(out, ...sources) {
   function translateType(type) {
     if (type instanceof Identifier) {
       switch (type.name) {
+        case 'boolean': return 'Bool';
         case 'number': return 'Number';
         case 'string': return 'String';
-        case 'null': return 'Null';
+        case 'undefined': case 'null': return 'Null';
         case 'object': case 'any': return 'Any';
+        case 'void': return 'Null';
         case 'ArrayBufferLike': return 'ArrayBuffer';
       }
       return type.name;
+    }
+    if (type instanceof FunctionTypeDisplay) {
+      if (type.typeParameters) return 'Any';
+      const returnType = type.returnType ? translateType(type.returnType) : 'Any';
+      return `function${translateParameters(type.parameters)}: ${returnType}`;
     }
     if (type instanceof TypeSpecialForm) {
       switch (type.name) {
@@ -1052,6 +1059,28 @@ function translate(out, ...sources) {
         case 'intersect':
           // TODO: some better type
           return type.args.length === 0 ? 'Never' : translateType(type.args[0]);
+        case 'nullable':
+          if (type.args.length === 1) {
+            return `Nullable[${translateType(type.args[0])}]`;
+          }
+          break;
+        case 'reify': {
+          if (type.args.length === 0) { // defensive
+            console.warn(`FUBAR: reify special form with zero args`);
+            return 'Any';
+          }
+          const f = type.args[0];
+          if (f instanceof Identifier) {
+            switch (f.name) {
+              case 'ArrayLike':
+                if (type.args.length === 2) {
+                  const arg = translateType(type.args[1]);
+                  return `List[${arg}]`;
+                }
+                break;
+            }
+          }
+        }
       }
     }
     console.warn(`UNHANDLED TYPE TRANSLATION:`, type);
@@ -1065,13 +1094,22 @@ function translate(out, ...sources) {
     const name = member.identifier.name;
     if (!/^[A-Za-z_]\w*$/.test(name)) return; // skip any field that does not have a "normal" name
     const storageClass = member.isReadonly ? 'const' : 'var';
-    const type = translateType(member.type);
-    out.line(`${storageClass} ${name}: ${type} = aliasFor(__js_${name})`);
+    let type = member.type;
+    if (member.optional) {
+      type = new TypeSpecialForm(type.range, 'nullable', [type]);
+    }
+    const typestr = translateType(type);
+    const comment = member.comment ? `"""${formatCommentString(member.comment.value, out._depth)}""" ` : '';
+    out.line(`${storageClass} ${name}: ${typestr} ${comment}= aliasFor(__js_${name})`);
   }
 
   /** @param {Parameter} parameter */
   function translateParameter(parameter) {
-    return `${parameter.identifier.name}: ${translateType(parameter.type)}`;
+    let type = parameter.type;
+    if (parameter.optional) {
+      type = new TypeSpecialForm(type.range, 'nullable', [type]);
+    }
+    return `${parameter.identifier.name}: ${translateType(type)}`;
   }
 
   /** @param {Parameter[]} parameters */
@@ -1093,7 +1131,8 @@ function translate(out, ...sources) {
     const opName = name === '' ? '__call__' :
       name === 'new' ? '__op_new__' :
         `__js_${name}`;
-    out.line(`function ${yalName}${translateParameters(member.type.parameters)} {`);
+    const returnType = member.type.returnType ? `: ${translateType(member.type.returnType)}` : '';
+    out.line(`function ${yalName}${translateParameters(member.type.parameters)}${returnType} {`);
     out.nest(() => {
       out.writeBlockComment(comment);
       out.line(`aliasFor(${opName})`);
@@ -1132,10 +1171,55 @@ function translate(out, ...sources) {
         }
       });
       out.line('}');
+      if (typeInfo !== info && info.interfaces.length > 0 && !info.interfaces[0].typeParameters) {
+        for (const iface of info.interfaces) {
+          for (const member of iface.body) {
+            translateMember(member);
+          }
+        }
+      }
     });
     out.line('}');
   }
 }
+
+const SUFFIX_MAP = new Map([
+  ['lib.es5.d.ts', `
+typedef PropertyKey = String | Number
+
+interface PropertyDescriptor {
+  "TODO"
+}
+
+interface PropertyDescriptorMap {
+  "TODO"
+}
+
+interface RegExpMatchArray {
+  const length: Number = aliasFor(__js_length)
+
+  const index: Number? "The index of the search at which the result was found." = aliasFor(__js_index)
+
+  const input: Number? "A copy of the search string." = aliasFor(__js_input)
+
+  function __getitem__(i: Number): String {
+    aliasFor(__op_getitem__)
+  }
+}
+
+interface RegExpExecArray {
+  const length: Number = aliasFor(__js_length)
+
+  const index: Number? "The index of the search at which the result was found." = aliasFor(__js_index)
+
+  const input: Number? "A copy of the search string." = aliasFor(__js_input)
+
+  function __getitem__(i: Number): String {
+    aliasFor(__op_getitem__)
+  }
+}
+`],
+]);
 
 switch (ARGS.command) {
   case 'lex':
@@ -1154,8 +1238,11 @@ switch (ARGS.command) {
     }
     break;
   case 'translate': {
+    const basename = path.basename(ARGS.path);
     const sink = new Sink((text) => process.stdout.write(text));
     translate(sink, FILE_CONTENTS);
+    const suffix = SUFFIX_MAP.get(basename);
+    if (suffix) sink.write(suffix);
     break;
   }
   default:
