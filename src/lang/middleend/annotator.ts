@@ -1731,11 +1731,14 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
             return evalMethodCallCatchExc(ownerValue, method, argValues);
           } : undefined,
       ir:
-        typeof method.inlineValue === 'string' ?
-          new ast.StringLiteral(n.location, method.inlineValue) :
-          typeof method.inlineValue === 'number' ?
-            new ast.NumberLiteral(n.location, method.inlineValue) :
-            new ast.MethodCall(n.location, owner.ir, methodIdentifier, argIRs),
+        (method.identifier.name === `__get_${method.sourceVariable.identifier.name}` &&
+          method.sourceVariable.inlineIR) ?
+          method.sourceVariable.inlineIR :
+          typeof method.inlineValue === 'string' ?
+            new ast.StringLiteral(n.location, method.inlineValue) :
+            typeof method.inlineValue === 'number' ?
+              new ast.NumberLiteral(n.location, method.inlineValue) :
+              new ast.MethodCall(n.location, owner.ir, methodIdentifier, argIRs),
     };
   }
   visitLogicalNot(n: ast.LogicalNot): EResult {
