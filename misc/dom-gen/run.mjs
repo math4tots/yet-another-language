@@ -3,6 +3,7 @@
 // Utility for translating typescript annotations to YAL
 
 import fs from 'fs';
+import util from 'util';
 
 const argv = process.argv.splice(2);
 
@@ -819,7 +820,7 @@ switch (ARGS.command) {
     break;
   case 'parse':
     for (const node of parse(FILE_CONTENTS)) {
-      console.log(node);
+      console.log(util.inspect(node, { showHidden: false, depth: null, colors: process.stdout.hasColors && process.stdout.hasColors() }));
     }
     break;
   default:
