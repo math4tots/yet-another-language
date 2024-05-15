@@ -164,7 +164,15 @@ class Range {
 }
 
 /**
- * @typedef {Identifier | TypeSpecialForm | FunctionTypeDisplay} TypeExpression
+ * @typedef {PossiblyQualifiedIdentifier
+ * |TypeSpecialForm
+ * |LiteralTypeDisplay
+ * |RecordTypeDisplay
+ * |FunctionTypeDisplay} TypeExpression
+ */
+
+/**
+ * @typedef {Identifier | QualifiedIdentifier} PossiblyQualifiedIdentifier
  */
 
 /**
@@ -172,14 +180,16 @@ class Range {
  */
 
 /**
- * @typedef {InterfaceDefinition |
-*   VariableDeclaration} Statement
-*/
+ * @typedef {VariableDeclaration | FunctionDeclaration} StatementCommon
+ */
 
 /**
- * @typedef {Statement |
-*   ComputedPropertyDeclaration} MemberStatement
-*/
+ * @typedef {StatementCommon | InterfaceDefinition | TypeAliasDeclaration | NamespaceDeclaration} Statement
+ */
+
+/**
+ * @typedef {StatementCommon | ComputedPropertyDeclaration} MemberStatement
+ */
 
 class Identifier {
   /**
@@ -189,6 +199,19 @@ class Identifier {
   constructor(range, name) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.name = name;
+  }
+}
+
+class QualifiedIdentifier {
+  /**
+   * @param {Range} range 
+   * @param {Identifier} qualifier 
+   * @param {Identifier} member 
+   */
+  constructor(range, qualifier, member) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.qualifier = qualifier;
+    /** @readonly */ this.member = member;
   }
 }
 
@@ -205,11 +228,33 @@ class TypeSpecialForm {
   }
 }
 
+class LiteralTypeDisplay {
+  /**
+   * @param {Range} range 
+   * @param {Token} token
+   */
+  constructor(range, token) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.token = token;
+  }
+}
+
+class RecordTypeDisplay {
+  /**
+   * @param {Range} range 
+   * @param {MemberStatement[]} body
+   */
+  constructor(range, body) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.body = body;
+  }
+}
+
 class FunctionTypeDisplay {
   /**
    * @param {Range} range 
-   * @param {VariableDeclaration[]} parameters
-   * @param {TypeExpression} returnType
+   * @param {Parameter[]} parameters
+   * @param {TypeExpression | undefined} returnType
    */
   constructor(range, parameters, returnType) {
     /** @readonly */ this.range = range;
@@ -239,15 +284,98 @@ class VariableDeclaration {
   /**
    * @param {Range} range 
    * @param {Token | undefined} comment
+   * @param {boolean} isReadonly
    * @param {Identifier} identifier 
    * @param {boolean} optional
    * @param {TypeExpression} type
    */
-  constructor(range, comment, identifier, optional, type) {
+  constructor(range, comment, isReadonly, identifier, optional, type) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.comment = comment;
+    /** @readonly */ this.isReadonly = isReadonly;
+    /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.optional = optional;
+    /** @readonly */ this.type = type;
+  }
+}
+
+class NamespaceDeclaration {
+  /**
+   * @param {Range} range 
+   * @param {Token | undefined} comment
+   * @param {Identifier} identifier 
+   * @param {Statement[]} body
+   */
+  constructor(range, comment, identifier, body) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.comment = comment;
     /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.body = body;
+  }
+}
+
+class Parameter {
+  /**
+   * @param {Range} range 
+   * @param {Token | undefined} comment
+   * @param {boolean} isVariadic
+   * @param {Identifier} identifier 
+   * @param {boolean} optional
+   * @param {TypeExpression} type
+   */
+  constructor(range, comment, isVariadic, identifier, optional, type) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.comment = comment;
+    /** @readonly */ this.isVariadic = isVariadic;
+    /** @readonly */ this.identifier = identifier;
     /** @readonly */ this.optional = optional;
+    /** @readonly */ this.type = type;
+  }
+}
+
+class FunctionDeclaration {
+  /**
+   * @param {Range} range 
+   * @param {Token | undefined} comment
+   * @param {Identifier} identifier 
+   * @param {TypeExpression} type
+   */
+  constructor(range, comment, identifier, type) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.comment = comment;
+    /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.type = type;
+  }
+}
+
+class SpecialFunctionDeclaration {
+  /**
+   * @param {Range} range 
+   * @param {Token | undefined} comment
+   * @param {string} kind
+   * @param {Identifier} identifier 
+   * @param {TypeExpression} type
+   */
+  constructor(range, comment, kind, identifier, type) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.comment = comment;
+    /** @readonly */ this.kind = kind;
+    /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.type = type;
+  }
+}
+
+class TypeAliasDeclaration {
+  /**
+   * @param {Range} range 
+   * @param {Token | undefined} comment
+   * @param {Identifier} identifier 
+   * @param {TypeExpression} type
+   */
+  constructor(range, comment, identifier, type) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.comment = comment;
+    /** @readonly */ this.identifier = identifier;
     /** @readonly */ this.type = type;
   }
 }
@@ -318,6 +446,23 @@ function* parse(s) {
         descriptor.some(t => value === t);
 
   /**
+   * @param {number} offset 
+   */
+  const peekAhead = offset => {
+    if (offset === 0) return peek;
+    const saved = save();
+    try {
+      while (offset > 0 && !at('EOF')) {
+        next();
+        offset--;
+      }
+      return peek;
+    } finally {
+      restore(saved);
+    }
+  };
+
+  /**
    * @param {Descriptor} type
    * @param {Descriptor} value
    * @returns {boolean}
@@ -370,19 +515,35 @@ function* parse(s) {
     return new Identifier(Range.join(token), token.value);
   }
 
+  function parsePossiblyQualifiedIdentifier() {
+    const firstIdentifier = parseIdentifier();
+    if (consume('.')) {
+      const member = parseIdentifier();
+      return new QualifiedIdentifier(Range.join(firstIdentifier, member), firstIdentifier, member);
+    }
+    return firstIdentifier;
+  }
+
+  function parseStringLiteralAsIdentifier() {
+    if (!at('STRING')) throw new Error(`Line ${peek.line}: Expected (string literal) identifier but got ${peek}`);
+    const token = expect('STRING');
+    return new Identifier(Range.join(token), token.value);
+  }
+
   function parseParameter() {
     while (consume('COMMENT'));
     const comment = lastComment;
+    const isVariadic = consume('...');
     const identifier = parseIdentifier();
     const optional = consume('?');
     expect(':');
     const type = parseTypeExpression();
-    return new VariableDeclaration(Range.join(identifier, type), comment, identifier, optional, type);
+    return new Parameter(Range.join(identifier, type), comment, isVariadic, identifier, optional, type);
   }
 
   function parseParameters() {
     expect('(');
-    const parameters = /** @type {VariableDeclaration[]} */ ([]);
+    const parameters = /** @type {Parameter[]} */ ([]);
     while (!at(')')) {
       parameters.push(parseParameter());
       if (!consume(',')) break;
@@ -410,7 +571,37 @@ function* parse(s) {
       expect(')');
       return te;
     }
-    return parseIdentifier();
+    if (consume('[')) {
+      const args = /** @type {TypeExpression[]} */ ([]);
+      while (!at(']')) {
+        args.push(parseTypeExpression());
+        if (!consume(',')) break;
+      }
+      const end = expect(']');
+      return new TypeSpecialForm(Range.join(start, end), 'tuple', args);
+    }
+    if (at('{')) {
+      const { body, end } = parseInterfaceBody();
+      return new RecordTypeDisplay(Range.join(start, end), body);
+    }
+    if (consume('-')) {
+      const token = expect('NUMBER');
+      return new LiteralTypeDisplay(
+        token.range, new Token(token.s, token.range.start, token.range.end, token.type, '-' + token.value));
+    }
+    if (at(['STRING', 'NUMBER'])) {
+      const token = next();
+      return new LiteralTypeDisplay(token.range, token);
+    }
+    if (at('NAME', ['typeof', 'keyof'])) {
+      const kind = next().value;
+      const possiblyQualifiedIdentifier = parsePossiblyQualifiedIdentifier();
+      return new TypeSpecialForm(Range.join(start, possiblyQualifiedIdentifier), kind, [possiblyQualifiedIdentifier]);
+    }
+    if (at('NAME')) {
+      return parseIdentifier();
+    }
+    throw new Error(`Line ${peek.line}: Expected type expression but got ${peek}`);
   }
 
   /** @returns {TypeExpression} */
@@ -421,15 +612,35 @@ function* parse(s) {
         const rhs = parseTypeExpression();
         const args = /** @type {TypeExpression[]} */ ([]);
         for (const type of [te, rhs]) {
-          if (type instanceof TypeSpecialForm && type.name === '|') args.push(...type.args);
+          if (type instanceof TypeSpecialForm && type.name === 'union') args.push(...type.args);
           else args.push(type);
         }
         te = new TypeSpecialForm(Range.join(te, rhs), 'union', args);
         continue;
       }
+      if (consume('&')) {
+        const rhs = parseTypeExpression();
+        const args = /** @type {TypeExpression[]} */ ([]);
+        for (const type of [te, rhs]) {
+          if (type instanceof TypeSpecialForm && type.name === '&') args.push(...type.args);
+          else args.push(type);
+        }
+        te = new TypeSpecialForm(Range.join(te, rhs), 'intersect', args);
+        continue;
+      }
       if (consume('[')) {
+        if (at(']')) {
+          const end = expect(']');
+          te = new TypeSpecialForm(Range.join(te, end), 'array', [te]);
+          continue;
+        }
+        const args = /** @type {TypeExpression[]} */ ([]);
+        while (!at(']')) {
+          args.push(parseTypeExpression());
+          if (!consume(',')) break;
+        }
         const end = expect(']');
-        te = new TypeSpecialForm(Range.join(te, end), 'array', [te]);
+        te = new TypeSpecialForm(Range.join(te, end), 'subscript', [te, ...args]);
         continue;
       }
       if (consume('<')) {
@@ -447,6 +658,16 @@ function* parse(s) {
     return te;
   }
 
+  function parseInterfaceBody() {
+    const body = /** @type {MemberStatement[]} */ ([]);
+    const start = expect('{');
+    while (!at(['EOF', '}'])) {
+      body.push(parseMemberStatement());
+    }
+    const end = expect('}');
+    return { start, body, end };
+  }
+
   function parseInterfaceDefinition() {
     const comment = lastComment;
     const start = expect('NAME', 'interface');
@@ -456,13 +677,64 @@ function* parse(s) {
     if (consume('NAME', 'extends')) {
       do { bases.push(parseTypeExpression()); } while (consume(','));
     }
-    const body = /** @type {MemberStatement[]} */ ([]);
+    const { body, end } = parseInterfaceBody();
+    return new InterfaceDefinition(Range.join(start, end), comment, identifier, bases, body);
+  }
+
+  function parseTypeAliasDeclaration() {
+    const comment = lastComment;
+    const start = expect('NAME', 'type');
+    const identifier = parseIdentifier();
+    if (at('<')) skip(true); // skip type parameters
+    expect('=');
+    const type = parseTypeExpression();
+    expect(';');
+    return new TypeAliasDeclaration(Range.join(start, type), comment, identifier, type);
+  }
+
+  /**
+   * @param {Token | undefined} comment 
+   * @param {Rangeable} start 
+   */
+  function parseVariableDeclaration(comment, start) {
+    const isReadonly = consume('NAME', 'const') || (expect('NAME', 'var'), false);
+    const identifier = parseIdentifier();
+    expect(':');
+    const type = parseTypeExpression();
+    const end = expect(';');
+    return new VariableDeclaration(Range.join(start, end), comment, isReadonly, identifier, false, type);
+  }
+
+  /**
+   * @param {Token | undefined} comment 
+   * @param {Rangeable} start 
+   */
+  function parseFunctionDeclaration(comment, start) {
+    expect('NAME', 'function');
+    const identifier = parseIdentifier();
+    if (at('<')) skip(true); // skip type parameters
+    const parameters = parseParameters();
+    expect(':');
+    const returnType = parseTypeExpression();
+    const end = expect(';');
+    return new FunctionDeclaration(Range.join(start, end), comment, identifier,
+      new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
+  }
+
+  /**
+   * @param {Token | undefined} comment 
+   * @param {Rangeable} start 
+   */
+  function parseNamespaceDeclaration(comment, start) {
+    expect('NAME', 'namespace');
+    const identifier = parseIdentifier();
+    const body = /** @type {Statement[]} */ ([]);
     expect('{');
-    while (!at(['EOF', '}'])) {
-      body.push(parseMemberStatement());
+    while (!at('}')) {
+      body.push(parseStatement());
     }
     const end = expect('}');
-    return new InterfaceDefinition(Range.join(start, end), comment, identifier, bases, body);
+    return new NamespaceDeclaration(Range.join(start, end), comment, identifier, body);
   }
 
   /**
@@ -471,6 +743,18 @@ function* parse(s) {
   function parseStatement() {
     while (consume('COMMENT'));
     if (at('NAME', 'interface')) return parseInterfaceDefinition();
+    if (at('NAME', 'type')) return parseTypeAliasDeclaration();
+    const comment = lastComment;
+    const start = peek;
+    if (at('NAME', ['var', 'const'])) return parseVariableDeclaration(comment, start);
+    if (at('NAME', 'namespace')) return parseNamespaceDeclaration(comment, start);
+    if (at('NAME', 'function')) return parseFunctionDeclaration(comment, start);
+    if (consume('NAME', 'declare')) {
+      if (at('NAME', ['var', 'const'])) return parseVariableDeclaration(comment, start);
+      if (at('NAME', 'namespace')) return parseNamespaceDeclaration(comment, start);
+      if (at('NAME', 'function')) return parseFunctionDeclaration(comment, start);
+      throw new Error(`Line ${peek.line}: Expected declare type but got ${peek}`);
+    }
     throw new Error(`Line ${peek.line}: Expected statement but got ${peek}`);
   }
 
@@ -481,13 +765,34 @@ function* parse(s) {
     while (consume('COMMENT'));
     const comment = lastComment;
     const start = peek;
-    if (at('NAME')) {
+    if (at('NAME', ['get', 'set']) && peekAhead(1).type === 'NAME') {
+      const kind = expect('NAME').value;
       const identifier = parseIdentifier();
+      const parameters = parseParameters();
+      const returnType = consume(':') ? parseTypeExpression() : undefined;
+      const end = expect(';');
+      return new SpecialFunctionDeclaration(Range.join(start, end), comment, kind, identifier,
+        new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
+    }
+    if (at('NAME') || at('STRING') || at('(')) {
+      const isReadonly = consume('NAME', 'readonly');
+      const identifier = at('(') ?
+        new Identifier(peek.range, '') :
+        at('STRING') ? parseStringLiteralAsIdentifier() : parseIdentifier();
+      if (!isReadonly && at(['(', '<'])) {
+        if (at('<')) skip(true); // skip type parameters
+        const parameters = parseParameters();
+        expect(':');
+        const returnType = parseTypeExpression();
+        const end = expect(';');
+        return new FunctionDeclaration(Range.join(start, end), comment, identifier,
+          new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
+      }
       const optional = consume('?');
       expect(':');
       const type = parseTypeExpression();
       const end = expect(';');
-      return new VariableDeclaration(Range.join(start, end), comment, identifier, optional, type);
+      return new VariableDeclaration(Range.join(start, end), comment, isReadonly, identifier, optional, type);
     }
     if (consume('[')) {
       const identifier = parseIdentifier();
