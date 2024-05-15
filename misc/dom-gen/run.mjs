@@ -3,6 +3,7 @@
 // Utility for translating typescript annotations to YAL
 
 import fs from 'fs';
+import path from 'path';
 import util from 'util';
 
 const argv = process.argv.splice(2);
@@ -258,11 +259,13 @@ class RecordTypeDisplay {
 class FunctionTypeDisplay {
   /**
    * @param {Range} range 
+   * @param {TypeParameter[] | undefined} typeParameters
    * @param {Parameter[]} parameters
    * @param {TypeExpression | undefined} returnType
    */
-  constructor(range, parameters, returnType) {
+  constructor(range, typeParameters, parameters, returnType) {
     /** @readonly */ this.range = range;
+    /** @readonly */ this.typeParameters = typeParameters;
     /** @readonly */ this.parameters = parameters;
     /** @readonly */ this.returnType = returnType;
   }
@@ -363,15 +366,13 @@ class FunctionDeclaration {
    * @param {Token | undefined} comment
    * @param {Identifier} identifier 
    * @param {boolean} optional
-   * @param {TypeParameter[] | undefined} typeParameters
-   * @param {TypeExpression} type
+   * @param {FunctionTypeDisplay} type
    */
-  constructor(range, comment, identifier, optional, typeParameters, type) {
+  constructor(range, comment, identifier, optional, type) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.comment = comment;
     /** @readonly */ this.identifier = identifier;
     /** @readonly */ this.optional = optional;
-    /** @readonly */ this.typeParameters = typeParameters;
     /** @readonly */ this.type = type;
   }
 }
@@ -632,7 +633,7 @@ function* parse(s) {
         const parameters = parseParameters();
         expect('=>');
         const returnType = parseTypeExpression();
-        return new FunctionTypeDisplay(Range.join(start, returnType), parameters, returnType);
+        return new FunctionTypeDisplay(Range.join(start, returnType), undefined, parameters, returnType);
       }
       restore(here);
       expect('(');
@@ -813,8 +814,8 @@ function* parse(s) {
     expect(':');
     const returnType = parseTypeExpression();
     const end = expect(';');
-    return new FunctionDeclaration(Range.join(start, end), comment, identifier, optional, typeParameters,
-      new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
+    return new FunctionDeclaration(Range.join(start, end), comment, identifier, optional,
+      new FunctionTypeDisplay(Range.join(start, end), typeParameters, parameters, returnType));
   }
 
   /**
@@ -869,7 +870,7 @@ function* parse(s) {
       const returnType = consume(':') ? parseTypeExpression() : undefined;
       const end = expect(';');
       return new SpecialFunctionDeclaration(Range.join(start, end), comment, kind, identifier,
-        new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
+        new FunctionTypeDisplay(Range.join(start, end), undefined, parameters, returnType));
     }
     const isReadonly = consume('NAME', 'readonly');
     if (at(['NAME', 'NUMBER', 'STRING', '(', '<'])) {
@@ -885,8 +886,8 @@ function* parse(s) {
         expect(':');
         const returnType = parseTypeExpression();
         const end = expect(';');
-        return new FunctionDeclaration(Range.join(start, end), comment, identifier, optional, typeParameters,
-          new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
+        return new FunctionDeclaration(Range.join(start, end), comment, identifier, optional,
+          new FunctionTypeDisplay(Range.join(start, end), typeParameters, parameters, returnType));
       }
       expect(':');
       const type = parseTypeExpression();
@@ -921,6 +922,221 @@ function* parse(s) {
   }
 };
 
+/**
+ * @param {string} s
+ * @param {number} depth
+ */
+function formatCommentString(s, depth) {
+  if (s.startsWith('/**')) s = s.slice('/**'.length);
+  if (s.endsWith('*/')) s = s.slice(0, s.length - '*/'.length);
+  s = s.replace(/\n[ ]*\* /g, '\n\n');
+  s = '\n' + s.trim() + '\n';
+  s = s.replace(/\n/g, '\n' + '  '.repeat(depth));
+  return s;
+}
+
+class Sink {
+  /**
+   * @param {(text: string) => void} write 
+   */
+  constructor(write) {
+    /** @readonly */ this._write = write;
+    this._depth = 0;
+  }
+
+  /**
+   * @template R
+   * @param {() => R} f
+   * @param {number} depth
+   * @returns {R}
+   */
+  nest(f, depth = 1) {
+    const oldDepth = this._depth;
+    this._depth += depth;
+    try {
+      return f();
+    } finally {
+      this._depth = oldDepth;
+    }
+  }
+
+  startLine() {
+    this._write('  '.repeat(this._depth));
+  }
+
+  endLine() {
+    this._write('\n');
+  }
+
+  /** @param {string} s */
+  write(s) {
+    this._write(s);
+  }
+
+  /** @param {string} s */
+  line(s) {
+    this.startLine();
+    this.write(s);
+    this.endLine();
+  }
+
+  /** @param {Token | undefined} comment */
+  writeBlockComment(comment) {
+    if (comment) {
+      this.startLine();
+      this.writeInlineComment(comment);
+      this.endLine();
+    }
+  }
+
+  /** @param {Token | undefined} comment */
+  writeInlineComment(comment) {
+    if (comment) {
+      this.write('"""');
+      this.write(formatCommentString(comment.value, this._depth));
+      this.write('"""');
+    }
+  }
+}
+
+/**
+ * @typedef {{identifier: Identifier, interfaces: InterfaceDefinition[], declarations: VariableDeclaration[]}} SymbolInfo
+ */
+
+/**
+ * @param {Sink} out
+ * @param {string[]} sources
+ */
+function translate(out, ...sources) {
+  out.line('"""');
+  out.line('AUTOGENERATED FROM ' + path.basename(ARGS.path));
+  out.line('WITH dom-gen/run.mjs');
+  out.line('"""');
+  out.line('export as js');
+
+  const globalsMap = /** @type {Map<string, SymbolInfo>} */ (new Map());
+  for (const source of sources) {
+    for (const statement of parse(source)) {
+      if (statement instanceof InterfaceDefinition || statement instanceof VariableDeclaration) {
+        const info = globalsMap.get(statement.identifier.name) || { identifier: statement.identifier, interfaces: [], declarations: [] };
+        globalsMap.set(statement.identifier.name, info);
+        if (statement instanceof InterfaceDefinition) {
+          info.interfaces.push(statement);
+        } else if (statement instanceof VariableDeclaration) {
+          info.declarations.push(statement);
+        }
+      }
+    }
+  }
+
+  /**
+   * @param {TypeExpression} type 
+   */
+  function translateType(type) {
+    if (type instanceof Identifier) {
+      switch (type.name) {
+        case 'number': return 'Number';
+        case 'string': return 'String';
+        case 'null': return 'Null';
+        case 'object': case 'any': return 'Any';
+        case 'ArrayBufferLike': return 'ArrayBuffer';
+      }
+      return type.name;
+    }
+    if (type instanceof TypeSpecialForm) {
+      switch (type.name) {
+        case 'array':
+          if (type.args.length === 1) return `List[${translateType(type.args[0])}]`;
+        case 'union':
+          return `Union[${type.args.map(t => translateType(t)).join(', ')}]`;
+        case 'intersect':
+          // TODO: some better type
+          return type.args.length === 0 ? 'Never' : translateType(type.args[0]);
+      }
+    }
+    console.warn(`UNHANDLED TYPE TRANSLATION:`, type);
+    return 'Any';
+  }
+
+  /**
+   * @param {VariableDeclaration} member
+   */
+  function translateMemberVariable(member) {
+    const name = member.identifier.name;
+    if (!/^[A-Za-z_]\w*$/.test(name)) return; // skip any field that does not have a "normal" name
+    const storageClass = member.isReadonly ? 'const' : 'var';
+    const type = translateType(member.type);
+    out.line(`${storageClass} ${name}: ${type} = aliasFor(__js_${name})`);
+  }
+
+  /** @param {Parameter} parameter */
+  function translateParameter(parameter) {
+    return `${parameter.identifier.name}: ${translateType(parameter.type)}`;
+  }
+
+  /** @param {Parameter[]} parameters */
+  function translateParameters(parameters) {
+    return `(${parameters.map(p => translateParameter(p)).join(', ')})`;
+  }
+
+  /**
+   * @param {FunctionDeclaration} member
+   */
+  function translateMemberFunction(member) {
+    if (member.optional) return;
+    if (member.type.typeParameters) return;
+    if (member.type.parameters.some(p => p.isVariadic)) return;
+    if (member.type.parameters.some(p => p.optional)) return;
+    const comment = member.comment;
+    const name = member.identifier.name;
+    const yalName = name === '' ? '__call__' : name;
+    const opName = name === '' ? '__call__' :
+      name === 'new' ? '__op_new__' :
+        `__js_${name}`;
+    out.line(`function ${yalName}${translateParameters(member.type.parameters)} {`);
+    out.nest(() => {
+      out.writeBlockComment(comment);
+      out.line(`aliasFor(${opName})`);
+    });
+    out.line(`}`);
+  }
+
+  /**
+   * @param {MemberStatement} member 
+   */
+  function translateMember(member) {
+    if (member instanceof VariableDeclaration) translateMemberVariable(member);
+    else if (member instanceof FunctionDeclaration) translateMemberFunction(member);
+  }
+
+  for (const info of globalsMap.values()) {
+    if (info.declarations.length !== 1) continue;
+    const declaration = info.declarations[0];
+    const type = declaration.type;
+    if (!(type instanceof Identifier)) continue;
+    const typeInfo = globalsMap.get(type.name);
+    if (!typeInfo || typeInfo.interfaces.length === 0) continue;
+
+    const comment = info.interfaces[0].comment || info.declarations[0].comment;
+    const name = info.identifier.name;
+    out.line(`export interface ${name} {`);
+    out.nest(() => {
+      out.writeBlockComment(comment);
+      out.line('static {');
+      out.nest(() => {
+        out.line(`aliasFor(native constexpr "${name}")`);
+        for (const iface of typeInfo.interfaces) {
+          for (const member of iface.body) {
+            translateMember(member);
+          }
+        }
+      });
+      out.line('}');
+    });
+    out.line('}');
+  }
+}
+
 switch (ARGS.command) {
   case 'lex':
     for (const token of lex(FILE_CONTENTS)) {
@@ -937,6 +1153,11 @@ switch (ARGS.command) {
       console.log(`${node.constructor.name} ${node.identifier.name}`);
     }
     break;
+  case 'translate': {
+    const sink = new Sink((text) => process.stdout.write(text));
+    translate(sink, FILE_CONTENTS);
+    break;
+  }
   default:
     throw new Error(`Unrecognized command ${JSON.stringify(ARGS.command)}`);
 };
