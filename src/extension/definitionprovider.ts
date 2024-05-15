@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as yal from '../lang/yal';
 import { getAnnotationForDocument } from '../lang/middleend/annotator';
 import { toVSLocation, toVSRange } from '../lang/frontend/bridge-utils';
 

@@ -22,24 +22,20 @@ export function activate(context: vscode.ExtensionContext) {
   const sub = (item: vscode.Disposable) => context.subscriptions.push(item);
 
   indexCommand();
-  // crawlAndIndex();
 
   if (vscode.window.activeTextEditor &&
     vscode.window.activeTextEditor.document.languageId === 'yal') {
-    // registry.startUpdate(vscode.window.activeTextEditor.document);
     getAnnotationForDocument(vscode.window.activeTextEditor.document);
   }
 
   sub(vscode.workspace.onDidSaveTextDocument(async document => {
     if (document.languageId === 'yal') {
-      // registry.startUpdate(document);
       getAnnotationForDocument(document);
     }
   }));
 
   sub(vscode.window.onDidChangeActiveTextEditor(async editor => {
     if (editor?.document.languageId === 'yal') {
-      // registry.startUpdate(editor.document);
       getAnnotationForDocument(editor.document);
     }
   }));
@@ -78,20 +74,4 @@ export function activate(context: vscode.ExtensionContext) {
   sub(vscode.languages.registerInlayHintsProvider(
     { language: 'yal' },
     newInlayHintsProvider()));
-
-  // sub(vscode.languages.registerDefinitionProvider(
-  //   { language: 'yal' },
-  //   newDefinitionProvider(registry)));
-  // sub(vscode.languages.registerHoverProvider(
-  //   { language: 'yal' },
-  //   newHoverProvider(registry)));
-  // sub(vscode.languages.registerCompletionItemProvider(
-  //   { language: 'yal' },
-  //   newCompletionProvider(registry), '.'));
-  // sub(vscode.languages.registerSignatureHelpProvider(
-  //   { language: 'yal' },
-  //   newSignatureHelpProvider(registry), '('));
-  // sub(vscode.languages.registerInlayHintsProvider(
-  //   { language: 'yal' },
-  //   newInlayHintsProvider(registry)));
 }

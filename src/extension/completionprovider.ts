@@ -1,8 +1,8 @@
 import * as vscode from 'vscode';
-import * as yal from '../lang/yal';
 import { getAnnotationForDocument } from '../lang/middleend/annotator';
 import { getAstForDocument } from '../lang/frontend/parser';
 import { toVSRange } from '../lang/frontend/bridge-utils';
+import { ast } from '../lang/yal';
 
 export function newCompletionProvider(): vscode.CompletionItemProvider {
   return {
@@ -24,12 +24,12 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
               const fileNode = await getAstForDocument(document);
               let position = new vscode.Position(0, 0);
               for (const statement of fileNode.statements) {
-                if (statement instanceof yal.ast.CommentStatement) {
+                if (statement instanceof ast.CommentStatement) {
                   // skip comments at the top
                   position = new vscode.Position(statement.location.range.end.line + 1, 0);
                   continue;
-                } else if (statement instanceof yal.ast.ExpressionStatement) {
-                  if (statement.expression instanceof yal.ast.StringLiteral) {
+                } else if (statement instanceof ast.ExpressionStatement) {
+                  if (statement.expression instanceof ast.StringLiteral) {
                     // skip string literal comment at the top.
                     // But after this one, no more skipping
                     position = new vscode.Position(statement.location.range.end.line + 1, 0);
@@ -41,16 +41,16 @@ export function newCompletionProvider(): vscode.CompletionItemProvider {
               for (const statement of fileNode.statements) {
                 if (
                   // imports should generally come after 'export as' statements
-                  statement instanceof yal.ast.ExportAs ||
+                  statement instanceof ast.ExportAs ||
 
                   (completion.importAsModule ?
 
                     // 'import as' statements generally come first, and are sorted by path
-                    (statement instanceof yal.ast.ImportAs && statement.path.value < completion.importFrom) :
+                    (statement instanceof ast.ImportAs && statement.path.value < completion.importFrom) :
 
                     // 'import from' statements generally come after 'import as' statements
-                    (statement instanceof yal.ast.ImportAs ||
-                      (statement instanceof yal.ast.FromImport &&
+                    (statement instanceof ast.ImportAs ||
+                      (statement instanceof ast.FromImport &&
                         (statement.path.value !== completion.importFrom ?
                           // and are sorted by path
                           statement.path.value < completion.importFrom :
