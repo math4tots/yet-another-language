@@ -1082,22 +1082,6 @@ function newUnionType(types: UnionElementType[]): UnionType {
   return unionType;
 }
 
-export function newValueType(value: number | string, location?: ast.Location): ValueType {
-  const decayType = typeof value === 'number' ? NumberType :
-    typeof value === 'string' ? StringType : AnyType;
-  const valueType = new Type({
-    identifier: { name: JSON.stringify(value) },
-    valueTypeData: { variable: { identifier: { name: 'value', location }, type: decayType, value }, decayType },
-  }) as ValueType;
-  valueType.addMethod({
-    identifier: { name: '__get_value' },
-    parameters: [],
-    returnType: decayType,
-    aliasFor: `__op_noop__`,
-  });
-  return valueType;
-}
-
 ////////////////////////
 // BUILTIN TYPE METHODS
 ////////////////////////

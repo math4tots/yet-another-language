@@ -86,9 +86,6 @@ class Translator implements ast.NodeVisitor<string> {
       `${translateVariableName(n.qualifier.name)}.${translateVariableName(n.identifier.name)}` :
       translateVariableName(n.identifier.name);
   }
-  visitValueTypeDisplay(n: ast.ValueTypeDisplay): string {
-    return JSON.stringify(n.value);
-  }
   visitSpecialTypeDisplay(n: ast.SpecialTypeDisplay): string {
     return 'SPECIALTYPEDISPLAY';
   }

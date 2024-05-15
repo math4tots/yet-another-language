@@ -173,14 +173,19 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
   }
 
   function parsePrimaryTypeExpression(): ast.TypeExpression {
-    if (at('STRING') || at('NUMBER')) {
-      const value = at('STRING') ? parseStringLiteral() : parseNumberLiteral();
-      return new ast.ValueTypeDisplay(value.location, value);
-    }
     if (consume('(')) {
       const te = parseTypeExpression();
       expect(')');
       return te;
+    }
+    if (!at('IDENTIFIER')) {
+      const location: ast.Location = { uri, range: tokens[i].range };
+      errors.push({
+        location,
+        message: `Expected type expression`,
+      });
+      next();
+      return new ast.Typename(location, undefined, new ast.IdentifierNode(location, 'Any'));
     }
     const firstIdentifier = parseIdentifier();
     if (consume('.')) {

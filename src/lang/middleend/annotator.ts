@@ -45,7 +45,6 @@ import {
   ClassTypeType,
   newTupleType,
   newTypeParameterTypeType,
-  newValueType,
 } from './type';
 import {
   Annotation,
@@ -325,11 +324,6 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       this.error(e.identifier.location, `${e.identifier.name} is not a type`);
       return AnyType;
     }
-    return type;
-  }
-
-  visitValueTypeDisplay(e: ast.ValueTypeDisplay): Type {
-    const type = newValueType(e.value.value, e.location);
     return type;
   }
 

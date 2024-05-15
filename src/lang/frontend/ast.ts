@@ -19,7 +19,6 @@ export interface ExplicitIdentifier {
 
 export interface TypeExpressionVisitor<R> {
   visitTypename(n: Typename): R;
-  visitValueTypeDisplay(n: ValueTypeDisplay): R;
   visitSpecialTypeDisplay(n: SpecialTypeDisplay): R;
 }
 
@@ -112,20 +111,6 @@ export class Typename {
   toString() { return `${this.identifier.name}`; }
 }
 
-export class ValueTypeDisplay {
-  readonly location: Location;
-  readonly value: NumberLiteral | StringLiteral;
-
-  constructor(location: Location, value: NumberLiteral | StringLiteral) {
-    this.location = location;
-    this.value = value;
-  }
-
-  accept<R>(visitor: TypeExpressionVisitor<R>): R { return visitor.visitValueTypeDisplay(this); }
-
-  toString() { return JSON.stringify(this.value.value); }
-}
-
 export class SpecialTypeDisplay {
   readonly location: Location;
   readonly identifier: IdentifierNode;
@@ -142,7 +127,7 @@ export class SpecialTypeDisplay {
   toString() { return `${this.identifier.name}[${this.args.map((arg): String => arg.toString()).join(', ')}]`; }
 }
 
-export type TypeExpression = Typename | ValueTypeDisplay | SpecialTypeDisplay;
+export type TypeExpression = Typename | SpecialTypeDisplay;
 
 export class NullLiteral implements Expression {
   readonly location: Location;
