@@ -185,7 +185,7 @@ class Range {
  */
 
 /**
- * @typedef {VariableDeclaration | FunctionDeclaration} StatementCommon
+ * @typedef {UnknownStatement | VariableDeclaration | FunctionDeclaration} StatementCommon
  */
 
 /**
@@ -362,13 +362,15 @@ class FunctionDeclaration {
    * @param {Range} range 
    * @param {Token | undefined} comment
    * @param {Identifier} identifier 
+   * @param {boolean} optional
    * @param {TypeParameter[] | undefined} typeParameters
    * @param {TypeExpression} type
    */
-  constructor(range, comment, identifier, typeParameters, type) {
+  constructor(range, comment, identifier, optional, typeParameters, type) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.comment = comment;
     /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.optional = optional;
     /** @readonly */ this.typeParameters = typeParameters;
     /** @readonly */ this.type = type;
   }
@@ -408,17 +410,30 @@ class TypeAliasDeclaration {
   }
 }
 
+class UnknownStatement {
+  /**
+   * @param {Range} range 
+   * @param {Identifier} identifier
+   */
+  constructor(range, identifier) {
+    this.range = range;
+    this.identifier = identifier;
+  }
+}
+
 class ComputedPropertyDeclaration {
   /**
    * @param {Range} range 
    * @param {Token | undefined} comment
+   * @param {boolean} isReadonly 
    * @param {Identifier} identifier 
    * @param {TypeExpression} keyType
    * @param {TypeExpression} valueType
    */
-  constructor(range, comment, identifier, keyType, valueType) {
+  constructor(range, comment, isReadonly, identifier, keyType, valueType) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.comment = comment;
+    /** @readonly */ this.isReadonly = isReadonly;
     /** @readonly */ this.identifier = identifier;
     /** @readonly */ this.keyType = keyType;
     /** @readonly */ this.valueType = valueType;
@@ -552,6 +567,12 @@ function* parse(s) {
     return firstIdentifier;
   }
 
+  function parseNumberLiteralAsIdentifier() {
+    if (!at('NUMBER')) throw new Error(`Line ${peek.line}: Expected (number literal) identifier but got ${peek}`);
+    const token = expect('NUMBER');
+    return new Identifier(Range.join(token), token.value);
+  }
+
   function parseStringLiteralAsIdentifier() {
     if (!at('STRING')) throw new Error(`Line ${peek.line}: Expected (string literal) identifier but got ${peek}`);
     const token = expect('STRING');
@@ -632,6 +653,10 @@ function* parse(s) {
       const { body, end } = parseInterfaceBody();
       return new RecordTypeDisplay(Range.join(start, end), body);
     }
+    if (consume('...')) {
+      const inner = parseTypeExpression();
+      return new TypeSpecialForm(Range.join(start, inner), 'splat', [inner]);
+    }
     if (consume('-')) {
       const token = expect('NUMBER');
       return new LiteralTypeDisplay(
@@ -641,13 +666,19 @@ function* parse(s) {
       const token = next();
       return new LiteralTypeDisplay(token.range, token);
     }
-    if (at('NAME', ['typeof', 'keyof'])) {
+    if (at('NAME', ['new', 'readonly', 'in', 'abstract'])) {
+      const kind = next().value;
+      if (at('<')) skip(true); // skip type parameters
+      const arg = parseTypeExpression();
+      return new TypeSpecialForm(Range.join(start, arg), kind, [arg]);
+    }
+    if (at('NAME', ['typeof', 'keyof', 'infer'])) {
       const kind = next().value;
       const possiblyQualifiedIdentifier = parsePossiblyQualifiedIdentifier();
       return new TypeSpecialForm(Range.join(start, possiblyQualifiedIdentifier), kind, [possiblyQualifiedIdentifier]);
     }
     if (at('NAME')) {
-      return parseIdentifier();
+      return parsePossiblyQualifiedIdentifier();
     }
     throw new Error(`Line ${peek.line}: Expected type expression but got ${peek}`);
   }
@@ -701,6 +732,19 @@ function* parse(s) {
         te = new TypeSpecialForm(Range.join(te, end), 'reify', [te, ...args]);
         continue;
       }
+      if (at('NAME', ['extends', 'is'])) {
+        const kind = next().value;
+        const rhs = parseTypeExpression();
+        te = new TypeSpecialForm(Range.join(te, rhs), kind, [te, rhs]);
+        continue;
+      }
+      if (consume('?')) {
+        const lhs = parseTypeExpression();
+        expect(':');
+        const rhs = parseTypeExpression();
+        te = new TypeSpecialForm(Range.join(te, rhs), 'conditional', [te, lhs, rhs]);
+        continue;
+      }
       break;
     }
     return te;
@@ -729,9 +773,12 @@ function* parse(s) {
     return new InterfaceDefinition(Range.join(start, end), comment, identifier, typeParameters, bases, body);
   }
 
-  function parseTypeAliasDeclaration() {
-    const comment = lastComment;
-    const start = expect('NAME', 'type');
+  /**
+   * @param {Token | undefined} comment 
+   * @param {Rangeable} start 
+   */
+  function parseTypeAliasDeclaration(comment, start) {
+    expect('NAME', 'type');
     const identifier = parseIdentifier();
     const typeParameters = at('<') ? parseTypeParameters() : undefined;
     expect('=');
@@ -760,12 +807,13 @@ function* parse(s) {
   function parseFunctionDeclaration(comment, start) {
     expect('NAME', 'function');
     const identifier = parseIdentifier();
+    const optional = consume('?');
     const typeParameters = at('<') ? parseTypeParameters() : undefined;
     const parameters = parseParameters();
     expect(':');
     const returnType = parseTypeExpression();
     const end = expect(';');
-    return new FunctionDeclaration(Range.join(start, end), comment, identifier, typeParameters,
+    return new FunctionDeclaration(Range.join(start, end), comment, identifier, optional, typeParameters,
       new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
   }
 
@@ -791,16 +839,17 @@ function* parse(s) {
   function parseStatement() {
     while (consume('COMMENT'));
     if (at('NAME', 'interface')) return parseInterfaceDefinition();
-    if (at('NAME', 'type')) return parseTypeAliasDeclaration();
     const comment = lastComment;
     const start = peek;
     if (at('NAME', ['var', 'const'])) return parseVariableDeclaration(comment, start);
     if (at('NAME', 'namespace')) return parseNamespaceDeclaration(comment, start);
     if (at('NAME', 'function')) return parseFunctionDeclaration(comment, start);
+    if (at('NAME', 'type')) return parseTypeAliasDeclaration(comment, start);
     if (consume('NAME', 'declare')) {
       if (at('NAME', ['var', 'const'])) return parseVariableDeclaration(comment, start);
       if (at('NAME', 'namespace')) return parseNamespaceDeclaration(comment, start);
       if (at('NAME', 'function')) return parseFunctionDeclaration(comment, start);
+      if (at('NAME', 'type')) return parseTypeAliasDeclaration(comment, start);
       throw new Error(`Line ${peek.line}: Expected declare type but got ${peek}`);
     }
     throw new Error(`Line ${peek.line}: Expected statement but got ${peek}`);
@@ -822,21 +871,23 @@ function* parse(s) {
       return new SpecialFunctionDeclaration(Range.join(start, end), comment, kind, identifier,
         new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
     }
-    if (at('NAME') || at('STRING') || at('(')) {
-      const isReadonly = consume('NAME', 'readonly');
-      const identifier = at('(') ?
+    const isReadonly = consume('NAME', 'readonly');
+    if (at(['NAME', 'NUMBER', 'STRING', '(', '<'])) {
+      const identifier = at(['(', '<']) ?
         new Identifier(peek.range, '') :
-        at('STRING') ? parseStringLiteralAsIdentifier() : parseIdentifier();
+        at('NUMBER') ? parseNumberLiteralAsIdentifier() :
+          at('STRING') ? parseStringLiteralAsIdentifier() :
+            parseIdentifier();
+      const optional = consume('?');
       if (!isReadonly && at(['(', '<'])) {
         const typeParameters = at('<') ? parseTypeParameters() : undefined;
         const parameters = parseParameters();
         expect(':');
         const returnType = parseTypeExpression();
         const end = expect(';');
-        return new FunctionDeclaration(Range.join(start, end), comment, identifier, typeParameters,
+        return new FunctionDeclaration(Range.join(start, end), comment, identifier, optional, typeParameters,
           new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
       }
-      const optional = consume('?');
       expect(':');
       const type = parseTypeExpression();
       const end = expect(';');
@@ -844,13 +895,24 @@ function* parse(s) {
     }
     if (consume('[')) {
       const identifier = parseIdentifier();
+      if (consume('NAME', 'in')) {
+        // bleh. more unexpected syntax. skip these for now
+        parseTypeExpression(); // key type
+        expect(']');
+        consume('-'); // WTH? but this appears in lib.es5.d.ts
+        consume('?');
+        expect(':');
+        const end = parseTypeExpression(); // value type
+        expect(';');
+        return new UnknownStatement(Range.join(start, end), new Identifier(Range.join(start, end), 'computed-property-in'));
+      }
       expect(':');
       const keyType = parseTypeExpression();
       expect(']');
       expect(':');
       const valueType = parseTypeExpression();
       const end = expect(';');
-      return new ComputedPropertyDeclaration(Range.join(start, end), comment, identifier, keyType, valueType);
+      return new ComputedPropertyDeclaration(Range.join(start, end), comment, isReadonly, identifier, keyType, valueType);
     }
     throw new Error(`Line ${peek.line}: Expected member statement but got ${peek}`);
   }
