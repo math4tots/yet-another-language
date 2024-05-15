@@ -146,11 +146,15 @@ function* lex(s) {
 
 class Range {
   /**
-   * @param {Rangeable[]} rs
+   * @param {(Rangeable | undefined)[]} rs
    */
   static join(...rs) {
-    const min = Math.min(...rs.map(r => r instanceof Range ? r.start : r.range.start));
-    const max = Math.max(...rs.map(r => r instanceof Range ? r.end : r.range.end));
+    const rr = /** @type {Rangeable[]} */ ([]);
+    for (const r of rs) {
+      if (r !== undefined) rr.push(r);
+    }
+    const min = Math.min(...rr.map(r => r instanceof Range ? r.start : r.range.start));
+    const max = Math.max(...rr.map(r => r instanceof Range ? r.end : r.range.end));
     return new Range(min, max);
   }
 
@@ -189,7 +193,7 @@ class Range {
  */
 
 /**
- * @typedef {StatementCommon | ComputedPropertyDeclaration} MemberStatement
+ * @typedef {StatementCommon | ComputedPropertyDeclaration | SpecialFunctionDeclaration} MemberStatement
  */
 
 class Identifier {
@@ -269,13 +273,15 @@ class InterfaceDefinition {
    * @param {Range} range
    * @param {Token | undefined} comment
    * @param {Identifier} identifier
+   * @param {TypeParameter[] | undefined} typeParameters
    * @param {TypeExpression[]} bases
    * @param {MemberStatement[]} body
    */
-  constructor(range, comment, identifier, bases, body) {
+  constructor(range, comment, identifier, typeParameters, bases, body) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.comment = comment;
     /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.typeParameters = typeParameters;
     /** @readonly */ this.bases = bases;
     /** @readonly */ this.body = body;
   }
@@ -315,6 +321,23 @@ class NamespaceDeclaration {
   }
 }
 
+class TypeParameter {
+  /**
+   * @param {Range} range 
+   * @param {Token | undefined} comment
+   * @param {Identifier} identifier 
+   * @param {TypeExpression | undefined} base
+   * @param {TypeExpression | undefined} defaultType
+   */
+  constructor(range, comment, identifier, base, defaultType) {
+    /** @readonly */ this.range = range;
+    /** @readonly */ this.comment = comment;
+    /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.base = base;
+    /** @readonly */ this.defaultType = defaultType;
+  }
+}
+
 class Parameter {
   /**
    * @param {Range} range 
@@ -339,12 +362,14 @@ class FunctionDeclaration {
    * @param {Range} range 
    * @param {Token | undefined} comment
    * @param {Identifier} identifier 
+   * @param {TypeParameter[] | undefined} typeParameters
    * @param {TypeExpression} type
    */
-  constructor(range, comment, identifier, type) {
+  constructor(range, comment, identifier, typeParameters, type) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.comment = comment;
     /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.typeParameters = typeParameters;
     /** @readonly */ this.type = type;
   }
 }
@@ -371,12 +396,14 @@ class TypeAliasDeclaration {
    * @param {Range} range 
    * @param {Token | undefined} comment
    * @param {Identifier} identifier 
+   * @param {TypeParameter[] | undefined} typeParameters
    * @param {TypeExpression} type
    */
-  constructor(range, comment, identifier, type) {
+  constructor(range, comment, identifier, typeParameters, type) {
     /** @readonly */ this.range = range;
     /** @readonly */ this.comment = comment;
     /** @readonly */ this.identifier = identifier;
+    /** @readonly */ this.typeParameters = typeParameters;
     /** @readonly */ this.type = type;
   }
 }
@@ -531,6 +558,26 @@ function* parse(s) {
     return new Identifier(Range.join(token), token.value);
   }
 
+  function parseTypeParameter() {
+    while (consume('COMMENT'));
+    const comment = lastComment;
+    const identifier = parseIdentifier();
+    const base = consume('NAME', 'extends') ? parseTypeExpression() : undefined;
+    const defaultType = consume('=') ? parseTypeExpression() : undefined;
+    return new TypeParameter(Range.join(identifier, base), comment, identifier, base, defaultType);
+  }
+
+  function parseTypeParameters() {
+    expect('<');
+    const tps = /** @type {TypeParameter[]} */ ([]);
+    while (!at('>')) {
+      tps.push(parseTypeParameter());
+      if (!consume(',')) break;
+    }
+    expect('>');
+    return tps;
+  }
+
   function parseParameter() {
     while (consume('COMMENT'));
     const comment = lastComment;
@@ -673,24 +720,24 @@ function* parse(s) {
     const comment = lastComment;
     const start = expect('NAME', 'interface');
     const identifier = parseIdentifier();
-    if (at('<')) skip(true); // For now skip type parameters
+    const typeParameters = at('<') ? parseTypeParameters() : undefined;
     const bases = /** @type {TypeExpression[]} */ ([]);
     if (consume('NAME', 'extends')) {
       do { bases.push(parseTypeExpression()); } while (consume(','));
     }
     const { body, end } = parseInterfaceBody();
-    return new InterfaceDefinition(Range.join(start, end), comment, identifier, bases, body);
+    return new InterfaceDefinition(Range.join(start, end), comment, identifier, typeParameters, bases, body);
   }
 
   function parseTypeAliasDeclaration() {
     const comment = lastComment;
     const start = expect('NAME', 'type');
     const identifier = parseIdentifier();
-    if (at('<')) skip(true); // skip type parameters
+    const typeParameters = at('<') ? parseTypeParameters() : undefined;
     expect('=');
     const type = parseTypeExpression();
     expect(';');
-    return new TypeAliasDeclaration(Range.join(start, type), comment, identifier, type);
+    return new TypeAliasDeclaration(Range.join(start, type), comment, identifier, typeParameters, type);
   }
 
   /**
@@ -713,12 +760,12 @@ function* parse(s) {
   function parseFunctionDeclaration(comment, start) {
     expect('NAME', 'function');
     const identifier = parseIdentifier();
-    if (at('<')) skip(true); // skip type parameters
+    const typeParameters = at('<') ? parseTypeParameters() : undefined;
     const parameters = parseParameters();
     expect(':');
     const returnType = parseTypeExpression();
     const end = expect(';');
-    return new FunctionDeclaration(Range.join(start, end), comment, identifier,
+    return new FunctionDeclaration(Range.join(start, end), comment, identifier, typeParameters,
       new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
   }
 
@@ -781,12 +828,12 @@ function* parse(s) {
         new Identifier(peek.range, '') :
         at('STRING') ? parseStringLiteralAsIdentifier() : parseIdentifier();
       if (!isReadonly && at(['(', '<'])) {
-        if (at('<')) skip(true); // skip type parameters
+        const typeParameters = at('<') ? parseTypeParameters() : undefined;
         const parameters = parseParameters();
         expect(':');
         const returnType = parseTypeExpression();
         const end = expect(';');
-        return new FunctionDeclaration(Range.join(start, end), comment, identifier,
+        return new FunctionDeclaration(Range.join(start, end), comment, identifier, typeParameters,
           new FunctionTypeDisplay(Range.join(start, end), parameters, returnType));
       }
       const optional = consume('?');
@@ -821,6 +868,11 @@ switch (ARGS.command) {
   case 'parse':
     for (const node of parse(FILE_CONTENTS)) {
       console.log(util.inspect(node, { showHidden: false, depth: null, colors: process.stdout.hasColors && process.stdout.hasColors() }));
+    }
+    break;
+  case 'list':
+    for (const node of parse(FILE_CONTENTS)) {
+      console.log(`${node.constructor.name} ${node.identifier.name}`);
     }
     break;
   default:
