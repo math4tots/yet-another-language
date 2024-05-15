@@ -842,6 +842,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
         const type = this.solveType(defn.type);
         const aliasType = newAliasType(defn.identifier, type);
         const variable: Variable = {
+          isPrivate: !defn.isExported,
           identifier: defn.identifier,
           type: aliasType,
           comment: type.comment,
@@ -859,6 +860,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
           }
         }
         const variable: ClassVariable = {
+          isPrivate: !defn.isExported,
           identifier: defn.identifier,
           type: newClassTypeType(
             defn.isAbstract,
@@ -905,6 +907,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
         }
         const interfaceTypeType = newInterfaceTypeType(defn.identifier, superTypes, comment);
         const variable: InterfaceVariable = {
+          isPrivate: !defn.isExported,
           identifier: defn.identifier,
           type: interfaceTypeType,
           value: aliasForValue,
@@ -1240,6 +1243,13 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     const cached = this.lambdaTypeCache.get(n);
     if (cached) return cached;
     const hint = rawHint.lambdaErasure().functionTypeData;
+    if (!hint) {
+      for (const parameterNode of n.parameters) {
+        if (!parameterNode.type) {
+          this.error(parameterNode.location, `Missing parameter type (required when type cannot be inferred)`);
+        }
+      }
+    }
     return this.scoped(() => {
       const typeParameters: TypeParameterVariable[] | undefined = n.typeParameters?.map(tp => ({
         identifier: tp.identifier,
@@ -1907,6 +1917,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     }
     const type = explicitType || valueInfo?.type || AnyType;
     const variable: Variable = {
+      isPrivate: !n.isExported,
       isMutable: n.isMutable,
       identifier: n.identifier,
       type,

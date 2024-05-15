@@ -17,6 +17,7 @@ import type {
 export type AnnotationError = ast.ParseError;
 
 export type Variable = {
+  readonly isPrivate?: boolean;
   readonly isMutable?: boolean;
   readonly identifier: ast.Identifier;
   readonly type: Type;

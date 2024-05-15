@@ -7,12 +7,17 @@ import { findAllYalFilesInWorkspace } from '../lang/middleend/paths';
 
 export function newReferenceProvider(): vscode.ReferenceProvider {
   return {
-    async provideReferences(document, position, context, token) {
+    async provideReferences(document, position, context, firstToken) {
+      const tokenSource = new vscode.CancellationTokenSource();
+      const token = tokenSource.token;
+      firstToken.onCancellationRequested(() => tokenSource.cancel());
+
       const includeDeclaration = context.includeDeclaration;
       const currentAnntation = await getAnnotationForDocument(document);
       const variable = findVariable(currentAnntation, position);
       const locations: vscode.Location[] = [];
-      for await (const annotation of findAllAnnotations(token)) {
+
+      const searchInAnnotation = (annotation: Annotation) => {
         for (const reference of annotation.references) {
           if (reference.variable === variable && (includeDeclaration || !reference.isDeclaration)) {
             locations.push(toVSLocation({
@@ -21,8 +26,25 @@ export function newReferenceProvider(): vscode.ReferenceProvider {
             }));
           }
         }
+      };
+
+      searchInAnnotation(currentAnntation);
+      if (variable?.isPrivate) {
+        return locations;
       }
-      return locations;
+      return new Promise((resolve, reject) => {
+        vscode.window.withProgress({
+          location: vscode.ProgressLocation.Notification,
+          title: `find references to ${variable?.identifier.name}`,
+          cancellable: true,
+        }, async (progress, secondToken) => {
+          secondToken.onCancellationRequested(() => tokenSource.cancel());
+          for await (const annotation of findAllAnnotations(token)) {
+            searchInAnnotation(annotation);
+          }
+          return locations;
+        });
+      });
     },
   };
 }
