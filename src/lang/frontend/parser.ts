@@ -169,51 +169,62 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     const location = { uri, range };
     errors.push({ location, message: 'Expected type expression' });
     const identifier = new ast.IdentifierNode(location, 'Null');
-    return new ast.TypeExpression(location, null, identifier, []);
+    return new ast.Typename(location, undefined, identifier);
   }
 
-  function parseTypeExpression(): ast.TypeExpression {
+  function parsePrimaryTypeExpression(): ast.TypeExpression {
+    if (at('STRING') || at('NUMBER')) {
+      const value = at('STRING') ? parseStringLiteral() : parseNumberLiteral();
+      return new ast.ValueTypeDisplay(value.location, value);
+    }
+    if (consume('(')) {
+      const te = parseTypeExpression();
+      expect(')');
+      return te;
+    }
     const firstIdentifier = parseIdentifier();
-    const start = firstIdentifier.location.range.start;
-    const secondIdentifier = consume('.') ?
-      (!atFirstTokenOfNewLine() && at('IDENTIFIER')) ?
-        parseIdentifier() :
-        new ast.IdentifierNode({ uri, range: tokens[i - 1].range }, '') :
-      null;
-    const identifier = secondIdentifier || firstIdentifier;
-    const qualifier = secondIdentifier ? firstIdentifier : null;
-    const args: ast.TypeExpression[] = [];
-    let end = identifier.location.range.end;
+    if (consume('.')) {
+      const secondIdentifier = (!atFirstTokenOfNewLine() && at('IDENTIFIER')) ?
+        parseIdentifier() : new ast.IdentifierNode({ uri, range: tokens[i - 1].range }, '');
+      return new ast.Typename(firstIdentifier.location, firstIdentifier, secondIdentifier);
+    }
     if (consume('[')) {
+      const bracketStart = tokens[i - 1].range.start;
+      const start = firstIdentifier.location.range.start;
+      const args: ast.TypeExpression[] = [];
       while (!atEOF() && !at(']')) {
         while (consume('COMMENT'));
         args.push(parseTypeExpression());
         if (!consume(',')) break;
         while (consume('COMMENT'));
       }
-      end = expect(']').range.end;
+      const end = expect(']').range.end;
+      return new ast.SpecialTypeDisplay({ uri, range: { start, end } }, firstIdentifier, args);
     }
-    const location: ast.Location = { uri, range: { start, end } };
-    const coreExpression = new ast.TypeExpression(location, qualifier, identifier, args);
-    let expression = coreExpression;
+    return new ast.Typename(firstIdentifier.location, undefined, firstIdentifier);
+  }
+
+  function parseTypeExpression(): ast.TypeExpression {
+    const start = tokens[i].range.start;
+    let te = parsePrimaryTypeExpression();
     if (at('?')) {
       const nullableIdentifier = new ast.IdentifierNode({ uri, range: next().range }, 'Nullable');
       const nullableRange: Range = { start, end: nullableIdentifier.location.range.end };
       const nullableLocation: ast.Location = { uri, range: nullableRange };
-      expression = new ast.TypeExpression(nullableLocation, null, nullableIdentifier, [coreExpression]);
+      te = new ast.SpecialTypeDisplay(nullableLocation, nullableIdentifier, [te]);
     }
     if (at('|')) {
       const unionIdentifier = new ast.IdentifierNode({ uri, range: next().range }, 'Union');
       const rhs = parseTypeExpression();
       const unionRange: Range = { start, end: rhs.location.range.end };
       const unionLocation: ast.Location = { uri, range: unionRange };
-      if (!rhs.qualifier && rhs.identifier.name === 'Union') { // rhs is also a union (merge them)
-        expression = new ast.TypeExpression(unionLocation, null, unionIdentifier, [expression, ...rhs.args]);
+      if (rhs instanceof ast.SpecialTypeDisplay && rhs.identifier.name === 'Union') { // rhs is also a union (merge them)
+        te = new ast.SpecialTypeDisplay(unionLocation, unionIdentifier, [te, ...rhs.args]);
       } else {
-        expression = new ast.TypeExpression(unionLocation, null, unionIdentifier, [expression, rhs]);
+        te = new ast.SpecialTypeDisplay(unionLocation, unionIdentifier, [te, rhs]);
       }
     }
-    return expression;
+    return te;
   }
 
   function atFunctionDisplay(): boolean {
@@ -241,7 +252,7 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     if (at('null')) return new ast.NullLiteral({ uri, range: next().range });
     if (at('true')) return new ast.BooleanLiteral({ uri, range: next().range }, true);
     if (at('false')) return new ast.BooleanLiteral({ uri, range: next().range }, false);
-    if (at('NUMBER')) return new ast.NumberLiteral({ uri, range: tokens[i].range }, next().value as number);
+    if (at('NUMBER')) return parseNumberLiteral();
     if (at('STRING')) return parseStringLiteral();
     if (consume('-')) {
       return new ast.NumberLiteral({ uri, range: tokens[i].range }, -(expect('NUMBER').value as number));
@@ -867,6 +878,12 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
     return new ast.EnumDefinition(
       { uri, range: { start: startPos, end: body.location.range.end } },
       isExported, identifier, body.statements);
+  }
+
+  function parseNumberLiteral(): ast.NumberLiteral {
+    const numberToken = expect('NUMBER');
+    const value = numberToken.value as number;
+    return new ast.NumberLiteral({ uri, range: numberToken.range }, value);
   }
 
   function parseStringLiteral(): ast.StringLiteral {

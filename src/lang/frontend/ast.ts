@@ -17,6 +17,12 @@ export interface ExplicitIdentifier {
   readonly name: string;
 };
 
+export interface TypeExpressionVisitor<R> {
+  visitTypename(n: Typename): R;
+  visitValueTypeDisplay(n: ValueTypeDisplay): R;
+  visitSpecialTypeDisplay(n: SpecialTypeDisplay): R;
+}
+
 export interface ExpressionVisitor<R> {
   visitNullLiteral(n: NullLiteral): R;
   visitBooleanLiteral(n: BooleanLiteral): R;
@@ -61,9 +67,15 @@ export interface StatementVisitor<R> {
   visitTypedef(n: Typedef): R;
 }
 
-export interface NodeVisitor<R> extends ExpressionVisitor<R>, StatementVisitor<R> {
+export interface FileVisitor<R> {
   visitFile(n: File): R;
 }
+
+export interface NodeVisitor<R> extends
+  TypeExpressionVisitor<R>,
+  ExpressionVisitor<R>,
+  StatementVisitor<R>,
+  FileVisitor<R> { }
 
 export interface Expression {
   readonly location: Location;
@@ -84,25 +96,53 @@ export type ParseError = {
   readonly message: string;
 };
 
-export class TypeExpression {
+export class Typename {
   readonly location: Location;
-  readonly qualifier: IdentifierNode | null;
+  readonly qualifier: IdentifierNode | undefined;
   readonly identifier: IdentifierNode;
-  readonly args: TypeExpression[];
-  constructor(
-    location: Location,
-    qualifier: IdentifierNode | null,
-    identifier: IdentifierNode,
-    args: TypeExpression[]) {
+
+  constructor(location: Location, qualifier: IdentifierNode | undefined, identifier: IdentifierNode) {
     this.location = location;
     this.qualifier = qualifier;
     this.identifier = identifier;
+  }
+
+  accept<R>(visitor: TypeExpressionVisitor<R>): R { return visitor.visitTypename(this); }
+
+  toString() { return `${this.identifier.name}`; }
+}
+
+export class ValueTypeDisplay {
+  readonly location: Location;
+  readonly value: NumberLiteral | StringLiteral;
+
+  constructor(location: Location, value: NumberLiteral | StringLiteral) {
+    this.location = location;
+    this.value = value;
+  }
+
+  accept<R>(visitor: TypeExpressionVisitor<R>): R { return visitor.visitValueTypeDisplay(this); }
+
+  toString() { return JSON.stringify(this.value.value); }
+}
+
+export class SpecialTypeDisplay {
+  readonly location: Location;
+  readonly identifier: IdentifierNode;
+  readonly args: TypeExpression[];
+
+  constructor(location: Location, identifier: IdentifierNode, args: TypeExpression[]) {
+    this.location = location;
+    this.identifier = identifier;
     this.args = args;
   }
-  toString() {
-    return this.identifier.name + (this.args.length ? `[${this.args.join(',')}]` : '');
-  }
+
+  accept<R>(visitor: TypeExpressionVisitor<R>): R { return visitor.visitSpecialTypeDisplay(this); }
+
+  toString() { return `${this.identifier.name}[${this.args.map((arg): String => arg.toString()).join(', ')}]`; }
 }
+
+export type TypeExpression = Typename | ValueTypeDisplay | SpecialTypeDisplay;
 
 export class NullLiteral implements Expression {
   readonly location: Location;
@@ -691,5 +731,5 @@ export class File {
     this.statements = statements;
     this.errors = errors;
   }
-  accept<R>(visitor: NodeVisitor<R>): R { return visitor.visitFile(this); }
+  accept<R>(visitor: FileVisitor<R>): R { return visitor.visitFile(this); }
 }

@@ -79,14 +79,19 @@ export type JavascriptTranslationOptions = {
   readonly omitDefaultPrintFunction?: boolean;
 };
 
-function translateType(te: ast.TypeExpression): string {
-  return te.qualifier ?
-    `${translateVariableName(te.qualifier.name)}.${translateVariableName(te.identifier.name)}` :
-    translateVariableName(te.identifier.name);
-}
-
 class Translator implements ast.NodeVisitor<string> {
   readonly warnings: TranslationWarning[] = [];
+  visitTypename(n: ast.Typename): string {
+    return n.qualifier ?
+      `${translateVariableName(n.qualifier.name)}.${translateVariableName(n.identifier.name)}` :
+      translateVariableName(n.identifier.name);
+  }
+  visitValueTypeDisplay(n: ast.ValueTypeDisplay): string {
+    return JSON.stringify(n.value);
+  }
+  visitSpecialTypeDisplay(n: ast.SpecialTypeDisplay): string {
+    return 'SPECIALTYPEDISPLAY';
+  }
   visitNullLiteral(n: ast.NullLiteral): string {
     return 'null';
   }
@@ -214,7 +219,7 @@ class Translator implements ast.NodeVisitor<string> {
   }
   visitClassDefinition(n: ast.ClassDefinition): string {
     const name = n.identifier.name;
-    const superClass = n.superClass ? ` extends ${translateType(n.superClass)}` : '';
+    const superClass = n.superClass ? ` extends ${n.superClass.accept(this)}` : '';
     const staticMethods = n.statements.map(statement => {
       if (statement instanceof ast.Static) {
         return statement.statements.map(stmt => {

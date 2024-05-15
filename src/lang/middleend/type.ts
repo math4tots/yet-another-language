@@ -98,7 +98,7 @@ type UnionTypeData = {
 };
 
 type ValueTypeData = {
-  readonly value: number | string;
+  readonly variable: { identifier: Identifier, type: Type, value: number | string; };
   readonly decayType: Type;
 };
 
@@ -243,6 +243,7 @@ export class Type {
   isUnionElementType(): boolean {
     return !!(
       this.basicTypeData ||
+      this.valueTypeData ||
       this.listTypeData ||
       this.tupleTypeData ||
       this.promiseTypeData ||
@@ -371,9 +372,9 @@ export class Type {
     }
 
     if (source.valueTypeData) {
-      const sourceValue = source.valueTypeData.value;
+      const sourceValue = source.valueTypeData.variable.value;
       if (target.valueTypeData) {
-        return sourceValue === target.valueTypeData.value;
+        return sourceValue === target.valueTypeData.variable.value;
       }
       if (source.valueTypeData.decayType.isAssignableTo(target)) {
         return true;
@@ -438,13 +439,15 @@ export class Type {
 
   mayHaveEnumConstVariables(): boolean {
     return !!this.enumTypeData ||
+      !!this.valueTypeData ||
       this.nullableTypeData?.itemType.mayHaveEnumConstVariables() ||
       this.unionTypeData?.types.some(t => t.mayHaveEnumConstVariables()) ||
       false;
   }
 
-  *getEnumConstVariables(): IterableIterator<EnumConstVariable> {
+  *getEnumConstVariables(): IterableIterator<Variable> {
     if (this.enumTypeData) yield* this.enumTypeData.valueToVariableMap.values();
+    else if (this.valueTypeData) yield this.valueTypeData.variable;
     else if (this.nullableTypeData) yield* this.nullableTypeData.itemType.getEnumConstVariables();
     else if (this.unionTypeData) {
       for (const member of this.unionTypeData.types) {
@@ -453,8 +456,9 @@ export class Type {
     }
   }
 
-  getEnumConstVariableByValue(value: string | number): EnumConstVariable | undefined {
+  getEnumConstVariableByValue(value: string | number): Variable | undefined {
     if (this.enumTypeData) return this.enumTypeData.valueToVariableMap.get(value);
+    if (this.valueTypeData?.variable.value === value) return this.valueTypeData.variable;
     if (this.nullableTypeData) return this.nullableTypeData.itemType.getEnumConstVariableByValue(value);
     if (this.unionTypeData) {
       for (const member of this.unionTypeData.types) {
@@ -1078,12 +1082,12 @@ function newUnionType(types: UnionElementType[]): UnionType {
   return unionType;
 }
 
-export function newValueType(value: number | string): ValueType {
+export function newValueType(value: number | string, location?: ast.Location): ValueType {
   const decayType = typeof value === 'number' ? NumberType :
     typeof value === 'string' ? StringType : AnyType;
   const valueType = new Type({
     identifier: { name: JSON.stringify(value) },
-    valueTypeData: { value, decayType },
+    valueTypeData: { variable: { identifier: { name: 'value', location }, type: decayType, value }, decayType },
   }) as ValueType;
   valueType.addMethod({
     identifier: { name: '__get_value' },

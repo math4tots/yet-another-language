@@ -3,7 +3,7 @@ import * as yal from '../lang/yal';
 import { getSelectionOrAllText, writeToNewEditor } from './utils';
 
 
-class Printer implements yal.ast.NodeVisitor<void> {
+class Printer implements yal.ast.ExpressionVisitor<void>, yal.ast.StatementVisitor<void> {
   out: string = '';
   depth: number = 0;
   convert(file: yal.ast.File): string {
@@ -264,7 +264,7 @@ class Printer implements yal.ast.NodeVisitor<void> {
   }
   visitTypedef(n: yal.ast.Typedef): void {
     this.indent();
-    this.out += `TYPEDEF ${n.identifier.name} = ${n.type.qualifier?.name}.${n.type.identifier.name}`;
+    this.out += `TYPEDEF ${n.identifier.name} = ${n.type}`;
   }
 }
 

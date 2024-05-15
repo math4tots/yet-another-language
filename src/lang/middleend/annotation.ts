@@ -11,6 +11,7 @@ import type {
   EnumTypeType,
   EnumType,
   TypeParameterTypeType,
+  ValueType,
 } from './type';
 
 export type AnnotationError = ast.ParseError;
@@ -66,7 +67,7 @@ export type EnumVariable = Variable & {
 };
 
 export type EnumConstVariable = Variable & {
-  readonly type: EnumType;
+  readonly type: EnumType | ValueType;
   readonly value: string | number;
 };
 

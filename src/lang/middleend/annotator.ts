@@ -45,6 +45,7 @@ import {
   ClassTypeType,
   newTupleType,
   newTypeParameterTypeType,
+  newValueType,
 } from './type';
 import {
   Annotation,
@@ -141,7 +142,7 @@ function getValue(scope: Scope, result: EResult): Value | undefined {
   return result.value !== undefined ? result.value : result.thunk ? result.thunk(scope) : undefined;
 }
 
-class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
+class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisitor<EResult>, ast.StatementVisitor<SResult> {
   readonly annotation: LimitedAnnotation;
   private readonly stack: Set<string>; // for detecting recursion
 
@@ -231,7 +232,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
     }
   }
 
-  private _solveType(e: ast.TypeExpression): Type {
+  visitTypename(e: ast.Typename): Type {
     // class or interface from an imported module
     if (e.qualifier) {
       const parent = this.scope[e.qualifier.name];
@@ -303,17 +304,36 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       },
     });
 
-    // builtin types
-    if (e.args.length === 0) {
-      switch (e.identifier.name) {
-        case 'Any': return AnyType;
-        case 'Never': return NeverType;
-        case 'Null': return NullType;
-        case 'Bool': return BoolType;
-        case 'Number': return NumberType;
-        case 'String': return StringType;
-      }
+    switch (e.identifier.name) {
+      case 'Any': return AnyType;
+      case 'Never': return NeverType;
+      case 'Null': return NullType;
+      case 'Bool': return BoolType;
+      case 'Number': return NumberType;
+      case 'String': return StringType;
     }
+
+    // locally declared class or interface
+    const variable = this.scope[e.identifier.name];
+    if (!variable) {
+      this.error(e.identifier.location, `Type ${e.identifier.name} not found`);
+      return AnyType;
+    }
+    this.markReference(variable, e.identifier.location.range);
+    const type = variable.type.typeTypeData?.type;
+    if (!type) {
+      this.error(e.identifier.location, `${e.identifier.name} is not a type`);
+      return AnyType;
+    }
+    return type;
+  }
+
+  visitValueTypeDisplay(e: ast.ValueTypeDisplay): Type {
+    const type = newValueType(e.value.value, e.location);
+    return type;
+  }
+
+  visitSpecialTypeDisplay(e: ast.SpecialTypeDisplay): Type {
     if (e.args.length === 1 && e.identifier.name === 'Nullable') {
       return this.solveType(e.args[0]).nullable();
     }
@@ -338,6 +358,7 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       for (const argexpr of e.args) {
         type = type.getCommonType(this.solveType(argexpr));
       }
+      console.log(`UNION(${e.args}) => ${type}`);
       return type;
     }
     if (e.args.length === 1 && e.identifier.name === 'Iterable') {
@@ -347,8 +368,9 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       // TODO: more thorough error handling here
       const memberVariables: Variable[] = [];
       for (const memberDescriptor of e.args) {
-        if (memberDescriptor.args.length < 1) {
+        if (!(memberDescriptor instanceof ast.SpecialTypeDisplay) || memberDescriptor.args.length < 1) {
           this.error(memberDescriptor.location, `invalid Record member descriptor`);
+          continue;
         }
         const memberIdentifier = memberDescriptor.identifier;
         const memberType = this.solveType(memberDescriptor.args[0]);
@@ -356,10 +378,10 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
         for (let i = 1; i < memberDescriptor.args.length; i++) {
           const arg = memberDescriptor.args[i];
           this.annotation.completionPoints.push({
-            range: arg.identifier.location.range,
+            range: arg.location.range,
             getCompletions() { return [{ name: 'mutable' }]; },
           });
-          if (arg.identifier.name === 'mutable') {
+          if (arg instanceof ast.Typename && arg.identifier.name === 'mutable') {
             isMutable = true;
           } else {
             this.error(arg.location, 'Unrecognized record type descriptor');
@@ -375,26 +397,14 @@ class Annotator implements ast.ExpressionVisitor<EResult>, ast.StatementVisitor<
       }
       return newRecordInterfaceType(e.identifier, memberVariables);
     }
-
-    // locally declared class or interface
-    const variable = this.scope[e.identifier.name];
-    if (!variable) {
-      this.error(e.identifier.location, `Type ${e.identifier.name} not found`);
-      return AnyType;
-    }
-    this.markReference(variable, e.identifier.location.range);
-    const type = variable.type.typeTypeData?.type;
-    if (!type) {
-      this.error(e.identifier.location, `${e.identifier.name} is not a type`);
-      return AnyType;
-    }
-    return type;
+    this.error(e.location, `Invalid special type ${e}`);
+    return AnyType;
   }
 
   private solveType(e: ast.TypeExpression): Type {
     const cached = this.typeSolverCache.get(e);
     if (cached) return cached;
-    const type = this._solveType(e);
+    const type = e.accept(this);
     this.typeSolverCache.set(e, type);
     return type;
   }
