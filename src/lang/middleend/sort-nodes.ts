@@ -71,6 +71,11 @@ export function sortTypedefs(statements: ast.Statement[]) {
         if (ptype) yield* ptype.accept(extractor);
       }
       if (n.returnType) yield* n.returnType.accept(extractor);
+    },
+    visitRecordTypeDisplay: function* (n: ast.RecordTypeDisplay): Generator<string, any, any> {
+      for (const entry of n.entries) {
+        yield* entry.type.accept(extractor);
+      }
     }
   };
 

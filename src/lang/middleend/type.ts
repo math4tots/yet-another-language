@@ -1016,32 +1016,29 @@ function addRecordTypeMembers(type: Type, entryVariables: Variable[]) {
   }
 }
 
-function getRecordTypeName(identifier: Identifier, entryVariables: Variable[]) {
-  const parts = [identifier.name, '['];
+function getRecordLiteralName(entryVariables: Variable[]) {
+  const parts = ['{'];
   for (let i = 0; i < entryVariables.length; i++) {
     if (i > 0) parts.push(',');
     const v = entryVariables[i];
-    parts.push(v.identifier.name, '[', v.type.toString());
-    if (v.isMutable) {
-      parts.push(',mutable');
-    }
-    parts.push(']');
+    if (v.isMutable) parts.push('var ');
+    parts.push(v.identifier.name, ': ', v.type.toString());
   }
-  parts.push(']');
+  parts.push('}');
   return parts.join('');
 }
 
-export function newRecordInterfaceType(identifier: Identifier, entryVariables: Variable[]) {
-  const name = getRecordTypeName(identifier, entryVariables);
-  const typeType = newInterfaceTypeType({ name, location: identifier.location }, [], undefined);
+export function newRecordLiteralType(location: ast.Location, entryVariables: Variable[]) {
+  const name = getRecordLiteralName(entryVariables);
+  const typeType = newInterfaceTypeType({ name, location }, [], undefined);
   const type = typeType.typeTypeData.type;
   addRecordTypeMembers(type, entryVariables);
   return type;
 }
 
-export function newRecordClassType(identifier: Identifier, entryVariables: Variable[]) {
-  const name = getRecordTypeName(identifier, entryVariables);
-  const typeType = newClassTypeType(false, { name, location: identifier.location }, undefined, undefined);
+export function newRecordClassType(entryVariables: Variable[]) {
+  const name = getRecordLiteralName(entryVariables);
+  const typeType = newClassTypeType(false, { name }, undefined, undefined);
   const type = typeType.typeTypeData.type;
   addRecordTypeMembers(type, entryVariables);
   return type;

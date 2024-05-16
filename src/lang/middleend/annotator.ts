@@ -38,13 +38,13 @@ import {
   newEnumTypeType,
   InterfaceTypeType,
   newAliasType,
-  newRecordInterfaceType,
   newRecordClassType,
   TypeParameterTypeType,
   TypeParameterType,
   ClassTypeType,
   newTupleType,
   newTypeParameterTypeType,
+  newRecordLiteralType,
 } from './type';
 import {
   Annotation,
@@ -359,45 +359,27 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     if (e.args.length === 1 && e.identifier.name === 'Iterable') {
       return this.solveType(e.args[0]).iterable();
     }
-    if (e.identifier.name === 'Record') {
-      // TODO: more thorough error handling here
-      const memberVariables: Variable[] = [];
-      for (const memberDescriptor of e.args) {
-        if (!(memberDescriptor instanceof ast.SpecialTypeDisplay) || memberDescriptor.args.length < 1) {
-          this.error(memberDescriptor.location, `invalid Record member descriptor`);
-          continue;
-        }
-        const memberIdentifier = memberDescriptor.identifier;
-        const memberType = this.solveType(memberDescriptor.args[0]);
-        let isMutable = false;
-        for (let i = 1; i < memberDescriptor.args.length; i++) {
-          const arg = memberDescriptor.args[i];
-          this.annotation.completionPoints.push({
-            range: arg.location.range,
-            getCompletions() { return [{ name: 'mutable' }]; },
-          });
-          if (arg instanceof ast.Typename && arg.identifier.name === 'mutable') {
-            isMutable = true;
-          } else {
-            this.error(arg.location, 'Unrecognized record type descriptor');
-          }
-        }
-        const variable: Variable = {
-          identifier: memberIdentifier,
-          type: memberType,
-          isMutable,
-        };
-        this.declareVariable(variable, false);
-        memberVariables.push(variable);
-      }
-      return newRecordInterfaceType(e.identifier, memberVariables);
-    }
     this.error(e.location, `Invalid special type ${e}`);
     return AnyType;
   }
 
   visitFunctionTypeDisplay(n: ast.FunctionTypeDisplay): Type {
     return this.solveFunctionDisplayType(n, AnyType);
+  }
+
+  visitRecordTypeDisplay(n: ast.RecordTypeDisplay): Type {
+    const memberVariables: Variable[] = [];
+    for (const entry of n.entries) {
+      const type = this.solveType(entry.type);
+      const variable: Variable = {
+        isMutable: entry.isMutable,
+        identifier: entry.identifier,
+        type,
+      };
+      this.declareVariable(variable, false);
+      memberVariables.push(variable);
+    }
+    return newRecordLiteralType(n.location, memberVariables);
   }
 
   private solveType(e: ast.TypeExpression): Type {
@@ -1239,7 +1221,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     }
     value;
     return {
-      type: newRecordClassType({ name: 'Record' }, memberVariables),
+      type: newRecordClassType(memberVariables),
       ir: new ast.RecordDisplay(n.location, newEntries),
       value,
     };

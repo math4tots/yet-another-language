@@ -92,6 +92,9 @@ class Translator implements ast.NodeVisitor<string> {
   visitFunctionTypeDisplay(n: ast.FunctionTypeDisplay): string {
     return 'FUNCTION_TYPE_DISPLAY';
   }
+  visitRecordTypeDisplay(n: ast.RecordTypeDisplay): string {
+    return 'RECORD_TYPE_DISPLAY';
+  }
   visitNullLiteral(n: ast.NullLiteral): string {
     return 'null';
   }

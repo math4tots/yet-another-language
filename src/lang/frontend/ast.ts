@@ -21,6 +21,7 @@ export interface TypeExpressionVisitor<R> {
   visitTypename(n: Typename): R;
   visitSpecialTypeDisplay(n: SpecialTypeDisplay): R;
   visitFunctionTypeDisplay(n: FunctionTypeDisplay): R;
+  visitRecordTypeDisplay(n: RecordTypeDisplay): R;
 }
 
 export interface ExpressionVisitor<R> {
@@ -152,7 +153,33 @@ export class FunctionTypeDisplay {
   toString() { return `function[${this.parameters};${this.returnType}]`; }
 }
 
-export type TypeExpression = Typename | SpecialTypeDisplay | FunctionTypeDisplay;
+export class RecordTypeEntry {
+  readonly location: Location;
+  readonly isMutable: boolean;
+  readonly identifier: IdentifierNode;
+  readonly type: TypeExpression;
+
+  constructor(location: Location, isMutable: boolean, identifier: IdentifierNode, type: TypeExpression) {
+    this.location = location;
+    this.isMutable = isMutable;
+    this.identifier = identifier;
+    this.type = type;
+  }
+}
+
+export class RecordTypeDisplay {
+  readonly location: Location;
+  readonly entries: RecordTypeEntry[];
+
+  constructor(location: Location, entries: RecordTypeEntry[]) {
+    this.location = location;
+    this.entries = entries;
+  }
+
+  accept<R>(visitor: TypeExpressionVisitor<R>): R { return visitor.visitRecordTypeDisplay(this); }
+}
+
+export type TypeExpression = Typename | SpecialTypeDisplay | FunctionTypeDisplay | RecordTypeDisplay;
 
 export class NullLiteral implements Expression {
   readonly location: Location;

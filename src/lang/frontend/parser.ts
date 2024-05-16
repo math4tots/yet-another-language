@@ -184,6 +184,22 @@ export function parse(uri: vscode.Uri, source: string, documentVersion: number =
       expect(')');
       return te;
     }
+    if (at('{')) {
+      const start = expect('{').range.start;
+      const entries: ast.RecordTypeEntry[] = [];
+      while (!at('}')) {
+        const isMutable = consume('var');
+        const identifier = parseVariableIdentifier();
+        expect(':');
+        const type = parseTypeExpression();
+        const start = identifier.location.range.start;
+        const end = type.location.range.end;
+        entries.push(new ast.RecordTypeEntry({ uri, range: { start, end } }, isMutable, identifier, type));
+        if (!consume(',')) break;
+      }
+      const end = expect('}').range.end;
+      return new ast.RecordTypeDisplay({ uri, range: { start, end } }, entries);
+    }
     if (at('function')) {
       const start = next().range.start;
       const isGenerator = consume('*');
