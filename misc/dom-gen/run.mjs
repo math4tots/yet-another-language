@@ -1483,6 +1483,12 @@ interface IntlDateTimeFormatOptions {
 interface QueuingStrategySize {
   function __call__(value: Any): Number
 }
+
+interface QueuingStrategy {
+  var highWaterMark: Number?;
+  var size: QueuingStrategySize?;
+}
+
 `]
 ]);
 
