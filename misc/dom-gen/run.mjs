@@ -645,6 +645,13 @@ function* parse(s) {
       if (!consume(',')) break;
     }
     expect(')');
+
+    // If we have a 'this' parameter, drop it.
+    // I don't plan on supporting it
+    if (parameters.length > 0 && parameters[0].identifier.name === 'this') {
+      parameters.splice(0, 1);
+    }
+
     return parameters;
   }
 
@@ -1115,6 +1122,7 @@ function translate(out, ...sources) {
         case 'Object': case 'object': case 'any': return 'Any';
         case 'void': return 'Null';
         case 'unknown': return 'Any';
+        case 'Function': return 'Any'; // unqualified function type is not supported in YAL (yet?)
         case 'this': return currentThis;
         case 'ArrayBufferLike': return 'ArrayBuffer';
       }
@@ -1300,7 +1308,6 @@ function translate(out, ...sources) {
   function translateMemberFunction(member) {
     if (member.optional) return;
     if (member.type.typeParameters) return;
-    if (member.type.parameters.some(p => p.isVariadic)) return;
     let comment = member.comment;
     const name = member.identifier.name;
     const yalName = name === '' ? '__call__' : name;
@@ -1312,6 +1319,22 @@ function translate(out, ...sources) {
     const returnType = member.type.returnType ? `: ${translateType(member.type.returnType)}` : '';
 
     const parameters = [...member.type.parameters];
+
+    // Treat variadic parameters as though it had 3 optional parameters
+    if (parameters.length > 0 && parameters[parameters.length - 1].isVariadic) {
+      const variadicParamter = parameters.pop();
+      if (!variadicParamter) throw new Error(`FUBAR variadicParameter`);
+      const listType = variadicParamter.type;
+      if (!(listType instanceof TypeSpecialForm && listType.name === 'array' && listType.args.length === 1)) {
+        throw new Error(`FUBAR variadicParameter 2`);
+      }
+      const itemType = listType.args[0];
+      for (let i = 0; i < 3; i++) {
+        parameters.push(new Parameter(
+          variadicParamter.range, variadicParamter.comment, false,
+          variadicParamter.identifier, true, itemType));
+      }
+    }
     while (true) {
       const header = `function ${yalName}${translateParameters(parameters)}${returnType}`;
       if (comment) {
@@ -1365,6 +1388,18 @@ function translate(out, ...sources) {
       const declaration = info.declarations[0];
       const decltype = declaration.type; // I know, I know
       if (decltype instanceof Identifier && !globalsMap.has(decltype.name)) continue;
+
+      if (info.interfaces.length === 0 && (decltype instanceof Identifier || (
+        decltype instanceof TypeSpecialForm
+        && decltype.name === 'intersect'
+        && decltype.args[0] instanceof Identifier))) {
+        // declaration only type
+        const storageClass = declaration.isReadonly ? 'const' : 'var';
+        const nativeConstexpr = USE_NATIVE_CONSTEXPR ? ' constexpr' : '';
+        const type = translateType(decltype);
+        out.line(`export ${storageClass} ${name} = native${nativeConstexpr} "${name}" as ${type}`);
+        continue;
+      }
 
       // static members from declarations
       comment ??= declaration.comment;
@@ -1436,6 +1471,10 @@ function translate(out, ...sources) {
   if (suffix) out.write(suffix);
 }
 
+const ADDITIONAL_INPUT_MAP = new Map([
+  ['lib.dom.d.ts', ``],
+]);
+
 const PREFIX_MAP = new Map([
   ['lib.dom.d.ts', `
 from './js' import ArrayBuffer
@@ -1501,6 +1540,56 @@ interface IntlDateTimeFormatOptions {
   "TODO"
 }
 
+export interface Promise {
+  static {
+    aliasFor(native constexpr "Promise")
+    function new[T](handler: function(resolve: function(t: T): Null, reject: function(reason: Any): Null): Any): Promise[T] {
+      aliasFor(__op_new__)
+    }
+    function all[T](promises: Iterable[Promise[T]]): Promise[List[T]] {
+      """
+      Takes an iterable of promises as input and returns a single Promise.
+      This returned promise fulfills when all of the input's promises fulfill
+      (including when an empty iterable is passed), with an array of the fulfillment
+      values. It rejects when any of the input's promises reject, with this first
+      rejection reason.
+
+      ================
+
+      Arguably, it might be more precise to have a tuple of promises and return
+      a promise of a tuple - but getting the types just right might be a bit tricky
+      given the type system as it currently is.
+      """
+      aliasFor(__js_all)
+    }
+    function any[T](promises: Iterable[Promise[T]]): Promise[T] {
+      """
+      Takes an iterable of promises as input and returns a single Promise.
+      This returned promise fulfills when any of the input's promises fulfill,
+      with this first fulfillment value. It rejects when all of the input's promises
+      reject (including when an empty iterable is passed), with an AggregateError
+      containing an array of rejection reasons.
+      """
+      aliasFor(__js_any)
+    }
+    function resolve[T](result: T): Promise[T] {
+      """
+      Returns a Promise object that is resolved with the given value.
+      If the value is a thenable (i.e. has a then method), the returned promise
+      will "follow" that thenable, adopting its eventual state; otherwise, the returned
+      promise will be fulfilled with the value.
+      """
+      aliasFor(__js_resolve)
+    }
+    function reject[T](reason: Any): Promise[T] {
+      """
+      Returns a new Promise object that is rejected with the given reason.
+      """
+      aliasFor(__js_reject)
+    }
+  }
+}
+
 `],
   ['lib.dom.d.ts', `
 interface QueuingStrategySize {
@@ -1545,6 +1634,9 @@ export interface IDBRequest extends EventTarget {
 
   # TODO
 }
+
+const __target = 'html'
+
 `]
 ]);
 
@@ -1566,7 +1658,8 @@ switch (ARGS.command) {
     break;
   case 'translate': {
     const sink = new Sink((text) => process.stdout.write(text));
-    translate(sink, FILE_CONTENTS);
+    const additionalInput = ADDITIONAL_INPUT_MAP.get(BASENAME);
+    translate(sink, FILE_CONTENTS, ...(additionalInput ? [additionalInput] : []));
     break;
   }
   default:

@@ -97,7 +97,7 @@ export interface Object {
       aliasFor(__js_keys)
     }
   }
-  var constructor: Function """
+  var constructor: Any """
   The initial value of Object.prototype.constructor is the standard built-in Object constructor.
   """ = aliasFor(__js_constructor)
   function toString(): String {
@@ -149,9 +149,24 @@ export interface Function {
   """
   static {
     aliasFor(native constexpr "Function")
-    const prototype: Function = aliasFor(__js_prototype)
+    function new(args: String, args: String, args: String): Any {
+      """
+      Creates a new function.
+      
+      @param args A list of arguments the function accepts.
+      """
+      aliasFor(__op_new__)
+    }
+    function new(args: String, args: String): Any { aliasFor(__op_new__) }
+    function new(args: String): Any { aliasFor(__op_new__) }
+    function new(): Any { aliasFor(__op_new__) }
+    function __call__(args: String, args: String, args: String): Any { aliasFor(__call__) }
+    function __call__(args: String, args: String): Any { aliasFor(__call__) }
+    function __call__(args: String): Any { aliasFor(__call__) }
+    function __call__(): Any { aliasFor(__call__) }
+    const prototype: Any = aliasFor(__js_prototype)
   }
-  function apply(this: Function, thisArg: Any, argArray: Any): Any {
+  function apply(thisArg: Any, argArray: Any): Any {
     """
     Calls the function, substituting the specified object for the this value of the function, and the specified array for the arguments of the function.
     
@@ -161,7 +176,35 @@ export interface Function {
     """
     aliasFor(__js_apply)
   }
-  function apply(this: Function, thisArg: Any): Any { aliasFor(__js_apply) }
+  function apply(thisArg: Any): Any { aliasFor(__js_apply) }
+  function call(thisArg: Any, argArray: Any, argArray: Any, argArray: Any): Any {
+    """
+    Calls a method of an object, substituting another object for the current object.
+    
+    @param thisArg The object to be used as the current object.
+    
+    @param argArray A list of arguments to be passed to the method.
+    """
+    aliasFor(__js_call)
+  }
+  function call(thisArg: Any, argArray: Any, argArray: Any): Any { aliasFor(__js_call) }
+  function call(thisArg: Any, argArray: Any): Any { aliasFor(__js_call) }
+  function call(thisArg: Any): Any { aliasFor(__js_call) }
+  function bind(thisArg: Any, argArray: Any, argArray: Any, argArray: Any): Any {
+    """
+    For a given function, creates a bound function that has the same body as the original function.
+    
+    The this object of the bound function is associated with the specified object, and has the specified initial parameters.
+    
+    @param thisArg An object to which the this keyword can refer inside the new function.
+    
+    @param argArray A list of arguments to be passed to the new function.
+    """
+    aliasFor(__js_bind)
+  }
+  function bind(thisArg: Any, argArray: Any, argArray: Any): Any { aliasFor(__js_bind) }
+  function bind(thisArg: Any, argArray: Any): Any { aliasFor(__js_bind) }
+  function bind(thisArg: Any): Any { aliasFor(__js_bind) }
   function toString(): String {
     """
     Returns a string representation of a function.
@@ -171,7 +214,7 @@ export interface Function {
   var prototype: Any = aliasFor(__js_prototype)
   const length: Number = aliasFor(__js_length)
   var arguments: Any = aliasFor(__js_arguments)
-  var caller: Function = aliasFor(__js_caller)
+  var caller: Any = aliasFor(__js_caller)
 }
 export interface String {
   """
@@ -184,6 +227,10 @@ export interface String {
     function __call__(value: Any): String { aliasFor(__call__) }
     function __call__(): String { aliasFor(__call__) }
     const prototype: String = aliasFor(__js_prototype)
+    function fromCharCode(codes: Number, codes: Number, codes: Number): String { aliasFor(__js_fromCharCode) }
+    function fromCharCode(codes: Number, codes: Number): String { aliasFor(__js_fromCharCode) }
+    function fromCharCode(codes: Number): String { aliasFor(__js_fromCharCode) }
+    function fromCharCode(): String { aliasFor(__js_fromCharCode) }
   }
   function toString(): String {
     """
@@ -207,6 +254,17 @@ export interface String {
     """
     aliasFor(__js_charCodeAt)
   }
+  function concat(strings: String, strings: String, strings: String): String {
+    """
+    Returns a string that contains the concatenation of two or more strings.
+    
+    @param strings The strings to append to the end of the string.
+    """
+    aliasFor(__js_concat)
+  }
+  function concat(strings: String, strings: String): String { aliasFor(__js_concat) }
+  function concat(strings: String): String { aliasFor(__js_concat) }
+  function concat(): String { aliasFor(__js_concat) }
   function indexOf(searchString: String, position: Number): Number {
     """
     Returns the position of the first occurrence of a substring.
@@ -584,6 +642,28 @@ export interface Math {
       """
       aliasFor(__js_log)
     }
+    function max(values: Number, values: Number, values: Number): Number {
+      """
+      Returns the larger of a set of supplied numeric expressions.
+      
+      @param values Numeric expressions to be evaluated.
+      """
+      aliasFor(__js_max)
+    }
+    function max(values: Number, values: Number): Number { aliasFor(__js_max) }
+    function max(values: Number): Number { aliasFor(__js_max) }
+    function max(): Number { aliasFor(__js_max) }
+    function min(values: Number, values: Number, values: Number): Number {
+      """
+      Returns the smaller of a set of supplied numeric expressions.
+      
+      @param values Numeric expressions to be evaluated.
+      """
+      aliasFor(__js_min)
+    }
+    function min(values: Number, values: Number): Number { aliasFor(__js_min) }
+    function min(values: Number): Number { aliasFor(__js_min) }
+    function min(): Number { aliasFor(__js_min) }
     function pow(x: Number, y: Number): Number {
       """
       Returns the value of a base expression taken to a specified power.
@@ -1208,7 +1288,7 @@ export interface JSON {
   """
   static {
     aliasFor(native constexpr "JSON")
-    function parse(text: String, reviver: function(this: Any, key: String, value: Any): Any): Any {
+    function parse(text: String, reviver: function(key: String, value: Any): Any): Any {
       """
       Converts a JavaScript Object Notation (JSON) string into an object.
       
@@ -1221,7 +1301,7 @@ export interface JSON {
       aliasFor(__js_parse)
     }
     function parse(text: String): Any { aliasFor(__js_parse) }
-    function stringify(value: Any, replacer: function(this: Any, key: String, value: Any): Any, space: Union[String, Number]): String {
+    function stringify(value: Any, replacer: function(key: String, value: Any): Any, space: Union[String, Number]): String {
       """
       Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
       
@@ -1233,7 +1313,7 @@ export interface JSON {
       """
       aliasFor(__js_stringify)
     }
-    function stringify(value: Any, replacer: function(this: Any, key: String, value: Any): Any): String { aliasFor(__js_stringify) }
+    function stringify(value: Any, replacer: function(key: String, value: Any): Any): String { aliasFor(__js_stringify) }
     function stringify(value: Any): String { aliasFor(__js_stringify) }
     function stringify(value: Any, replacer: Union[List[Union[Number, String]], Null], space: Union[String, Number]): String {
       """
@@ -1525,6 +1605,17 @@ export interface Int8Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Int8Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Int8Array { aliasFor(__js_of) }
+    function of(items: Number): Int8Array { aliasFor(__js_of) }
+    function of(): Int8Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Int8Array {
       """
       Creates an array from an array-like or iterable object.
@@ -1884,6 +1975,17 @@ export interface Uint8Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Uint8Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Uint8Array { aliasFor(__js_of) }
+    function of(items: Number): Uint8Array { aliasFor(__js_of) }
+    function of(): Uint8Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Uint8Array {
       """
       Creates an array from an array-like or iterable object.
@@ -2243,6 +2345,17 @@ export interface Uint8ClampedArray {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Uint8ClampedArray {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Uint8ClampedArray { aliasFor(__js_of) }
+    function of(items: Number): Uint8ClampedArray { aliasFor(__js_of) }
+    function of(): Uint8ClampedArray { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Uint8ClampedArray {
       """
       Creates an array from an array-like or iterable object.
@@ -2602,6 +2715,17 @@ export interface Int16Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Int16Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Int16Array { aliasFor(__js_of) }
+    function of(items: Number): Int16Array { aliasFor(__js_of) }
+    function of(): Int16Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Int16Array {
       """
       Creates an array from an array-like or iterable object.
@@ -2961,6 +3085,17 @@ export interface Uint16Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Uint16Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Uint16Array { aliasFor(__js_of) }
+    function of(items: Number): Uint16Array { aliasFor(__js_of) }
+    function of(): Uint16Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Uint16Array {
       """
       Creates an array from an array-like or iterable object.
@@ -3320,6 +3455,17 @@ export interface Int32Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Int32Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Int32Array { aliasFor(__js_of) }
+    function of(items: Number): Int32Array { aliasFor(__js_of) }
+    function of(): Int32Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Int32Array {
       """
       Creates an array from an array-like or iterable object.
@@ -3679,6 +3825,17 @@ export interface Uint32Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Uint32Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Uint32Array { aliasFor(__js_of) }
+    function of(items: Number): Uint32Array { aliasFor(__js_of) }
+    function of(): Uint32Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Uint32Array {
       """
       Creates an array from an array-like or iterable object.
@@ -4038,6 +4195,17 @@ export interface Float32Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Float32Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Float32Array { aliasFor(__js_of) }
+    function of(items: Number): Float32Array { aliasFor(__js_of) }
+    function of(): Float32Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Float32Array {
       """
       Creates an array from an array-like or iterable object.
@@ -4397,6 +4565,17 @@ export interface Float64Array {
     const BYTES_PER_ELEMENT: Number """
     The size in bytes of each element in the array.
     """ = aliasFor(__js_BYTES_PER_ELEMENT)
+    function of(items: Number, items: Number, items: Number): Float64Array {
+      """
+      Returns a new array from a set of elements.
+      
+      @param items A set of elements to include in the new array object.
+      """
+      aliasFor(__js_of)
+    }
+    function of(items: Number, items: Number): Float64Array { aliasFor(__js_of) }
+    function of(items: Number): Float64Array { aliasFor(__js_of) }
+    function of(): Float64Array { aliasFor(__js_of) }
     function from(arrayLike: List[Number]): Float64Array {
       """
       Creates an array from an array-like or iterable object.
@@ -4788,5 +4967,55 @@ interface IntlNumberFormatOptions {
 
 interface IntlDateTimeFormatOptions {
   "TODO"
+}
+
+export interface Promise {
+  static {
+    aliasFor(native constexpr "Promise")
+    function new[T](handler: function(resolve: function(t: T): Null, reject: function(reason: Any): Null): Any): Promise[T] {
+      aliasFor(__op_new__)
+    }
+    function all[T](promises: Iterable[Promise[T]]): Promise[List[T]] {
+      """
+      Takes an iterable of promises as input and returns a single Promise.
+      This returned promise fulfills when all of the input's promises fulfill
+      (including when an empty iterable is passed), with an array of the fulfillment
+      values. It rejects when any of the input's promises reject, with this first
+      rejection reason.
+
+      ================
+
+      Arguably, it might be more precise to have a tuple of promises and return
+      a promise of a tuple - but getting the types just right might be a bit tricky
+      given the type system as it currently is.
+      """
+      aliasFor(__js_all)
+    }
+    function any[T](promises: Iterable[Promise[T]]): Promise[T] {
+      """
+      Takes an iterable of promises as input and returns a single Promise.
+      This returned promise fulfills when any of the input's promises fulfill,
+      with this first fulfillment value. It rejects when all of the input's promises
+      reject (including when an empty iterable is passed), with an AggregateError
+      containing an array of rejection reasons.
+      """
+      aliasFor(__js_any)
+    }
+    function resolve[T](result: T): Promise[T] {
+      """
+      Returns a Promise object that is resolved with the given value.
+      If the value is a thenable (i.e. has a then method), the returned promise
+      will "follow" that thenable, adopting its eventual state; otherwise, the returned
+      promise will be fulfilled with the value.
+      """
+      aliasFor(__js_resolve)
+    }
+    function reject[T](reason: Any): Promise[T] {
+      """
+      Returns a new Promise object that is rejected with the given reason.
+      """
+      aliasFor(__js_reject)
+    }
+  }
 }
 

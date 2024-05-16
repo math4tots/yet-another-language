@@ -1416,6 +1416,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       for (const arg of n.args) this.solveExpr(arg);
       const method = owner.type.getAnyMethodWithName(n.identifier.name);
       if (method) {
+        this.markReference(method.sourceVariable, n.identifier.location.range);
         this.error(n.location, `Expected ${method.parameters.length} args but got ${n.args.length}`);
       } else {
         this.error(n.location, `Method ${n.identifier.name} not found on type ${owner.type}`);
