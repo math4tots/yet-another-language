@@ -19,7 +19,6 @@ export interface Object {
     function getPrototypeOf(o: Any): Any {
       """
       Returns the prototype of an object.
-      
       @param o The object that references the prototype.
       """
       aliasFor(__js_getPrototypeOf)
@@ -27,11 +26,8 @@ export interface Object {
     function getOwnPropertyDescriptor(o: Any, p: PropertyKey): Union[PropertyDescriptor, Null] {
       """
       Gets the own property descriptor of the specified object.
-      
       An own property descriptor is one that is defined directly on the object and is not inherited from the object's prototype.
-      
       @param o Object that contains the property.
-      
       @param p Name of the property.
       """
       aliasFor(__js_getOwnPropertyDescriptor)
@@ -39,9 +35,7 @@ export interface Object {
     function getOwnPropertyNames(o: Any): List[String] {
       """
       Returns the names of the own properties of an object. The own properties of an object are those that are defined directly
-      
       on that object, and are not inherited from the object's prototype. The properties of an object include both fields (objects) and functions.
-      
       @param o Object that contains the own properties.
       """
       aliasFor(__js_getOwnPropertyNames)
@@ -49,7 +43,6 @@ export interface Object {
     function create(o: Any): Any {
       """
       Creates an object that has the specified prototype or that has null prototype.
-      
       @param o Object to use as a prototype. May be null.
       """
       aliasFor(__js_create)
@@ -57,9 +50,7 @@ export interface Object {
     function create(o: Any, properties: PropertyDescriptorMap): Any {
       """
       Creates an object that has the specified prototype, and that optionally contains specified properties.
-      
       @param o Object to use as a prototype. May be null
-      
       @param properties JavaScript object that contains one or more property descriptors.
       """
       aliasFor(__js_create)
@@ -67,7 +58,6 @@ export interface Object {
     function isSealed(o: Any): Bool {
       """
       Returns true if existing property attributes cannot be modified in an object and new properties cannot be added to the object.
-      
       @param o Object to test.
       """
       aliasFor(__js_isSealed)
@@ -75,7 +65,6 @@ export interface Object {
     function isFrozen(o: Any): Bool {
       """
       Returns true if existing property attributes and values cannot be modified in an object, and new properties cannot be added to the object.
-      
       @param o Object to test.
       """
       aliasFor(__js_isFrozen)
@@ -83,7 +72,6 @@ export interface Object {
     function isExtensible(o: Any): Bool {
       """
       Returns a value that indicates whether new properties can be added to an object.
-      
       @param o Object to test.
       """
       aliasFor(__js_isExtensible)
@@ -91,7 +79,6 @@ export interface Object {
     function keys(o: Any): List[String] {
       """
       Returns the names of the enumerable string properties and methods of an object.
-      
       @param o Object that contains the properties and methods. This can be an object that you created or an existing Document Object Model (DOM) object.
       """
       aliasFor(__js_keys)
@@ -121,7 +108,6 @@ export interface Object {
   function hasOwnProperty(v: PropertyKey): Bool {
     """
     Determines whether an object has a property with the specified name.
-    
     @param v A property name.
     """
     aliasFor(__js_hasOwnProperty)
@@ -129,7 +115,6 @@ export interface Object {
   function isPrototypeOf(v: Any): Bool {
     """
     Determines whether an object exists in another object's prototype chain.
-    
     @param v Another object whose prototype chain is to be checked.
     """
     aliasFor(__js_isPrototypeOf)
@@ -137,7 +122,6 @@ export interface Object {
   function propertyIsEnumerable(v: PropertyKey): Bool {
     """
     Determines whether a specified property is enumerable.
-    
     @param v A property name.
     """
     aliasFor(__js_propertyIsEnumerable)
@@ -152,7 +136,6 @@ export interface Function {
     function new(args: String, args: String, args: String): Any {
       """
       Creates a new function.
-      
       @param args A list of arguments the function accepts.
       """
       aliasFor(__op_new__)
@@ -169,9 +152,7 @@ export interface Function {
   function apply(thisArg: Any, argArray: Any): Any {
     """
     Calls the function, substituting the specified object for the this value of the function, and the specified array for the arguments of the function.
-    
     @param thisArg The object to be used as the this object.
-    
     @param argArray A set of arguments to be passed to the function.
     """
     aliasFor(__js_apply)
@@ -180,9 +161,7 @@ export interface Function {
   function call(thisArg: Any, argArray: Any, argArray: Any, argArray: Any): Any {
     """
     Calls a method of an object, substituting another object for the current object.
-    
     @param thisArg The object to be used as the current object.
-    
     @param argArray A list of arguments to be passed to the method.
     """
     aliasFor(__js_call)
@@ -193,11 +172,8 @@ export interface Function {
   function bind(thisArg: Any, argArray: Any, argArray: Any, argArray: Any): Any {
     """
     For a given function, creates a bound function that has the same body as the original function.
-    
     The this object of the bound function is associated with the specified object, and has the specified initial parameters.
-    
     @param thisArg An object to which the this keyword can refer inside the new function.
-    
     @param argArray A list of arguments to be passed to the new function.
     """
     aliasFor(__js_bind)
@@ -241,7 +217,6 @@ export interface String {
   function charAt(pos: Number): String {
     """
     Returns the character at the specified index.
-    
     @param pos The zero-based index of the desired character.
     """
     aliasFor(__js_charAt)
@@ -249,7 +224,6 @@ export interface String {
   function charCodeAt(index: Number): Number {
     """
     Returns the Unicode value of the character at the specified location.
-    
     @param index The zero-based index of the desired character. If there is no character at the specified index, NaN is returned.
     """
     aliasFor(__js_charCodeAt)
@@ -257,7 +231,6 @@ export interface String {
   function concat(strings: String, strings: String, strings: String): String {
     """
     Returns a string that contains the concatenation of two or more strings.
-    
     @param strings The strings to append to the end of the string.
     """
     aliasFor(__js_concat)
@@ -268,9 +241,7 @@ export interface String {
   function indexOf(searchString: String, position: Number): Number {
     """
     Returns the position of the first occurrence of a substring.
-    
     @param searchString The substring to search for in the string
-    
     @param position The index at which to begin searching the String object. If omitted, search starts at the beginning of the string.
     """
     aliasFor(__js_indexOf)
@@ -279,9 +250,7 @@ export interface String {
   function lastIndexOf(searchString: String, position: Number): Number {
     """
     Returns the last occurrence of a substring in the string.
-    
     @param searchString The substring to search for.
-    
     @param position The index at which to begin searching. If omitted, the search begins at the end of the string.
     """
     aliasFor(__js_lastIndexOf)
@@ -290,7 +259,6 @@ export interface String {
   function localeCompare(that: String): Number {
     """
     Determines whether two strings are equivalent in the current locale.
-    
     @param that String to compare to target string
     """
     aliasFor(__js_localeCompare)
@@ -298,7 +266,6 @@ export interface String {
   function match(regexp: Union[String, RegExp]): Union[RegExpMatchArray, Null] {
     """
     Matches a string with a regular expression, and returns an array containing the results of that search.
-    
     @param regexp A variable name or string literal containing the regular expression pattern and flags.
     """
     aliasFor(__js_match)
@@ -306,9 +273,7 @@ export interface String {
   function replace(searchValue: Union[String, RegExp], replaceValue: String): String {
     """
     Replaces text in a string, using a regular expression or search string.
-    
     @param searchValue A string or regular expression to search for.
-    
     @param replaceValue A string containing the text to replace. When the {@linkcode searchValue} is a `RegExp`, all matches are replaced if the `g` flag is set (or only those matches at the beginning, if the `y` flag is also present). Otherwise, only the first match of {@linkcode searchValue} is replaced.
     """
     aliasFor(__js_replace)
@@ -316,9 +281,7 @@ export interface String {
   function replace(searchValue: Union[String, RegExp], replacer: function(substring: String, args: List[Any]): String): String {
     """
     Replaces text in a string, using a regular expression or search string.
-    
     @param searchValue A string to search for.
-    
     @param replacer A function that returns the replacement text.
     """
     aliasFor(__js_replace)
@@ -326,7 +289,6 @@ export interface String {
   function search(regexp: Union[String, RegExp]): Number {
     """
     Finds the first substring match in a regular expression search.
-    
     @param regexp The regular expression pattern and applicable flags.
     """
     aliasFor(__js_search)
@@ -334,11 +296,8 @@ export interface String {
   function slice(start: Number, end: Number): String {
     """
     Returns a section of a string.
-    
     @param start The index to the beginning of the specified portion of stringObj.
-    
     @param end The index to the end of the specified portion of stringObj. The substring includes the characters up to, but not including, the character indicated by end.
-    
     If this value is not specified, the substring continues to the end of stringObj.
     """
     aliasFor(__js_slice)
@@ -348,9 +307,7 @@ export interface String {
   function split(separator: Union[String, RegExp], limit: Number): List[String] {
     """
     Split a string into substrings using the specified separator and return them as an array.
-    
     @param separator A string that identifies character or characters to use in separating the string. If omitted, a single-element array containing the entire string is returned.
-    
     @param limit A value used to limit the number of elements returned in the array.
     """
     aliasFor(__js_split)
@@ -359,11 +316,8 @@ export interface String {
   function substring(start: Number, end: Number): String {
     """
     Returns the substring at the specified location within a String object.
-    
     @param start The zero-based index number indicating the beginning of the substring.
-    
     @param end Zero-based index number indicating the end of the substring. The substring includes the characters up to, but not including, the character indicated by end.
-    
     If end is omitted, the characters from start through the end of the original string are returned.
     """
     aliasFor(__js_substring)
@@ -414,11 +368,8 @@ export interface String {
   function localeCompare(that: String, locales: Union[String, List[String]], options: IntlCollatorOptions): Number {
     """
     Determines whether two strings are equivalent in the current or specified locale.
-    
     @param that String to compare to target string
-    
     @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used. This parameter must conform to BCP 47 standards; see the Intl.Collator object for details.
-    
     @param options An object that contains one or more properties that specify comparison options. see the Intl.Collator object for details.
     """
     aliasFor(__js_localeCompare)
@@ -459,24 +410,20 @@ export interface Number {
     """ = aliasFor(__js_MIN_VALUE)
     const NaN: Number """
     A value that is not a number.
-    
     In equality comparisons, NaN does not equal any value, including itself. To test whether a value is equivalent to NaN, use the isNaN function.
     """ = aliasFor(__js_NaN)
     const NEGATIVE_INFINITY: Number """
     A value that is less than the largest negative number that can be represented in JavaScript.
-    
     JavaScript displays NEGATIVE_INFINITY values as -infinity.
     """ = aliasFor(__js_NEGATIVE_INFINITY)
     const POSITIVE_INFINITY: Number """
     A value greater than the largest number that can be represented in JavaScript.
-    
     JavaScript displays POSITIVE_INFINITY values as infinity.
     """ = aliasFor(__js_POSITIVE_INFINITY)
   }
   function toString(radix: Number): String {
     """
     Returns a string representation of an object.
-    
     @param radix Specifies a radix for converting numeric values to strings. This value is only used for numbers.
     """
     aliasFor(__js_toString)
@@ -485,7 +432,6 @@ export interface Number {
   function toFixed(fractionDigits: Number): String {
     """
     Returns a string representing a number in fixed-point notation.
-    
     @param fractionDigits Number of digits after the decimal point. Must be in the range 0 - 20, inclusive.
     """
     aliasFor(__js_toFixed)
@@ -494,7 +440,6 @@ export interface Number {
   function toExponential(fractionDigits: Number): String {
     """
     Returns a string containing a number represented in exponential notation.
-    
     @param fractionDigits Number of digits after the decimal point. Must be in the range 0 - 20, inclusive.
     """
     aliasFor(__js_toExponential)
@@ -503,7 +448,6 @@ export interface Number {
   function toPrecision(precision: Number): String {
     """
     Returns a string containing a number represented either in exponential or fixed-point notation with a specified number of digits.
-    
     @param precision Number of significant digits. Must be in the range 1 - 21, inclusive.
     """
     aliasFor(__js_toPrecision)
@@ -518,9 +462,7 @@ export interface Number {
   function toLocaleString(locales: Union[String, List[String]], options: IntlNumberFormatOptions): String {
     """
     Converts a number to a string by using the current or specified locale.
-    
     @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
-    
     @param options An object that contains one or more properties that specify comparison options.
     """
     aliasFor(__js_toLocaleString)
@@ -561,9 +503,7 @@ export interface Math {
     function abs(x: Number): Number {
       """
       Returns the absolute value of a number (the value without regard to whether it is positive or negative).
-      
       For example, the absolute value of -5 is the same as the absolute value of 5.
-      
       @param x A numeric expression for which the absolute value is needed.
       """
       aliasFor(__js_abs)
@@ -571,7 +511,6 @@ export interface Math {
     function acos(x: Number): Number {
       """
       Returns the arc cosine (or inverse cosine) of a number.
-      
       @param x A numeric expression.
       """
       aliasFor(__js_acos)
@@ -579,7 +518,6 @@ export interface Math {
     function asin(x: Number): Number {
       """
       Returns the arcsine of a number.
-      
       @param x A numeric expression.
       """
       aliasFor(__js_asin)
@@ -587,7 +525,6 @@ export interface Math {
     function atan(x: Number): Number {
       """
       Returns the arctangent of a number.
-      
       @param x A numeric expression for which the arctangent is needed.
       """
       aliasFor(__js_atan)
@@ -595,9 +532,7 @@ export interface Math {
     function atan2(y: Number, x: Number): Number {
       """
       Returns the angle (in radians) from the X axis to a point.
-      
       @param y A numeric expression representing the cartesian y-coordinate.
-      
       @param x A numeric expression representing the cartesian x-coordinate.
       """
       aliasFor(__js_atan2)
@@ -605,7 +540,6 @@ export interface Math {
     function ceil(x: Number): Number {
       """
       Returns the smallest integer greater than or equal to its numeric argument.
-      
       @param x A numeric expression.
       """
       aliasFor(__js_ceil)
@@ -613,7 +547,6 @@ export interface Math {
     function cos(x: Number): Number {
       """
       Returns the cosine of a number.
-      
       @param x A numeric expression that contains an angle measured in radians.
       """
       aliasFor(__js_cos)
@@ -621,7 +554,6 @@ export interface Math {
     function exp(x: Number): Number {
       """
       Returns e (the base of natural logarithms) raised to a power.
-      
       @param x A numeric expression representing the power of e.
       """
       aliasFor(__js_exp)
@@ -629,7 +561,6 @@ export interface Math {
     function floor(x: Number): Number {
       """
       Returns the greatest integer less than or equal to its numeric argument.
-      
       @param x A numeric expression.
       """
       aliasFor(__js_floor)
@@ -637,7 +568,6 @@ export interface Math {
     function log(x: Number): Number {
       """
       Returns the natural logarithm (base e) of a number.
-      
       @param x A numeric expression.
       """
       aliasFor(__js_log)
@@ -645,7 +575,6 @@ export interface Math {
     function max(values: Number, values: Number, values: Number): Number {
       """
       Returns the larger of a set of supplied numeric expressions.
-      
       @param values Numeric expressions to be evaluated.
       """
       aliasFor(__js_max)
@@ -656,7 +585,6 @@ export interface Math {
     function min(values: Number, values: Number, values: Number): Number {
       """
       Returns the smaller of a set of supplied numeric expressions.
-      
       @param values Numeric expressions to be evaluated.
       """
       aliasFor(__js_min)
@@ -667,9 +595,7 @@ export interface Math {
     function pow(x: Number, y: Number): Number {
       """
       Returns the value of a base expression taken to a specified power.
-      
       @param x The base value of the expression.
-      
       @param y The exponent value of the expression.
       """
       aliasFor(__js_pow)
@@ -683,7 +609,6 @@ export interface Math {
     function round(x: Number): Number {
       """
       Returns a supplied numeric expression rounded to the nearest integer.
-      
       @param x The value to be rounded to the nearest integer.
       """
       aliasFor(__js_round)
@@ -691,7 +616,6 @@ export interface Math {
     function sin(x: Number): Number {
       """
       Returns the sine of a number.
-      
       @param x A numeric expression that contains an angle measured in radians.
       """
       aliasFor(__js_sin)
@@ -699,7 +623,6 @@ export interface Math {
     function sqrt(x: Number): Number {
       """
       Returns the square root of a number.
-      
       @param x A numeric expression.
       """
       aliasFor(__js_sqrt)
@@ -707,7 +630,6 @@ export interface Math {
     function tan(x: Number): Number {
       """
       Returns the tangent of a number.
-      
       @param x A numeric expression that contains an angle measured in radians.
       """
       aliasFor(__js_tan)
@@ -725,19 +647,12 @@ export interface Date {
     function new(year: Number, monthIndex: Number, date: Number, hours: Number, minutes: Number, seconds: Number, ms: Number): Date {
       """
       Creates a new Date.
-      
       @param year The full year designation is required for cross-century date accuracy. If year is between 0 and 99 is used, then year is assumed to be 1900 + year.
-      
       @param monthIndex The month as a number between 0 and 11 (January to December).
-      
       @param date The date as a number between 1 and 31.
-      
       @param hours Must be supplied if minutes is supplied. A number from 0 to 23 (midnight to 11pm) that specifies the hour.
-      
       @param minutes Must be supplied if seconds is supplied. A number from 0 to 59 that specifies the minutes.
-      
       @param seconds Must be supplied if milliseconds is supplied. A number from 0 to 59 that specifies the seconds.
-      
       @param ms A number from 0 to 999 that specifies the milliseconds.
       """
       aliasFor(__op_new__)
@@ -752,7 +667,6 @@ export interface Date {
     function parse(s: String): Number {
       """
       Parses a string containing a date, and returns the number of milliseconds between that date and midnight, January 1, 1970.
-      
       @param s A date string
       """
       aliasFor(__js_parse)
@@ -760,19 +674,12 @@ export interface Date {
     function UTC(year: Number, monthIndex: Number, date: Number, hours: Number, minutes: Number, seconds: Number, ms: Number): Number {
       """
       Returns the number of milliseconds between midnight, January 1, 1970 Universal Coordinated Time (UTC) (or GMT) and the specified date.
-      
       @param year The full year designation is required for cross-century date accuracy. If year is between 0 and 99 is used, then year is assumed to be 1900 + year.
-      
       @param monthIndex The month as a number between 0 and 11 (January to December).
-      
       @param date The date as a number between 1 and 31.
-      
       @param hours Must be supplied if minutes is supplied. A number from 0 to 23 (midnight to 11pm) that specifies the hour.
-      
       @param minutes Must be supplied if seconds is supplied. A number from 0 to 59 that specifies the minutes.
-      
       @param seconds Must be supplied if milliseconds is supplied. A number from 0 to 59 that specifies the seconds.
-      
       @param ms A number from 0 to 999 that specifies the milliseconds.
       """
       aliasFor(__js_UTC)
@@ -942,7 +849,6 @@ export interface Date {
   function setTime(time: Number): Number {
     """
     Sets the date and time value in the Date object.
-    
     @param time A numeric value representing the number of elapsed milliseconds since midnight, January 1, 1970 GMT.
     """
     aliasFor(__js_setTime)
@@ -950,7 +856,6 @@ export interface Date {
   function setMilliseconds(ms: Number): Number {
     """
     Sets the milliseconds value in the Date object using local time.
-    
     @param ms A numeric value equal to the millisecond value.
     """
     aliasFor(__js_setMilliseconds)
@@ -958,7 +863,6 @@ export interface Date {
   function setUTCMilliseconds(ms: Number): Number {
     """
     Sets the milliseconds value in the Date object using Universal Coordinated Time (UTC).
-    
     @param ms A numeric value equal to the millisecond value.
     """
     aliasFor(__js_setUTCMilliseconds)
@@ -966,9 +870,7 @@ export interface Date {
   function setSeconds(sec: Number, ms: Number): Number {
     """
     Sets the seconds value in the Date object using local time.
-    
     @param sec A numeric value equal to the seconds value.
-    
     @param ms A numeric value equal to the milliseconds value.
     """
     aliasFor(__js_setSeconds)
@@ -977,9 +879,7 @@ export interface Date {
   function setUTCSeconds(sec: Number, ms: Number): Number {
     """
     Sets the seconds value in the Date object using Universal Coordinated Time (UTC).
-    
     @param sec A numeric value equal to the seconds value.
-    
     @param ms A numeric value equal to the milliseconds value.
     """
     aliasFor(__js_setUTCSeconds)
@@ -988,11 +888,8 @@ export interface Date {
   function setMinutes(min: Number, sec: Number, ms: Number): Number {
     """
     Sets the minutes value in the Date object using local time.
-    
     @param min A numeric value equal to the minutes value.
-    
     @param sec A numeric value equal to the seconds value.
-    
     @param ms A numeric value equal to the milliseconds value.
     """
     aliasFor(__js_setMinutes)
@@ -1002,11 +899,8 @@ export interface Date {
   function setUTCMinutes(min: Number, sec: Number, ms: Number): Number {
     """
     Sets the minutes value in the Date object using Universal Coordinated Time (UTC).
-    
     @param min A numeric value equal to the minutes value.
-    
     @param sec A numeric value equal to the seconds value.
-    
     @param ms A numeric value equal to the milliseconds value.
     """
     aliasFor(__js_setUTCMinutes)
@@ -1016,13 +910,9 @@ export interface Date {
   function setHours(hours: Number, min: Number, sec: Number, ms: Number): Number {
     """
     Sets the hour value in the Date object using local time.
-    
     @param hours A numeric value equal to the hours value.
-    
     @param min A numeric value equal to the minutes value.
-    
     @param sec A numeric value equal to the seconds value.
-    
     @param ms A numeric value equal to the milliseconds value.
     """
     aliasFor(__js_setHours)
@@ -1033,13 +923,9 @@ export interface Date {
   function setUTCHours(hours: Number, min: Number, sec: Number, ms: Number): Number {
     """
     Sets the hours value in the Date object using Universal Coordinated Time (UTC).
-    
     @param hours A numeric value equal to the hours value.
-    
     @param min A numeric value equal to the minutes value.
-    
     @param sec A numeric value equal to the seconds value.
-    
     @param ms A numeric value equal to the milliseconds value.
     """
     aliasFor(__js_setUTCHours)
@@ -1050,7 +936,6 @@ export interface Date {
   function setDate(date: Number): Number {
     """
     Sets the numeric day-of-the-month value of the Date object using local time.
-    
     @param date A numeric value equal to the day of the month.
     """
     aliasFor(__js_setDate)
@@ -1058,7 +943,6 @@ export interface Date {
   function setUTCDate(date: Number): Number {
     """
     Sets the numeric day of the month in the Date object using Universal Coordinated Time (UTC).
-    
     @param date A numeric value equal to the day of the month.
     """
     aliasFor(__js_setUTCDate)
@@ -1066,9 +950,7 @@ export interface Date {
   function setMonth(month: Number, date: Number): Number {
     """
     Sets the month value in the Date object using local time.
-    
     @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively.
-    
     @param date A numeric value representing the day of the month. If this value is not supplied, the value from a call to the getDate method is used.
     """
     aliasFor(__js_setMonth)
@@ -1077,9 +959,7 @@ export interface Date {
   function setUTCMonth(month: Number, date: Number): Number {
     """
     Sets the month value in the Date object using Universal Coordinated Time (UTC).
-    
     @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively.
-    
     @param date A numeric value representing the day of the month. If it is not supplied, the value from a call to the getUTCDate method is used.
     """
     aliasFor(__js_setUTCMonth)
@@ -1088,11 +968,8 @@ export interface Date {
   function setFullYear(year: Number, month: Number, date: Number): Number {
     """
     Sets the year of the Date object using local time.
-    
     @param year A numeric value for the year.
-    
     @param month A zero-based numeric value for the month (0 for January, 11 for December). Must be specified if numDate is specified.
-    
     @param date A numeric value equal for the day of the month.
     """
     aliasFor(__js_setFullYear)
@@ -1102,11 +979,8 @@ export interface Date {
   function setUTCFullYear(year: Number, month: Number, date: Number): Number {
     """
     Sets the year value in the Date object using Universal Coordinated Time (UTC).
-    
     @param year A numeric value equal to the year.
-    
     @param month A numeric value equal to the month. The value for January is 0, and other month values follow consecutively. Must be supplied if numDate is supplied.
-    
     @param date A numeric value equal to the day of the month.
     """
     aliasFor(__js_setUTCFullYear)
@@ -1135,9 +1009,7 @@ export interface Date {
   function toLocaleString(locales: Union[String, List[String]], options: IntlDateTimeFormatOptions): String {
     """
     Converts a date and time to a string by using the current or specified locale.
-    
     @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
-    
     @param options An object that contains one or more properties that specify comparison options.
     """
     aliasFor(__js_toLocaleString)
@@ -1147,9 +1019,7 @@ export interface Date {
   function toLocaleDateString(locales: Union[String, List[String]], options: IntlDateTimeFormatOptions): String {
     """
     Converts a date to a string by using the current or specified locale.
-    
     @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
-    
     @param options An object that contains one or more properties that specify comparison options.
     """
     aliasFor(__js_toLocaleDateString)
@@ -1159,9 +1029,7 @@ export interface Date {
   function toLocaleTimeString(locales: Union[String, List[String]], options: IntlDateTimeFormatOptions): String {
     """
     Converts a time to a string by using the current or specified locale.
-    
     @param locales A locale string or array of locale strings that contain one or more language or locale tags. If you include more than one locale string, list them in descending order of priority so that the first entry is the preferred locale. If you omit this parameter, the default locale of the JavaScript runtime is used.
-    
     @param options An object that contains one or more properties that specify comparison options.
     """
     aliasFor(__js_toLocaleTimeString)
@@ -1182,7 +1050,6 @@ export interface RegExp {
   function exec(string: String): Union[RegExpExecArray, Null] {
     """
     Executes a search on a string using a regular expression pattern, and returns an array containing the results of that search.
-    
     @param string The String object or string literal on which to perform the search.
     """
     aliasFor(__js_exec)
@@ -1190,7 +1057,6 @@ export interface RegExp {
   function test(string: String): Bool {
     """
     Returns a Boolean value that indicates whether or not a pattern exists in a searched string.
-    
     @param string String on which to perform the search.
     """
     aliasFor(__js_test)
@@ -1291,11 +1157,8 @@ export interface JSON {
     function parse(text: String, reviver: function(key: String, value: Any): Any): Any {
       """
       Converts a JavaScript Object Notation (JSON) string into an object.
-      
       @param text A valid JSON string.
-      
       @param reviver A function that transforms the results. This function is called for each member of the object.
-      
       If a member contains nested objects, the nested objects are transformed before the parent object is.
       """
       aliasFor(__js_parse)
@@ -1304,11 +1167,8 @@ export interface JSON {
     function stringify(value: Any, replacer: function(key: String, value: Any): Any, space: Union[String, Number]): String {
       """
       Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
-      
       @param value A JavaScript value, usually an object or array, to be converted.
-      
       @param replacer A function that transforms the results.
-      
       @param space Adds indentation, white space, and line break characters to the return-value JSON text to make it easier to read.
       """
       aliasFor(__js_stringify)
@@ -1318,11 +1178,8 @@ export interface JSON {
     function stringify(value: Any, replacer: Union[List[Union[Number, String]], Null], space: Union[String, Number]): String {
       """
       Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
-      
       @param value A JavaScript value, usually an object or array, to be converted.
-      
       @param replacer An array of strings and numbers that acts as an approved list for selecting the object properties that will be stringified.
-      
       @param space Adds indentation, white space, and line break characters to the return-value JSON text to make it easier to read.
       """
       aliasFor(__js_stringify)
@@ -1345,11 +1202,8 @@ export interface Array {
 export interface ArrayBuffer {
   """
   Represents a raw buffer of binary data, which is used to store data for the
-  
   different typed arrays. ArrayBuffers cannot be read from or written to directly,
-  
   but can be passed to a typed array or DataView Object to interpret the raw
-  
   buffer as needed.
   """
   static {
@@ -1394,11 +1248,8 @@ export interface DataView {
   function getFloat32(byteOffset: Number, littleEndian: Bool): Number {
     """
     Gets the Float32 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
-    
     @param littleEndian If false or undefined, a big-endian value should be read.
     """
     aliasFor(__js_getFloat32)
@@ -1407,11 +1258,8 @@ export interface DataView {
   function getFloat64(byteOffset: Number, littleEndian: Bool): Number {
     """
     Gets the Float64 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
-    
     @param littleEndian If false or undefined, a big-endian value should be read.
     """
     aliasFor(__js_getFloat64)
@@ -1420,9 +1268,7 @@ export interface DataView {
   function getInt8(byteOffset: Number): Number {
     """
     Gets the Int8 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
     """
     aliasFor(__js_getInt8)
@@ -1430,11 +1276,8 @@ export interface DataView {
   function getInt16(byteOffset: Number, littleEndian: Bool): Number {
     """
     Gets the Int16 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
-    
     @param littleEndian If false or undefined, a big-endian value should be read.
     """
     aliasFor(__js_getInt16)
@@ -1443,11 +1286,8 @@ export interface DataView {
   function getInt32(byteOffset: Number, littleEndian: Bool): Number {
     """
     Gets the Int32 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
-    
     @param littleEndian If false or undefined, a big-endian value should be read.
     """
     aliasFor(__js_getInt32)
@@ -1456,9 +1296,7 @@ export interface DataView {
   function getUint8(byteOffset: Number): Number {
     """
     Gets the Uint8 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
     """
     aliasFor(__js_getUint8)
@@ -1466,11 +1304,8 @@ export interface DataView {
   function getUint16(byteOffset: Number, littleEndian: Bool): Number {
     """
     Gets the Uint16 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
-    
     @param littleEndian If false or undefined, a big-endian value should be read.
     """
     aliasFor(__js_getUint16)
@@ -1479,11 +1314,8 @@ export interface DataView {
   function getUint32(byteOffset: Number, littleEndian: Bool): Number {
     """
     Gets the Uint32 value at the specified byte offset from the start of the view. There is
-    
     no alignment constraint; multi-byte values may be fetched from any offset.
-    
     @param byteOffset The place in the buffer at which the value should be retrieved.
-    
     @param littleEndian If false or undefined, a big-endian value should be read.
     """
     aliasFor(__js_getUint32)
@@ -1492,11 +1324,8 @@ export interface DataView {
   function setFloat32(byteOffset: Number, value: Number, littleEndian: Bool): Null {
     """
     Stores an Float32 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
-    
     @param littleEndian If false or undefined, a big-endian value should be written.
     """
     aliasFor(__js_setFloat32)
@@ -1505,11 +1334,8 @@ export interface DataView {
   function setFloat64(byteOffset: Number, value: Number, littleEndian: Bool): Null {
     """
     Stores an Float64 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
-    
     @param littleEndian If false or undefined, a big-endian value should be written.
     """
     aliasFor(__js_setFloat64)
@@ -1518,9 +1344,7 @@ export interface DataView {
   function setInt8(byteOffset: Number, value: Number): Null {
     """
     Stores an Int8 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
     """
     aliasFor(__js_setInt8)
@@ -1528,11 +1352,8 @@ export interface DataView {
   function setInt16(byteOffset: Number, value: Number, littleEndian: Bool): Null {
     """
     Stores an Int16 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
-    
     @param littleEndian If false or undefined, a big-endian value should be written.
     """
     aliasFor(__js_setInt16)
@@ -1541,11 +1362,8 @@ export interface DataView {
   function setInt32(byteOffset: Number, value: Number, littleEndian: Bool): Null {
     """
     Stores an Int32 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
-    
     @param littleEndian If false or undefined, a big-endian value should be written.
     """
     aliasFor(__js_setInt32)
@@ -1554,9 +1372,7 @@ export interface DataView {
   function setUint8(byteOffset: Number, value: Number): Null {
     """
     Stores an Uint8 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
     """
     aliasFor(__js_setUint8)
@@ -1564,11 +1380,8 @@ export interface DataView {
   function setUint16(byteOffset: Number, value: Number, littleEndian: Bool): Null {
     """
     Stores an Uint16 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
-    
     @param littleEndian If false or undefined, a big-endian value should be written.
     """
     aliasFor(__js_setUint16)
@@ -1577,11 +1390,8 @@ export interface DataView {
   function setUint32(byteOffset: Number, value: Number, littleEndian: Bool): Null {
     """
     Stores an Uint32 value at the specified byte offset from the start of the view.
-    
     @param byteOffset The place in the buffer at which the value should be set.
-    
     @param value The value to set.
-    
     @param littleEndian If false or undefined, a big-endian value should be written.
     """
     aliasFor(__js_setUint32)
@@ -1591,7 +1401,6 @@ export interface DataView {
 export interface Int8Array {
   """
   A typed array of 8-bit integer values. The contents are initialized to 0. If the requested
-  
   number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -1608,7 +1417,6 @@ export interface Int8Array {
     function of(items: Number, items: Number, items: Number): Int8Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -1619,7 +1427,6 @@ export interface Int8Array {
     function from(arrayLike: List[Number]): Int8Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -1640,17 +1447,11 @@ export interface Int8Array {
   function copyWithin(target: Number, start: Number, end: Number): Int8Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -1659,15 +1460,10 @@ export interface Int8Array {
   function every(predicate: function(value: Number, index: Number, array: Int8Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -1676,15 +1472,10 @@ export interface Int8Array {
   function fill(value: Number, start: Number, end: Number): Int8Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -1694,13 +1485,9 @@ export interface Int8Array {
   function filter(predicate: function(value: Number, index: Number, array: Int8Array): Any, thisArg: Any): Int8Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -1709,17 +1496,11 @@ export interface Int8Array {
   function find(predicate: function(value: Number, index: Number, obj: Int8Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -1728,17 +1509,11 @@ export interface Int8Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Int8Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -1747,13 +1522,9 @@ export interface Int8Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Int8Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -1762,11 +1533,8 @@ export interface Int8Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -1775,9 +1543,7 @@ export interface Int8Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -1786,11 +1552,8 @@ export interface Int8Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -1802,15 +1565,10 @@ export interface Int8Array {
   function map(callbackfn: function(value: Number, index: Number, array: Int8Array): Number, thisArg: Any): Int8Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -1819,19 +1577,12 @@ export interface Int8Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Int8Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -1840,19 +1591,12 @@ export interface Int8Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Int8Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -1867,9 +1611,7 @@ export interface Int8Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -1878,9 +1620,7 @@ export interface Int8Array {
   function slice(start: Number, end: Number): Int8Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -1890,15 +1630,10 @@ export interface Int8Array {
   function some(predicate: function(value: Number, index: Number, array: Int8Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -1907,17 +1642,11 @@ export interface Int8Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Int8Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -1926,11 +1655,8 @@ export interface Int8Array {
   function subarray(begin: Number, end: Number): Int8Array {
     """
     Gets a new Int8Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -1961,7 +1687,6 @@ export interface Int8Array {
 export interface Uint8Array {
   """
   A typed array of 8-bit unsigned integer values. The contents are initialized to 0. If the
-  
   requested number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -1978,7 +1703,6 @@ export interface Uint8Array {
     function of(items: Number, items: Number, items: Number): Uint8Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -1989,7 +1713,6 @@ export interface Uint8Array {
     function from(arrayLike: List[Number]): Uint8Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -2010,17 +1733,11 @@ export interface Uint8Array {
   function copyWithin(target: Number, start: Number, end: Number): Uint8Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -2029,15 +1746,10 @@ export interface Uint8Array {
   function every(predicate: function(value: Number, index: Number, array: Uint8Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -2046,15 +1758,10 @@ export interface Uint8Array {
   function fill(value: Number, start: Number, end: Number): Uint8Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -2064,13 +1771,9 @@ export interface Uint8Array {
   function filter(predicate: function(value: Number, index: Number, array: Uint8Array): Any, thisArg: Any): Uint8Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -2079,17 +1782,11 @@ export interface Uint8Array {
   function find(predicate: function(value: Number, index: Number, obj: Uint8Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -2098,17 +1795,11 @@ export interface Uint8Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint8Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -2117,13 +1808,9 @@ export interface Uint8Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Uint8Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -2132,11 +1819,8 @@ export interface Uint8Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -2145,9 +1829,7 @@ export interface Uint8Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -2156,11 +1838,8 @@ export interface Uint8Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -2172,15 +1851,10 @@ export interface Uint8Array {
   function map(callbackfn: function(value: Number, index: Number, array: Uint8Array): Number, thisArg: Any): Uint8Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -2189,19 +1863,12 @@ export interface Uint8Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint8Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -2210,19 +1877,12 @@ export interface Uint8Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint8Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -2237,9 +1897,7 @@ export interface Uint8Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -2248,9 +1906,7 @@ export interface Uint8Array {
   function slice(start: Number, end: Number): Uint8Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -2260,15 +1916,10 @@ export interface Uint8Array {
   function some(predicate: function(value: Number, index: Number, array: Uint8Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -2277,17 +1928,11 @@ export interface Uint8Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Uint8Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -2296,11 +1941,8 @@ export interface Uint8Array {
   function subarray(begin: Number, end: Number): Uint8Array {
     """
     Gets a new Uint8Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -2331,7 +1973,6 @@ export interface Uint8Array {
 export interface Uint8ClampedArray {
   """
   A typed array of 8-bit unsigned integer (clamped) values. The contents are initialized to 0.
-  
   If the requested number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -2348,7 +1989,6 @@ export interface Uint8ClampedArray {
     function of(items: Number, items: Number, items: Number): Uint8ClampedArray {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -2359,7 +1999,6 @@ export interface Uint8ClampedArray {
     function from(arrayLike: List[Number]): Uint8ClampedArray {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -2380,17 +2019,11 @@ export interface Uint8ClampedArray {
   function copyWithin(target: Number, start: Number, end: Number): Uint8ClampedArray {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -2399,15 +2032,10 @@ export interface Uint8ClampedArray {
   function every(predicate: function(value: Number, index: Number, array: Uint8ClampedArray): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -2416,15 +2044,10 @@ export interface Uint8ClampedArray {
   function fill(value: Number, start: Number, end: Number): Uint8ClampedArray {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -2434,13 +2057,9 @@ export interface Uint8ClampedArray {
   function filter(predicate: function(value: Number, index: Number, array: Uint8ClampedArray): Any, thisArg: Any): Uint8ClampedArray {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -2449,17 +2068,11 @@ export interface Uint8ClampedArray {
   function find(predicate: function(value: Number, index: Number, obj: Uint8ClampedArray): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -2468,17 +2081,11 @@ export interface Uint8ClampedArray {
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint8ClampedArray): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -2487,13 +2094,9 @@ export interface Uint8ClampedArray {
   function forEach(callbackfn: function(value: Number, index: Number, array: Uint8ClampedArray): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -2502,11 +2105,8 @@ export interface Uint8ClampedArray {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -2515,9 +2115,7 @@ export interface Uint8ClampedArray {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -2526,11 +2124,8 @@ export interface Uint8ClampedArray {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -2542,15 +2137,10 @@ export interface Uint8ClampedArray {
   function map(callbackfn: function(value: Number, index: Number, array: Uint8ClampedArray): Number, thisArg: Any): Uint8ClampedArray {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -2559,19 +2149,12 @@ export interface Uint8ClampedArray {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint8ClampedArray): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -2580,19 +2163,12 @@ export interface Uint8ClampedArray {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint8ClampedArray): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -2607,9 +2183,7 @@ export interface Uint8ClampedArray {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -2618,9 +2192,7 @@ export interface Uint8ClampedArray {
   function slice(start: Number, end: Number): Uint8ClampedArray {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -2630,15 +2202,10 @@ export interface Uint8ClampedArray {
   function some(predicate: function(value: Number, index: Number, array: Uint8ClampedArray): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -2647,17 +2214,11 @@ export interface Uint8ClampedArray {
   function sort(compareFn: function(a: Number, b: Number): Number): Uint8ClampedArray {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -2666,11 +2227,8 @@ export interface Uint8ClampedArray {
   function subarray(begin: Number, end: Number): Uint8ClampedArray {
     """
     Gets a new Uint8ClampedArray view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -2701,7 +2259,6 @@ export interface Uint8ClampedArray {
 export interface Int16Array {
   """
   A typed array of 16-bit signed integer values. The contents are initialized to 0. If the
-  
   requested number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -2718,7 +2275,6 @@ export interface Int16Array {
     function of(items: Number, items: Number, items: Number): Int16Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -2729,7 +2285,6 @@ export interface Int16Array {
     function from(arrayLike: List[Number]): Int16Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -2750,17 +2305,11 @@ export interface Int16Array {
   function copyWithin(target: Number, start: Number, end: Number): Int16Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -2769,15 +2318,10 @@ export interface Int16Array {
   function every(predicate: function(value: Number, index: Number, array: Int16Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -2786,15 +2330,10 @@ export interface Int16Array {
   function fill(value: Number, start: Number, end: Number): Int16Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -2804,13 +2343,9 @@ export interface Int16Array {
   function filter(predicate: function(value: Number, index: Number, array: Int16Array): Any, thisArg: Any): Int16Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -2819,17 +2354,11 @@ export interface Int16Array {
   function find(predicate: function(value: Number, index: Number, obj: Int16Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -2838,17 +2367,11 @@ export interface Int16Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Int16Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -2857,13 +2380,9 @@ export interface Int16Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Int16Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -2872,11 +2391,8 @@ export interface Int16Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -2885,9 +2401,7 @@ export interface Int16Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -2896,11 +2410,8 @@ export interface Int16Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -2912,15 +2423,10 @@ export interface Int16Array {
   function map(callbackfn: function(value: Number, index: Number, array: Int16Array): Number, thisArg: Any): Int16Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -2929,19 +2435,12 @@ export interface Int16Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Int16Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -2950,19 +2449,12 @@ export interface Int16Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Int16Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -2977,9 +2469,7 @@ export interface Int16Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -2988,9 +2478,7 @@ export interface Int16Array {
   function slice(start: Number, end: Number): Int16Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -3000,15 +2488,10 @@ export interface Int16Array {
   function some(predicate: function(value: Number, index: Number, array: Int16Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -3017,17 +2500,11 @@ export interface Int16Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Int16Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -3036,11 +2513,8 @@ export interface Int16Array {
   function subarray(begin: Number, end: Number): Int16Array {
     """
     Gets a new Int16Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -3071,7 +2545,6 @@ export interface Int16Array {
 export interface Uint16Array {
   """
   A typed array of 16-bit unsigned integer values. The contents are initialized to 0. If the
-  
   requested number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -3088,7 +2561,6 @@ export interface Uint16Array {
     function of(items: Number, items: Number, items: Number): Uint16Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -3099,7 +2571,6 @@ export interface Uint16Array {
     function from(arrayLike: List[Number]): Uint16Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -3120,17 +2591,11 @@ export interface Uint16Array {
   function copyWithin(target: Number, start: Number, end: Number): Uint16Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -3139,15 +2604,10 @@ export interface Uint16Array {
   function every(predicate: function(value: Number, index: Number, array: Uint16Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -3156,15 +2616,10 @@ export interface Uint16Array {
   function fill(value: Number, start: Number, end: Number): Uint16Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -3174,13 +2629,9 @@ export interface Uint16Array {
   function filter(predicate: function(value: Number, index: Number, array: Uint16Array): Any, thisArg: Any): Uint16Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -3189,17 +2640,11 @@ export interface Uint16Array {
   function find(predicate: function(value: Number, index: Number, obj: Uint16Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -3208,17 +2653,11 @@ export interface Uint16Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint16Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -3227,13 +2666,9 @@ export interface Uint16Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Uint16Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -3242,11 +2677,8 @@ export interface Uint16Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -3255,9 +2687,7 @@ export interface Uint16Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -3266,11 +2696,8 @@ export interface Uint16Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -3282,15 +2709,10 @@ export interface Uint16Array {
   function map(callbackfn: function(value: Number, index: Number, array: Uint16Array): Number, thisArg: Any): Uint16Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -3299,19 +2721,12 @@ export interface Uint16Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint16Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -3320,19 +2735,12 @@ export interface Uint16Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint16Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -3347,9 +2755,7 @@ export interface Uint16Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -3358,9 +2764,7 @@ export interface Uint16Array {
   function slice(start: Number, end: Number): Uint16Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -3370,15 +2774,10 @@ export interface Uint16Array {
   function some(predicate: function(value: Number, index: Number, array: Uint16Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -3387,17 +2786,11 @@ export interface Uint16Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Uint16Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -3406,11 +2799,8 @@ export interface Uint16Array {
   function subarray(begin: Number, end: Number): Uint16Array {
     """
     Gets a new Uint16Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -3441,7 +2831,6 @@ export interface Uint16Array {
 export interface Int32Array {
   """
   A typed array of 32-bit signed integer values. The contents are initialized to 0. If the
-  
   requested number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -3458,7 +2847,6 @@ export interface Int32Array {
     function of(items: Number, items: Number, items: Number): Int32Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -3469,7 +2857,6 @@ export interface Int32Array {
     function from(arrayLike: List[Number]): Int32Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -3490,17 +2877,11 @@ export interface Int32Array {
   function copyWithin(target: Number, start: Number, end: Number): Int32Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -3509,15 +2890,10 @@ export interface Int32Array {
   function every(predicate: function(value: Number, index: Number, array: Int32Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -3526,15 +2902,10 @@ export interface Int32Array {
   function fill(value: Number, start: Number, end: Number): Int32Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -3544,13 +2915,9 @@ export interface Int32Array {
   function filter(predicate: function(value: Number, index: Number, array: Int32Array): Any, thisArg: Any): Int32Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -3559,17 +2926,11 @@ export interface Int32Array {
   function find(predicate: function(value: Number, index: Number, obj: Int32Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -3578,17 +2939,11 @@ export interface Int32Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Int32Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -3597,13 +2952,9 @@ export interface Int32Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Int32Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -3612,11 +2963,8 @@ export interface Int32Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -3625,9 +2973,7 @@ export interface Int32Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -3636,11 +2982,8 @@ export interface Int32Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -3652,15 +2995,10 @@ export interface Int32Array {
   function map(callbackfn: function(value: Number, index: Number, array: Int32Array): Number, thisArg: Any): Int32Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -3669,19 +3007,12 @@ export interface Int32Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Int32Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -3690,19 +3021,12 @@ export interface Int32Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Int32Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -3717,9 +3041,7 @@ export interface Int32Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -3728,9 +3050,7 @@ export interface Int32Array {
   function slice(start: Number, end: Number): Int32Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -3740,15 +3060,10 @@ export interface Int32Array {
   function some(predicate: function(value: Number, index: Number, array: Int32Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -3757,17 +3072,11 @@ export interface Int32Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Int32Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -3776,11 +3085,8 @@ export interface Int32Array {
   function subarray(begin: Number, end: Number): Int32Array {
     """
     Gets a new Int32Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -3811,7 +3117,6 @@ export interface Int32Array {
 export interface Uint32Array {
   """
   A typed array of 32-bit unsigned integer values. The contents are initialized to 0. If the
-  
   requested number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -3828,7 +3133,6 @@ export interface Uint32Array {
     function of(items: Number, items: Number, items: Number): Uint32Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -3839,7 +3143,6 @@ export interface Uint32Array {
     function from(arrayLike: List[Number]): Uint32Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -3860,17 +3163,11 @@ export interface Uint32Array {
   function copyWithin(target: Number, start: Number, end: Number): Uint32Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -3879,15 +3176,10 @@ export interface Uint32Array {
   function every(predicate: function(value: Number, index: Number, array: Uint32Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -3896,15 +3188,10 @@ export interface Uint32Array {
   function fill(value: Number, start: Number, end: Number): Uint32Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -3914,13 +3201,9 @@ export interface Uint32Array {
   function filter(predicate: function(value: Number, index: Number, array: Uint32Array): Any, thisArg: Any): Uint32Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -3929,17 +3212,11 @@ export interface Uint32Array {
   function find(predicate: function(value: Number, index: Number, obj: Uint32Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -3948,17 +3225,11 @@ export interface Uint32Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint32Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -3967,13 +3238,9 @@ export interface Uint32Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Uint32Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -3982,11 +3249,8 @@ export interface Uint32Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -3995,9 +3259,7 @@ export interface Uint32Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -4006,11 +3268,8 @@ export interface Uint32Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -4022,15 +3281,10 @@ export interface Uint32Array {
   function map(callbackfn: function(value: Number, index: Number, array: Uint32Array): Number, thisArg: Any): Uint32Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -4039,19 +3293,12 @@ export interface Uint32Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint32Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -4060,19 +3307,12 @@ export interface Uint32Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Uint32Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -4087,9 +3327,7 @@ export interface Uint32Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -4098,9 +3336,7 @@ export interface Uint32Array {
   function slice(start: Number, end: Number): Uint32Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -4110,15 +3346,10 @@ export interface Uint32Array {
   function some(predicate: function(value: Number, index: Number, array: Uint32Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -4127,17 +3358,11 @@ export interface Uint32Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Uint32Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -4146,11 +3371,8 @@ export interface Uint32Array {
   function subarray(begin: Number, end: Number): Uint32Array {
     """
     Gets a new Uint32Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -4181,7 +3403,6 @@ export interface Uint32Array {
 export interface Float32Array {
   """
   A typed array of 32-bit float values. The contents are initialized to 0. If the requested number
-  
   of bytes could not be allocated an exception is raised.
   """
   static {
@@ -4198,7 +3419,6 @@ export interface Float32Array {
     function of(items: Number, items: Number, items: Number): Float32Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -4209,7 +3429,6 @@ export interface Float32Array {
     function from(arrayLike: List[Number]): Float32Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -4230,17 +3449,11 @@ export interface Float32Array {
   function copyWithin(target: Number, start: Number, end: Number): Float32Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -4249,15 +3462,10 @@ export interface Float32Array {
   function every(predicate: function(value: Number, index: Number, array: Float32Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -4266,15 +3474,10 @@ export interface Float32Array {
   function fill(value: Number, start: Number, end: Number): Float32Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -4284,13 +3487,9 @@ export interface Float32Array {
   function filter(predicate: function(value: Number, index: Number, array: Float32Array): Any, thisArg: Any): Float32Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -4299,17 +3498,11 @@ export interface Float32Array {
   function find(predicate: function(value: Number, index: Number, obj: Float32Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -4318,17 +3511,11 @@ export interface Float32Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Float32Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -4337,13 +3524,9 @@ export interface Float32Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Float32Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -4352,11 +3535,8 @@ export interface Float32Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -4365,9 +3545,7 @@ export interface Float32Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -4376,11 +3554,8 @@ export interface Float32Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -4392,15 +3567,10 @@ export interface Float32Array {
   function map(callbackfn: function(value: Number, index: Number, array: Float32Array): Number, thisArg: Any): Float32Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -4409,19 +3579,12 @@ export interface Float32Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Float32Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -4430,19 +3593,12 @@ export interface Float32Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Float32Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -4457,9 +3613,7 @@ export interface Float32Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -4468,9 +3622,7 @@ export interface Float32Array {
   function slice(start: Number, end: Number): Float32Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -4480,15 +3632,10 @@ export interface Float32Array {
   function some(predicate: function(value: Number, index: Number, array: Float32Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -4497,17 +3644,11 @@ export interface Float32Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Float32Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -4516,11 +3657,8 @@ export interface Float32Array {
   function subarray(begin: Number, end: Number): Float32Array {
     """
     Gets a new Float32Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)
@@ -4551,7 +3689,6 @@ export interface Float32Array {
 export interface Float64Array {
   """
   A typed array of 64-bit float values. The contents are initialized to 0. If the requested
-  
   number of bytes could not be allocated an exception is raised.
   """
   static {
@@ -4568,7 +3705,6 @@ export interface Float64Array {
     function of(items: Number, items: Number, items: Number): Float64Array {
       """
       Returns a new array from a set of elements.
-      
       @param items A set of elements to include in the new array object.
       """
       aliasFor(__js_of)
@@ -4579,7 +3715,6 @@ export interface Float64Array {
     function from(arrayLike: List[Number]): Float64Array {
       """
       Creates an array from an array-like or iterable object.
-      
       @param arrayLike An array-like or iterable object to convert to an array.
       """
       aliasFor(__js_from)
@@ -4600,17 +3735,11 @@ export interface Float64Array {
   function copyWithin(target: Number, start: Number, end: Number): Float64Array {
     """
     Returns the this object after copying a section of the array identified by start and end
-    
     to the same array starting at position target
-    
     @param target If target is negative, it is treated as length+target where length is the
-    
     length of the array.
-    
     @param start If start is negative, it is treated as length+start. If end is negative, it
-    
     is treated as length+end.
-    
     @param end If not specified, length of the this object is used as its default value.
     """
     aliasFor(__js_copyWithin)
@@ -4619,15 +3748,10 @@ export interface Float64Array {
   function every(predicate: function(value: Number, index: Number, array: Float64Array): Any, thisArg: Any): Bool {
     """
     Determines whether all the members of an array satisfy the specified test.
-    
     @param predicate A function that accepts up to three arguments. The every method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value false, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_every)
@@ -4636,15 +3760,10 @@ export interface Float64Array {
   function fill(value: Number, start: Number, end: Number): Float64Array {
     """
     Changes all array elements from `start` to `end` index to a static `value` and returns the modified array
-    
     @param value value to fill array section with
-    
     @param start index to start filling the array at. If start is negative, it is treated as
-    
     length+start where length is the length of the array.
-    
     @param end index to stop filling the array at. If end is negative, it is treated as
-    
     length+end.
     """
     aliasFor(__js_fill)
@@ -4654,13 +3773,9 @@ export interface Float64Array {
   function filter(predicate: function(value: Number, index: Number, array: Float64Array): Any, thisArg: Any): Float64Array {
     """
     Returns the elements of an array that meet the condition specified in a callback function.
-    
     @param predicate A function that accepts up to three arguments. The filter method calls
-    
     the predicate function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_filter)
@@ -4669,17 +3784,11 @@ export interface Float64Array {
   function find(predicate: function(value: Number, index: Number, obj: Float64Array): Bool, thisArg: Any): Union[Number, Null] {
     """
     Returns the value of the first element in the array where predicate is true, and undefined
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found, find
-    
     immediately returns that element value. Otherwise, find returns undefined.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_find)
@@ -4688,17 +3797,11 @@ export interface Float64Array {
   function findIndex(predicate: function(value: Number, index: Number, obj: Float64Array): Bool, thisArg: Any): Number {
     """
     Returns the index of the first element in the array where predicate is true, and -1
-    
     otherwise.
-    
     @param predicate find calls predicate once for each element of the array, in ascending
-    
     order, until it finds one where predicate returns true. If such an element is found,
-    
     findIndex immediately returns that element index. Otherwise, findIndex returns -1.
-    
     @param thisArg If provided, it will be used as the this value for each invocation of
-    
     predicate. If it is not provided, undefined is used instead.
     """
     aliasFor(__js_findIndex)
@@ -4707,13 +3810,9 @@ export interface Float64Array {
   function forEach(callbackfn: function(value: Number, index: Number, array: Float64Array): Null, thisArg: Any): Null {
     """
     Performs the specified action for each element in an array.
-    
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg  An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_forEach)
@@ -4722,11 +3821,8 @@ export interface Float64Array {
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
      search starts at index 0.
     """
     aliasFor(__js_indexOf)
@@ -4735,9 +3831,7 @@ export interface Float64Array {
   function join(separator: String): String {
     """
     Adds all the elements of an array separated by the specified separator string.
-    
     @param separator A string used to separate one element of an array from the next in the
-    
     resulting String. If omitted, the array elements are separated with a comma.
     """
     aliasFor(__js_join)
@@ -4746,11 +3840,8 @@ export interface Float64Array {
   function lastIndexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the last occurrence of a value in an array.
-    
     @param searchElement The value to locate in the array.
-    
     @param fromIndex The array index at which to begin the search. If fromIndex is omitted, the
-    
     search starts at index 0.
     """
     aliasFor(__js_lastIndexOf)
@@ -4762,15 +3853,10 @@ export interface Float64Array {
   function map(callbackfn: function(value: Number, index: Number, array: Float64Array): Number, thisArg: Any): Float64Array {
     """
     Calls a defined callback function on each element of an array, and returns an array that
-    
     contains the results.
-    
     @param callbackfn A function that accepts up to three arguments. The map method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param thisArg An object to which the this keyword can refer in the callbackfn function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_map)
@@ -4779,19 +3865,12 @@ export interface Float64Array {
   function reduce(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Float64Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array. The return value of
-    
     the callback function is the accumulated result, and is provided as an argument in the next
-    
     call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduce method calls the
-    
     callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an argument
-    
     instead of an array value.
     """
     aliasFor(__js_reduce)
@@ -4800,19 +3879,12 @@ export interface Float64Array {
   function reduceRight(callbackfn: function(previousValue: Number, currentValue: Number, currentIndex: Number, array: Float64Array): Number): Number {
     """
     Calls the specified callback function for all the elements in an array, in descending order.
-    
     The return value of the callback function is the accumulated result, and is provided as an
-    
     argument in the next call to the callback function.
-    
     @param callbackfn A function that accepts up to four arguments. The reduceRight method calls
-    
     the callbackfn function one time for each element in the array.
-    
     @param initialValue If initialValue is specified, it is used as the initial value to start
-    
     the accumulation. The first call to the callbackfn function provides this value as an
-    
     argument instead of an array value.
     """
     aliasFor(__js_reduceRight)
@@ -4827,9 +3899,7 @@ export interface Float64Array {
   function set(array: List[Number], offset: Number): Null {
     """
     Sets a value or an array of values.
-    
     @param array A typed or untyped array of values to set.
-    
     @param offset The index in the current array at which the values are to be written.
     """
     aliasFor(__js_set)
@@ -4838,9 +3908,7 @@ export interface Float64Array {
   function slice(start: Number, end: Number): Float64Array {
     """
     Returns a section of an array.
-    
     @param start The beginning of the specified portion of the array.
-    
     @param end The end of the specified portion of the array. This is exclusive of the element at the index 'end'.
     """
     aliasFor(__js_slice)
@@ -4850,15 +3918,10 @@ export interface Float64Array {
   function some(predicate: function(value: Number, index: Number, array: Float64Array): Any, thisArg: Any): Bool {
     """
     Determines whether the specified callback function returns true for any element of an array.
-    
     @param predicate A function that accepts up to three arguments. The some method calls
-    
     the predicate function for each element in the array until the predicate returns a value
-    
     which is coercible to the Boolean value true, or until the end of the array.
-    
     @param thisArg An object to which the this keyword can refer in the predicate function.
-    
     If thisArg is omitted, undefined is used as the this value.
     """
     aliasFor(__js_some)
@@ -4867,17 +3930,11 @@ export interface Float64Array {
   function sort(compareFn: function(a: Number, b: Number): Number): Float64Array {
     """
     Sorts an array.
-    
     @param compareFn Function used to determine the order of the elements. It is expected to return
-    
     a negative value if first argument is less than second argument, zero if they're equal and a positive
-    
     value otherwise. If omitted, the elements are sorted in ascending order.
-    
     ```ts
-    
     [11,2,22,1].sort((a, b) => a - b)
-    
     ```
     """
     aliasFor(__js_sort)
@@ -4886,11 +3943,8 @@ export interface Float64Array {
   function subarray(begin: Number, end: Number): Float64Array {
     """
     Gets a new Float64Array view of the ArrayBuffer store for this array, referencing the elements
-    
     at begin, inclusive, up to end, exclusive.
-    
     @param begin The index of the beginning of the array.
-    
     @param end The index of the end of the array.
     """
     aliasFor(__js_subarray)

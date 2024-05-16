@@ -975,7 +975,7 @@ function* parse(s) {
 function formatCommentString(s, depth) {
   if (s.startsWith('/**')) s = s.slice('/**'.length);
   if (s.endsWith('*/')) s = s.slice(0, s.length - '*/'.length);
-  s = s.replace(/\n[ ]*\* /g, '\n\n');
+  s = s.replace(/\n[ ]*\* /g, '\n');
   s = '\n' + s.trim() + '\n';
   s = s.replace(/\n/g, '\n' + '  '.repeat(depth));
   return s;
