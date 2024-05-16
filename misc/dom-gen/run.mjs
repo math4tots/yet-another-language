@@ -1171,8 +1171,13 @@ function translate(out, ...sources) {
           // annotations in typescript
           return 'Bool';
         case 'subscript':
+        case 'typeof':
           // not gonna be supporting such fancy features
           return 'Any';
+        case 'tuple': {
+          const args = type.args.map(arg => translateType(arg));
+          return `Tuple[${args.join(', ')}]`;
+        }
         case 'reify': {
           if (type.args.length === 0) { // defensive
             console.warn(`FUBAR: reify special form with zero args`);
