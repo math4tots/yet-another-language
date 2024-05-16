@@ -1107,6 +1107,7 @@ function translate(out, ...sources) {
         case 'boolean': return 'Bool';
         case 'number': return 'Number';
         case 'string': return 'String';
+        case 'symbol': return 'Any'; // dunno if I care about Symbols yet
         case 'undefined': case 'null': return 'Null';
         case 'Object': case 'object': case 'any': return 'Any';
         case 'void': return 'Null';
@@ -1322,6 +1323,7 @@ function translate(out, ...sources) {
   for (const info of globalsMap.values()) {
     const name = info.identifier.name;
     let comment = /** @type {Token | undefined} */ (undefined);
+    const superTypes = /** @type {Set<string>} */ (new Set());
     const staticMembers = /** @type {MemberStatement[]} */ ([]);
     const instanceMembers = /** @type {MemberStatement[]} */ ([]);
     if (info.declarations.length === 0) {
@@ -1332,6 +1334,7 @@ function translate(out, ...sources) {
         if (iface.typeParameters) continue;
         atLeastOneValidDefinition = true;
         instanceMembers.push(...iface.body);
+        for (const base of iface.bases) superTypes.add(translateType(base));
       }
       if (!atLeastOneValidDefinition) continue; // no valid definitions
     } else {
@@ -1361,11 +1364,14 @@ function translate(out, ...sources) {
           if (iface.typeParameters) continue;
           comment ??= iface.comment;
           instanceMembers.push(...iface.body);
+          for (const base of iface.bases) superTypes.add(translateType(base));
         }
       }
     }
 
-    out.line(`export interface ${name} {`);
+    superTypes.delete('Any');
+    const extendsFragment = superTypes.size > 0 ? ` extends ${[...superTypes].join(', ')}` : '';
+    out.line(`export interface ${name}${extendsFragment} {`);
     out.nest(() => {
       out.writeBlockComment(comment);
       if (info.declarations.length > 0) {

@@ -46,7 +46,7 @@ export interface Object {
       """
       aliasFor(__js_getOwnPropertyNames)
     }
-    function create(o: Union[Any, Null]): Any {
+    function create(o: Any): Any {
       """
       Creates an object that has the specified prototype or that has null prototype.
       
@@ -54,7 +54,7 @@ export interface Object {
       """
       aliasFor(__js_create)
     }
-    function create(o: Union[Any, Null], properties: PropertyDescriptorMap): Any {
+    function create(o: Any, properties: PropertyDescriptorMap): Any {
       """
       Creates an object that has the specified prototype, and that optionally contains specified properties.
       
@@ -1141,7 +1141,7 @@ export interface Error {
   var message: String = aliasFor(__js_message)
   var stack: Nullable[String] = aliasFor(__js_stack)
 }
-export interface EvalError {
+export interface EvalError extends Error {
   static {
     aliasFor(native constexpr "EvalError")
     function new(message: String): EvalError { aliasFor(__op_new__) }
@@ -1151,7 +1151,7 @@ export interface EvalError {
     const prototype: EvalError = aliasFor(__js_prototype)
   }
 }
-export interface RangeError {
+export interface RangeError extends Error {
   static {
     aliasFor(native constexpr "RangeError")
     function new(message: String): RangeError { aliasFor(__op_new__) }
@@ -1161,7 +1161,7 @@ export interface RangeError {
     const prototype: RangeError = aliasFor(__js_prototype)
   }
 }
-export interface ReferenceError {
+export interface ReferenceError extends Error {
   static {
     aliasFor(native constexpr "ReferenceError")
     function new(message: String): ReferenceError { aliasFor(__op_new__) }
@@ -1171,7 +1171,7 @@ export interface ReferenceError {
     const prototype: ReferenceError = aliasFor(__js_prototype)
   }
 }
-export interface SyntaxError {
+export interface SyntaxError extends Error {
   static {
     aliasFor(native constexpr "SyntaxError")
     function new(message: String): SyntaxError { aliasFor(__op_new__) }
@@ -1181,7 +1181,7 @@ export interface SyntaxError {
     const prototype: SyntaxError = aliasFor(__js_prototype)
   }
 }
-export interface TypeError {
+export interface TypeError extends Error {
   static {
     aliasFor(native constexpr "TypeError")
     function new(message: String): TypeError { aliasFor(__op_new__) }
@@ -1191,7 +1191,7 @@ export interface TypeError {
     const prototype: TypeError = aliasFor(__js_prototype)
   }
 }
-export interface URIError {
+export interface URIError extends Error {
   static {
     aliasFor(native constexpr "URIError")
     function new(message: String): URIError { aliasFor(__op_new__) }
@@ -4720,6 +4720,10 @@ export interface Float64Array {
     aliasFor(__js_valueOf)
   }
 }
+typedef PropertyKey = Any
+typedef PromiseConstructorLike = Any
+typedef WeakKey = Any
+typedef ArrayBufferLike = Any
 
 typedef PropertyKey = String | Number
 
