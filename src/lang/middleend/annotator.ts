@@ -70,7 +70,7 @@ import { ModuleValue, RecordValue, Value, evalMethodCallCatchExc } from './value
 import { printFunction } from './functions';
 import { getSymbolTable } from '../frontend/symbolregistry';
 import { translateVariableName } from './names';
-import { sortInterfaces } from './sort-nodes';
+import { sortInterfaces, sortTypedefs } from './sort-nodes';
 
 type CompileTimeConfigsWIP = {
   target?: RunTarget;
@@ -554,6 +554,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
 
     const statements = [...n.statements];
     sortInterfaces(statements);
+    sortTypedefs(statements);
     this.forwardDeclare(statements);
     const irs: ast.Statement[] = [];
     for (const statement of statements) {
