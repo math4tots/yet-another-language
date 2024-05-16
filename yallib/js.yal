@@ -1288,6 +1288,17 @@ export interface ArrayBuffer {
   }
   function slice(begin: Number): ArrayBuffer { aliasFor(__js_slice) }
 }
+export interface ArrayBufferView {
+  var buffer: ArrayBuffer """
+  The ArrayBuffer instance referenced by the array.
+  """ = aliasFor(__js_buffer)
+  var byteLength: Number """
+  The length in bytes of the array.
+  """ = aliasFor(__js_byteLength)
+  var byteOffset: Number """
+  The offset in bytes of the array.
+  """ = aliasFor(__js_byteOffset)
+}
 export interface DataView {
   static {
     aliasFor(native constexpr "DataView")

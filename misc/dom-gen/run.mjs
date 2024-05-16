@@ -28,7 +28,23 @@ const NATIVE_CONSTEXPR_BASENAMES = new Set([
   'lib.es5.d.ts',
 ]);
 
+const BASENAMES_INCLUDING_INTERFACE_ONLY_TYPES = new Set([
+  'lib.dom.d.ts',
+]);
+
+const INTERFACE_ONLY_TYPE_WHITELIST_TABLE = new Map([
+  ['lib.es5.d.ts', new Set([
+    "ArrayBufferView",
+  ])],
+]);
+
+const INTERFACE_ONLY_TYPE_WHITELIST = INTERFACE_ONLY_TYPE_WHITELIST_TABLE.get(BASENAME);
+
+
 const FILE_CONTENTS = fs.readFileSync(ARGS.path, { encoding: 'utf8' });
+
+const USE_NATIVE_CONSTEXPR = NATIVE_CONSTEXPR_BASENAMES.has(BASENAME);
+const INCLUDE_ALL_INTERFACE_ONLY_TYPES = BASENAMES_INCLUDING_INTERFACE_ONLY_TYPES.has(BASENAME);
 
 const SYMBOLS = new Set([
   '(', ')', '[', ']', '{', '}', '<', '>',
@@ -430,6 +446,7 @@ class UnknownStatement {
   constructor(range, identifier) {
     this.range = range;
     this.identifier = identifier;
+    this.comment = undefined;
   }
 }
 
@@ -1110,6 +1127,12 @@ function translate(out, ...sources) {
                   return `List[${arg}]`;
                 }
                 break;
+              case 'Promise':
+                if (type.args.length === 2) {
+                  const arg = translateType(type.args[1]);
+                  return `Promise[${arg}]`;
+                }
+                break;
             }
           }
         }
@@ -1154,7 +1177,6 @@ function translate(out, ...sources) {
     if (member.type.typeParameters) return;
     if (member.type.parameters.some(p => p.isVariadic)) return;
     let comment = member.comment;
-    if (comment && comment.value.includes('@deprecated')) return;
     const name = member.identifier.name;
     const yalName = name === '' ? '__call__' : name;
     const opName = name === '' ? '__call__' :
@@ -1188,41 +1210,55 @@ function translate(out, ...sources) {
    * @param {MemberStatement} member 
    */
   function translateMember(member) {
+    const comment = member.comment;
+    if (comment && comment.value.includes('@deprecated')) return;
     if (member instanceof VariableDeclaration) translateMemberVariable(member);
     else if (member instanceof FunctionDeclaration) translateMemberFunction(member);
   }
 
   for (const info of globalsMap.values()) {
-    if (info.declarations.length !== 1) continue;
-    const declaration = info.declarations[0];
-    const decltype = declaration.type; // I know, I know
-    if (decltype instanceof Identifier && !globalsMap.has(decltype.name)) continue;
     const name = info.identifier.name;
     let comment = /** @type {Token | undefined} */ (undefined);
     const staticMembers = /** @type {MemberStatement[]} */ ([]);
     const instanceMembers = /** @type {MemberStatement[]} */ ([]);
-
-    // static members from declarations
-    comment ??= declaration.comment;
-    if (decltype instanceof Identifier) {
-      const singletonInfo = globalsMap.get(decltype.name);
-      for (const iface of singletonInfo?.interfaces || []) {
-        if (iface.typeParameters) continue;
-        staticMembers.push(...iface.body);
-      }
-    } else if (decltype instanceof RecordTypeDisplay) {
-      staticMembers.push(...decltype.body);
-    }
-
-    // instance members from interface declarations
-    // if the declared variable name matches the type name, we skip this
-    if (decltype instanceof Identifier && decltype.name === name) {
-      // skip - these were already added as static members
-    } else {
+    if (info.declarations.length === 0) {
+      // interface only types
+      if (!INCLUDE_ALL_INTERFACE_ONLY_TYPES && !INTERFACE_ONLY_TYPE_WHITELIST?.has(name)) continue;
+      let atLeastOneValidDefinition = false;
       for (const iface of info.interfaces) {
         if (iface.typeParameters) continue;
-        comment ??= iface.comment;
+        atLeastOneValidDefinition = true;
         instanceMembers.push(...iface.body);
+      }
+      if (!atLeastOneValidDefinition) continue; // no valid definitions
+    } else {
+      if (info.declarations.length !== 1) continue;
+      const declaration = info.declarations[0];
+      const decltype = declaration.type; // I know, I know
+      if (decltype instanceof Identifier && !globalsMap.has(decltype.name)) continue;
+
+      // static members from declarations
+      comment ??= declaration.comment;
+      if (decltype instanceof Identifier) {
+        const singletonInfo = globalsMap.get(decltype.name);
+        for (const iface of singletonInfo?.interfaces || []) {
+          if (iface.typeParameters) continue;
+          staticMembers.push(...iface.body);
+        }
+      } else if (decltype instanceof RecordTypeDisplay) {
+        staticMembers.push(...decltype.body);
+      }
+
+      // instance members from interface declarations
+      // if the declared variable name matches the type name, we skip this
+      if (decltype instanceof Identifier && decltype.name === name) {
+        // skip - these were already added as static members
+      } else {
+        for (const iface of info.interfaces) {
+          if (iface.typeParameters) continue;
+          comment ??= iface.comment;
+          instanceMembers.push(...iface.body);
+        }
       }
     }
 
@@ -1232,7 +1268,7 @@ function translate(out, ...sources) {
       if (info.declarations.length > 0) {
         out.line('static {');
         out.nest(() => {
-          out.line(`aliasFor(native ${NATIVE_CONSTEXPR_BASENAMES.has(BASENAME) ? 'constexpr ' : ''}"${name}")`);
+          out.line(`aliasFor(native ${USE_NATIVE_CONSTEXPR ? 'constexpr ' : ''}"${name}")`);
           for (const member of staticMembers) {
             translateMember(member);
           }
@@ -1257,8 +1293,9 @@ function translate(out, ...sources) {
 
 const PREFIX_MAP = new Map([
   ['lib.dom.d.ts', `
-from './js' import Uint8Array
+from './js' import ArrayBufferView
 from './js' import Float32Array
+from './js' import Uint8Array
 
 `],
 ]);
