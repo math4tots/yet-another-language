@@ -786,6 +786,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     const comment = getCommentFromEnumDefinition(defn);
     const enumTypeType = newEnumTypeType(defn.identifier, underlyingType, comment);
     const enumTypeVariable: EnumVariable = {
+      isPrivate: !defn.isExported,
       identifier: defn.identifier,
       type: enumTypeType,
       comment,
