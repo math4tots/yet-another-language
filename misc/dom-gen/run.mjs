@@ -1054,6 +1054,12 @@ class Sink {
  * @param {string[]} sources
  */
 function translate(out, ...sources) {
+  /** @param {string} key */
+  const addManualCode = key => {
+    const handler = MANUAL_YALCODE_MAP.get(key);
+    if (handler) handler(out);
+  };
+
   let currentThis = 'Any';
   const stringEnumMap = /** @type {Map<string, string>} */ (new Map());
   const deferredTypeAliases = /** @type {TypeAliasDeclaration[]} */ ([]);
@@ -1064,8 +1070,7 @@ function translate(out, ...sources) {
   out.line('"""');
   out.line(`export as ${EXPORT_AS_MAP.get(BASENAME)}`);
 
-  const prefix = PREFIX_MAP.get(BASENAME);
-  if (prefix) out.write(prefix);
+  addManualCode(`${BASENAME}/prefix`);
 
   const globalsMap = /** @type {Map<string, SymbolInfo>} */ (new Map());
   for (const source of sources) {
@@ -1257,7 +1262,7 @@ function translate(out, ...sources) {
           const content = contentMatch[1];
           const cachedTypeName = stringEnumMap.get(content);
           if (cachedTypeName) return cachedTypeName;
-          const simpleNameMatch = /^"([a-zA-Z]\w*)"$/.exec(type.token.value);
+          const simpleNameMatch = /^"(\w+)"$/.exec(type.token.value);
           const simpleName = (simpleNameMatch && simpleNameMatch[1]) ? simpleNameMatch[1] : undefined;
           const typeName = simpleName ? `_SString${simpleName}` : `_XString${stringEnumMap.size}`;
           stringEnumMap.set(content, typeName);
@@ -1451,6 +1456,7 @@ function translate(out, ...sources) {
       } finally {
         currentThis = oldCurrentThis;
       }
+      addManualCode(`${BASENAME}/interface ${name}`);
     });
     out.line('}');
   }
@@ -1467,33 +1473,11 @@ function translate(out, ...sources) {
     out.line(`enum ${typeName} { const value = "${value}" }`);
   }
 
-  const suffix = SUFFIX_MAP.get(BASENAME);
-  if (suffix) out.write(suffix);
+  addManualCode(`${BASENAME}/suffix`);
 }
 
-const ADDITIONAL_INPUT_MAP = new Map([
-  ['lib.dom.d.ts', ``],
-]);
-
-const PREFIX_MAP = new Map([
-  ['lib.dom.d.ts', `
-from './js' import ArrayBuffer
-from './js' import ArrayBufferView
-from './js' import Date
-from './js' import Error
-from './js' import Float32Array
-from './js' import Float64Array
-from './js' import Function
-from './js' import Int32Array
-from './js' import Uint32Array
-from './js' import Uint8Array
-from './js' import Uint8ClampedArray
-
-`],
-]);
-
-const SUFFIX_MAP = new Map([
-  ['lib.es5.d.ts', `
+const MANUAL_YALCODE_MAP = /** @type {Map<string, (out: Sink) => void>} */ (new Map([
+  ['lib.es5.d.ts/suffix', out => out.write(`
 typedef PropertyKey = String | Number
 
 interface PropertyDescriptor {
@@ -1590,8 +1574,53 @@ export interface Promise {
   }
 }
 
-`],
-  ['lib.dom.d.ts', `
+`)],
+  ['lib.dom.d.ts/prefix', out => {
+    out.line(`from './js' import ArrayBuffer`);
+    out.line(`from './js' import ArrayBufferView`);
+    out.line(`from './js' import Date`);
+    out.line(`from './js' import Error`);
+    out.line(`from './js' import Float32Array`);
+    out.line(`from './js' import Float64Array`);
+    out.line(`from './js' import Function`);
+    out.line(`from './js' import Int32Array`);
+    out.line(`from './js' import Uint32Array`);
+    out.line(`from './js' import Uint8Array`);
+    out.line(`from './js' import Uint8ClampedArray`);
+  }],
+  ['lib.dom.d.ts/interface HTMLCanvasElement', out => {
+    out.line(`function get2DContext(contextType: _SString2d = "2d"): CanvasRenderingContext2D? {`);
+    out.line(`  """`);
+    out.line(`  https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext`);
+    out.line(``);
+    out.line(`  Calls canvas.getContext() to get the 2D rendering context.`);
+    out.line(`  The default parameter automatically passes "2d" to the method to get the correct`);
+    out.line(`  context type.`);
+    out.line(`  """`);
+    out.line(`  aliasFor(__js_getContext)`);
+    out.line(`}`);
+    out.line(`function getWebGLContext(contextType: _SStringwebgl = "webgl"): WebGLRenderingContext? {`);
+    out.line(`  """`);
+    out.line(`  https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext`);
+    out.line(``);
+    out.line(`  Calls canvas.getContext() to get a WebGL rendering context.`);
+    out.line(`  The default parameter automatically passes "webgl" to the method to get the correct`);
+    out.line(`  context type.`);
+    out.line(`  """`);
+    out.line(`  aliasFor(__js_getContext)`);
+    out.line(`}  `);
+    out.line(`function getWebGL2Context(contextType: _SStringwebgl2 = "webgl2"): WebGL2RenderingContext? {`);
+    out.line(`  """`);
+    out.line(`  https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/getContext`);
+    out.line(``);
+    out.line(`  Calls canvas.getContext() to get a WebGL rendering context.`);
+    out.line(`  The default parameter automatically passes "webgl" to the method to get the correct`);
+    out.line(`  context type.`);
+    out.line(`  """`);
+    out.line(`  aliasFor(__js_getContext)`);
+    out.line(`}`);
+  }],
+  ['lib.dom.d.ts/suffix', out => out.write(`
 interface QueuingStrategySize {
   function __call__(value: Any): Number
 }
@@ -1637,8 +1666,8 @@ export interface IDBRequest extends EventTarget {
 
 const __target = 'html'
 
-`]
-]);
+`)],
+]));
 
 switch (ARGS.command) {
   case 'lex':
@@ -1658,8 +1687,7 @@ switch (ARGS.command) {
     break;
   case 'translate': {
     const sink = new Sink((text) => process.stdout.write(text));
-    const additionalInput = ADDITIONAL_INPUT_MAP.get(BASENAME);
-    translate(sink, FILE_CONTENTS, ...(additionalInput ? [additionalInput] : []));
+    translate(sink, FILE_CONTENTS);
     break;
   }
   default:
