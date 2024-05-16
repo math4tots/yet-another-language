@@ -352,6 +352,7 @@ export interface String {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): String { aliasFor(__op_getitem__) }
   function localeCompare(that: String, locales: Union[String, List[String]], options: IntlCollatorOptions): Number {
     """
     Determines whether two strings are equivalent in the current or specified locale.
@@ -1863,6 +1864,8 @@ export interface Int8Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Uint8Array {
   """
@@ -2220,6 +2223,8 @@ export interface Uint8Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Uint8ClampedArray {
   """
@@ -2577,6 +2582,8 @@ export interface Uint8ClampedArray {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Int16Array {
   """
@@ -2934,6 +2941,8 @@ export interface Int16Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Uint16Array {
   """
@@ -3291,6 +3300,8 @@ export interface Uint16Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Int32Array {
   """
@@ -3648,6 +3659,8 @@ export interface Int32Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Uint32Array {
   """
@@ -4005,6 +4018,8 @@ export interface Uint32Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Float32Array {
   """
@@ -4362,6 +4377,8 @@ export interface Float32Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 export interface Float64Array {
   """
@@ -4719,6 +4736,8 @@ export interface Float64Array {
     """
     aliasFor(__js_valueOf)
   }
+  function __getitem__(index: Number): Number { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Number): Number { aliasFor(__op_setitem__) }
 }
 typedef PropertyKey = Any
 typedef PromiseConstructorLike = Any

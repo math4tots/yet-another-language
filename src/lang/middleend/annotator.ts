@@ -939,7 +939,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
           returnType: classType,
           sourceVariable: {
             identifier: { name: 'new', location: defn.identifier.location },
-            type: newLambdaType([], [...classType.classTypeData.fields], classType),
+            type: newLambdaType(undefined, [...classType.classTypeData.fields], classType),
           },
           aliasFor: '__op_new__',
         });
@@ -1672,7 +1672,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
         // If we have a successful binding, it can be useful to show the user what
         // the bound method signature looks like
         this.markReference(
-          { identifier: method.identifier, type: newLambdaType([], boundParameters, returnType) },
+          { identifier: method.identifier, type: newLambdaType(undefined, boundParameters, returnType) },
           n.identifier.location.range);
       } catch (e) {
         if (e === SUBSTITUTION_FAILURE) return failBinding('substitution failure');
@@ -1852,7 +1852,7 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       defaultValue: p.value || undefined,
     }));
     const returnType = n.returnType ? this.solveType(n.returnType) : AnyType;
-    const lambdaType = newLambdaType([], parameters, returnType);
+    const lambdaType = newLambdaType(undefined, parameters, returnType);
     const paramNames = n.parameters.map(p => p.identifier.name);
     for (const statement of n.body.statements) {
       if (statement instanceof ast.ExpressionStatement) {

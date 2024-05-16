@@ -1281,6 +1281,8 @@ export interface ComputedKeyframe {
   var computedOffset: Number = aliasFor(__js_computedOffset)
   var easing: String = aliasFor(__js_easing)
   var offset: Union[Number, Null] = aliasFor(__js_offset)
+  function __getitem__(property: String): Union[String, Number, Null] { aliasFor(__op_getitem__) }
+  function __setitem__(property: String, value: Union[String, Number, Null]): Union[String, Number, Null] { aliasFor(__op_setitem__) }
 }
 export interface ConstantSourceOptions {
   var offset: Nullable[Number] = aliasFor(__js_offset)
@@ -1677,6 +1679,8 @@ export interface Keyframe {
   var composite: Nullable[CompositeOperationOrAuto] = aliasFor(__js_composite)
   var easing: Nullable[String] = aliasFor(__js_easing)
   var offset: Nullable[Union[Number, Null]] = aliasFor(__js_offset)
+  function __getitem__(property: String): Union[String, Number, Null] { aliasFor(__op_getitem__) }
+  function __setitem__(property: String, value: Union[String, Number, Null]): Union[String, Number, Null] { aliasFor(__op_setitem__) }
 }
 export interface KeyframeAnimationOptions extends KeyframeEffectOptions {
   var id: Nullable[String] = aliasFor(__js_id)
@@ -2084,6 +2088,8 @@ export interface PropertyIndexedKeyframes {
   var composite: Nullable[Union[CompositeOperationOrAuto, List[CompositeOperationOrAuto]]] = aliasFor(__js_composite)
   var easing: Nullable[Union[String, List[String]]] = aliasFor(__js_easing)
   var offset: Nullable[Union[Number, List[Union[Number, Null]]]] = aliasFor(__js_offset)
+  function __getitem__(property: String): Union[String, List[String], Number, Null, List[Union[Number, Null]]] { aliasFor(__op_getitem__) }
+  function __setitem__(property: String, value: Union[String, List[String], Number, Null, List[Union[Number, Null]]]): Union[String, List[String], Number, Null, List[Union[Number, Null]]] { aliasFor(__op_setitem__) }
 }
 export interface PublicKeyCredentialCreationOptions {
   var attestation: Nullable[AttestationConveyancePreference] = aliasFor(__js_attestation)
@@ -4617,6 +4623,8 @@ export interface CSSKeyframesRule extends CSSRule {
     """
     aliasFor(__js_findRule)
   }
+  function __getitem__(index: Number): CSSKeyframeRule { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: CSSKeyframeRule): CSSKeyframeRule { aliasFor(__op_setitem__) }
 }
 export interface CSSKeywordValue extends CSSStyleValue {
   """
@@ -4817,6 +4825,8 @@ export interface CSSNumericArray {
   """ = aliasFor(__js_length)
   function forEach(callbackfn: function(value: CSSNumericValue, key: Number, parent: CSSNumericArray): Null, thisArg: Any): Null { aliasFor(__js_forEach) }
   function forEach(callbackfn: function(value: CSSNumericValue, key: Number, parent: CSSNumericArray): Null): Null { aliasFor(__js_forEach) }
+  function __getitem__(index: Number): CSSNumericValue { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: CSSNumericValue): CSSNumericValue { aliasFor(__op_setitem__) }
 }
 export interface CSSNumericValue extends CSSStyleValue {
   """
@@ -4990,6 +5000,8 @@ export interface CSSRuleList {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): CSSRule { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: CSSRule): CSSRule { aliasFor(__op_setitem__) }
 }
 export interface CSSScale extends CSSTransformComponent {
   """
@@ -6288,6 +6300,8 @@ export interface CSSStyleDeclaration {
     aliasFor(__js_setProperty)
   }
   function setProperty(property: String, value: Union[String, Null]): Null { aliasFor(__js_setProperty) }
+  function __getitem__(index: Number): String { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: String): String { aliasFor(__op_setitem__) }
 }
 export interface CSSStyleRule extends CSSGroupingRule {
   """
@@ -6435,6 +6449,8 @@ export interface CSSTransformValue extends CSSStyleValue {
   }
   function forEach(callbackfn: function(value: CSSTransformComponent, key: Number, parent: CSSTransformValue): Null, thisArg: Any): Null { aliasFor(__js_forEach) }
   function forEach(callbackfn: function(value: CSSTransformComponent, key: Number, parent: CSSTransformValue): Null): Null { aliasFor(__js_forEach) }
+  function __getitem__(index: Number): CSSTransformComponent { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: CSSTransformComponent): CSSTransformComponent { aliasFor(__op_setitem__) }
 }
 export interface CSSTransition extends Animation {
   """
@@ -6503,6 +6519,8 @@ export interface CSSUnparsedValue extends CSSStyleValue {
   """ = aliasFor(__js_length)
   function forEach(callbackfn: function(value: CSSUnparsedSegment, key: Number, parent: CSSUnparsedValue): Null, thisArg: Any): Null { aliasFor(__js_forEach) }
   function forEach(callbackfn: function(value: CSSUnparsedSegment, key: Number, parent: CSSUnparsedValue): Null): Null { aliasFor(__js_forEach) }
+  function __getitem__(index: Number): CSSUnparsedSegment { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: CSSUnparsedSegment): CSSUnparsedSegment { aliasFor(__op_setitem__) }
 }
 export interface CSSVariableReferenceValue {
   """
@@ -8163,6 +8181,8 @@ export interface DOMRectList {
   }
   const length: Number = aliasFor(__js_length)
   function item(index: Number): Union[DOMRect, Null] { aliasFor(__js_item) }
+  function __getitem__(index: Number): DOMRect { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: DOMRect): DOMRect { aliasFor(__op_setitem__) }
 }
 export interface DOMRectReadOnly {
   """
@@ -8246,6 +8266,8 @@ export interface DOMStringList {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): String { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: String): String { aliasFor(__op_setitem__) }
 }
 export interface DOMStringMap {
   """
@@ -8259,6 +8281,8 @@ export interface DOMStringMap {
     var prototype: DOMStringMap = aliasFor(__js_prototype)
     function new(): DOMStringMap { aliasFor(__op_new__) }
   }
+  function __getitem__(name: String): Union[String, Null] { aliasFor(__op_getitem__) }
+  function __setitem__(name: String, value: Union[String, Null]): Union[String, Null] { aliasFor(__op_setitem__) }
 }
 export interface DOMTokenList {
   """
@@ -8357,6 +8381,8 @@ export interface DOMTokenList {
   function toggle(token: String): Bool { aliasFor(__js_toggle) }
   function forEach(callbackfn: function(value: String, key: Number, parent: DOMTokenList): Null, thisArg: Any): Null { aliasFor(__js_forEach) }
   function forEach(callbackfn: function(value: String, key: Number, parent: DOMTokenList): Null): Null { aliasFor(__js_forEach) }
+  function __getitem__(index: Number): String { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: String): String { aliasFor(__op_setitem__) }
 }
 export interface DataTransfer {
   """
@@ -8545,6 +8571,8 @@ export interface DataTransferItemList {
     """
     aliasFor(__js_remove)
   }
+  function __getitem__(index: Number): DataTransferItem { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: DataTransferItem): DataTransferItem { aliasFor(__op_setitem__) }
 }
 export interface DecompressionStream extends GenericTransformStream {
   """
@@ -10294,6 +10322,8 @@ export interface FileList {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): File { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: File): File { aliasFor(__op_setitem__) }
 }
 export interface FileReaderEventMap {
 }
@@ -10315,22 +10345,22 @@ export interface FileReader extends EventTarget {
   const error: Union[DOMException, Null] """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/error)
   """ = aliasFor(__js_error)
-  var onabort: Union[function(this: FileReader, ev: Any): Any, Null] """
+  var onabort: Union[function(this: FileReader, ev: ProgressEvent): Any, Null] """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/abort_event)
   """ = aliasFor(__js_onabort)
-  var onerror: Union[function(this: FileReader, ev: Any): Any, Null] """
+  var onerror: Union[function(this: FileReader, ev: ProgressEvent): Any, Null] """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/error_event)
   """ = aliasFor(__js_onerror)
-  var onload: Union[function(this: FileReader, ev: Any): Any, Null] """
+  var onload: Union[function(this: FileReader, ev: ProgressEvent): Any, Null] """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/load_event)
   """ = aliasFor(__js_onload)
-  var onloadend: Union[function(this: FileReader, ev: Any): Any, Null] """
+  var onloadend: Union[function(this: FileReader, ev: ProgressEvent): Any, Null] """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/loadend_event)
   """ = aliasFor(__js_onloadend)
-  var onloadstart: Union[function(this: FileReader, ev: Any): Any, Null] """
+  var onloadstart: Union[function(this: FileReader, ev: ProgressEvent): Any, Null] """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/loadstart_event)
   """ = aliasFor(__js_onloadstart)
-  var onprogress: Union[function(this: FileReader, ev: Any): Any, Null] """
+  var onprogress: Union[function(this: FileReader, ev: ProgressEvent): Any, Null] """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/FileReader/progress_event)
   """ = aliasFor(__js_onprogress)
   const readyState: Any """
@@ -11600,6 +11630,8 @@ export interface HTMLAllCollection {
     """
     aliasFor(__js_namedItem)
   }
+  function __getitem__(index: Number): Element { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Element): Element { aliasFor(__op_setitem__) }
 }
 export interface HTMLAnchorElement extends HTMLElement, HTMLHyperlinkElementUtils {
   """
@@ -12005,6 +12037,8 @@ export interface HTMLCollectionBase {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): Element { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Element): Element { aliasFor(__op_setitem__) }
 }
 export interface HTMLCollection extends HTMLCollectionBase {
   static {
@@ -12568,6 +12602,10 @@ export interface HTMLFormElement extends HTMLElement {
   function addEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_addEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject, options: Union[Bool, EventListenerOptions]): Null { aliasFor(__js_removeEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_removeEventListener) }
+  function __getitem__(index: Number): Element { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Element): Element { aliasFor(__op_setitem__) }
+  function __getitem__(name: String): Any { aliasFor(__op_getitem__) }
+  function __setitem__(name: String, value: Any): Any { aliasFor(__op_setitem__) }
 }
 export interface HTMLFrameElement extends HTMLElement {
   """
@@ -14541,6 +14579,8 @@ export interface HTMLSelectElement extends HTMLElement {
   function addEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_addEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject, options: Union[Bool, EventListenerOptions]): Null { aliasFor(__js_removeEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_removeEventListener) }
+  function __getitem__(name: Number): Union[HTMLOptionElement, HTMLOptGroupElement] { aliasFor(__op_getitem__) }
+  function __setitem__(name: Number, value: Union[HTMLOptionElement, HTMLOptGroupElement]): Union[HTMLOptionElement, HTMLOptGroupElement] { aliasFor(__op_setitem__) }
 }
 export interface HTMLSlotElement extends HTMLElement {
   """
@@ -15581,7 +15621,7 @@ export interface IDBCursor {
     """
     aliasFor(__js_continuePrimaryKey)
   }
-  function delete(): Any {
+  function delete(): IDBRequest {
     """
     Delete the record pointed at by the cursor with a new value.
        *
@@ -15593,7 +15633,7 @@ export interface IDBCursor {
     """
     aliasFor(__js_delete)
   }
-  function update(value: Any): Any {
+  function update(value: Any): IDBRequest {
     """
     Updated the record pointed at by the cursor with a new value.
        *
@@ -15801,7 +15841,7 @@ export interface IDBIndex {
   const unique: Bool """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBIndex/unique)
   """ = aliasFor(__js_unique)
-  function count(query: Union[IDBValidKey, IDBKeyRange]): Any {
+  function count(query: Union[IDBValidKey, IDBKeyRange]): IDBRequest {
     """
     Retrieves the number of records matching the given key or key range in query.
        *
@@ -15813,8 +15853,8 @@ export interface IDBIndex {
     """
     aliasFor(__js_count)
   }
-  function count(): Any { aliasFor(__js_count) }
-  function get(query: Union[IDBValidKey, IDBKeyRange]): Any {
+  function count(): IDBRequest { aliasFor(__js_count) }
+  function get(query: Union[IDBValidKey, IDBKeyRange]): IDBRequest {
     """
     Retrieves the value of the first record matching the given key or key range in query.
        *
@@ -15826,7 +15866,7 @@ export interface IDBIndex {
     """
     aliasFor(__js_get)
   }
-  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): Any {
+  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): IDBRequest {
     """
     Retrieves the values of the records matching the given key or key range in query (up to count if given).
        *
@@ -15838,9 +15878,9 @@ export interface IDBIndex {
     """
     aliasFor(__js_getAll)
   }
-  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_getAll) }
-  function getAll(): Any { aliasFor(__js_getAll) }
-  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): Any {
+  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_getAll) }
+  function getAll(): IDBRequest { aliasFor(__js_getAll) }
+  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): IDBRequest {
     """
     Retrieves the keys of records matching the given key or key range in query (up to count if given).
        *
@@ -15852,9 +15892,9 @@ export interface IDBIndex {
     """
     aliasFor(__js_getAllKeys)
   }
-  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_getAllKeys) }
-  function getAllKeys(): Any { aliasFor(__js_getAllKeys) }
-  function getKey(query: Union[IDBValidKey, IDBKeyRange]): Any {
+  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_getAllKeys) }
+  function getAllKeys(): IDBRequest { aliasFor(__js_getAllKeys) }
+  function getKey(query: Union[IDBValidKey, IDBKeyRange]): IDBRequest {
     """
     Retrieves the key of the first record matching the given key or key range in query.
        *
@@ -15866,7 +15906,7 @@ export interface IDBIndex {
     """
     aliasFor(__js_getKey)
   }
-  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): Any {
+  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): IDBRequest {
     """
     Opens a cursor over the records matching query, ordered by direction. If query is null, all records in index are matched.
        *
@@ -15878,9 +15918,9 @@ export interface IDBIndex {
     """
     aliasFor(__js_openCursor)
   }
-  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_openCursor) }
-  function openCursor(): Any { aliasFor(__js_openCursor) }
-  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): Any {
+  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_openCursor) }
+  function openCursor(): IDBRequest { aliasFor(__js_openCursor) }
+  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): IDBRequest {
     """
     Opens a cursor with key only flag set over the records matching query, ordered by direction. If query is null, all records in index are matched.
        *
@@ -15892,8 +15932,8 @@ export interface IDBIndex {
     """
     aliasFor(__js_openKeyCursor)
   }
-  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_openKeyCursor) }
-  function openKeyCursor(): Any { aliasFor(__js_openKeyCursor) }
+  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_openKeyCursor) }
+  function openKeyCursor(): IDBRequest { aliasFor(__js_openKeyCursor) }
 }
 export interface IDBKeyRange {
   """
@@ -16023,7 +16063,7 @@ export interface IDBObjectStore {
   
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/IDBObjectStore/transaction)
   """ = aliasFor(__js_transaction)
-  function add(value: Any, key: IDBValidKey): Any {
+  function add(value: Any, key: IDBValidKey): IDBRequest {
     """
     Adds or updates a record in store with the given value and key.
        *
@@ -16041,8 +16081,8 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_add)
   }
-  function add(value: Any): Any { aliasFor(__js_add) }
-  function clear(): Any {
+  function add(value: Any): IDBRequest { aliasFor(__js_add) }
+  function clear(): IDBRequest {
     """
     Deletes all records in store.
        *
@@ -16054,7 +16094,7 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_clear)
   }
-  function count(query: Union[IDBValidKey, IDBKeyRange]): Any {
+  function count(query: Union[IDBValidKey, IDBKeyRange]): IDBRequest {
     """
     Retrieves the number of records matching the given key or key range in query.
        *
@@ -16066,7 +16106,7 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_count)
   }
-  function count(): Any { aliasFor(__js_count) }
+  function count(): IDBRequest { aliasFor(__js_count) }
   function createIndex(name: String, keyPath: Union[String, List[String]], options: IDBIndexParameters): IDBIndex {
     """
     Creates a new index in store with the given name, keyPath and options and returns a new IDBIndex. If the keyPath and options define constraints that cannot be satisfied with the data already in store the upgrade transaction will abort with a "ConstraintError" DOMException.
@@ -16080,7 +16120,7 @@ export interface IDBObjectStore {
     aliasFor(__js_createIndex)
   }
   function createIndex(name: String, keyPath: Union[String, List[String]]): IDBIndex { aliasFor(__js_createIndex) }
-  function delete(query: Union[IDBValidKey, IDBKeyRange]): Any {
+  function delete(query: Union[IDBValidKey, IDBKeyRange]): IDBRequest {
     """
     Deletes records in store with the given key or in the given key range in query.
        *
@@ -16104,7 +16144,7 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_deleteIndex)
   }
-  function get(query: Union[IDBValidKey, IDBKeyRange]): Any {
+  function get(query: Union[IDBValidKey, IDBKeyRange]): IDBRequest {
     """
     Retrieves the value of the first record matching the given key or key range in query.
        *
@@ -16116,7 +16156,7 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_get)
   }
-  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): Any {
+  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): IDBRequest {
     """
     Retrieves the values of the records matching the given key or key range in query (up to count if given).
        *
@@ -16128,9 +16168,9 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_getAll)
   }
-  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_getAll) }
-  function getAll(): Any { aliasFor(__js_getAll) }
-  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): Any {
+  function getAll(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_getAll) }
+  function getAll(): IDBRequest { aliasFor(__js_getAll) }
+  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null], count: Number): IDBRequest {
     """
     Retrieves the keys of records matching the given key or key range in query (up to count if given).
        *
@@ -16142,9 +16182,9 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_getAllKeys)
   }
-  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_getAllKeys) }
-  function getAllKeys(): Any { aliasFor(__js_getAllKeys) }
-  function getKey(query: Union[IDBValidKey, IDBKeyRange]): Any {
+  function getAllKeys(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_getAllKeys) }
+  function getAllKeys(): IDBRequest { aliasFor(__js_getAllKeys) }
+  function getKey(query: Union[IDBValidKey, IDBKeyRange]): IDBRequest {
     """
     Retrieves the key of the first record matching the given key or key range in query.
        *
@@ -16162,7 +16202,7 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_index)
   }
-  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): Any {
+  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): IDBRequest {
     """
     Opens a cursor over the records matching query, ordered by direction. If query is null, all records in store are matched.
        *
@@ -16174,9 +16214,9 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_openCursor)
   }
-  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_openCursor) }
-  function openCursor(): Any { aliasFor(__js_openCursor) }
-  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): Any {
+  function openCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_openCursor) }
+  function openCursor(): IDBRequest { aliasFor(__js_openCursor) }
+  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null], direction: IDBCursorDirection): IDBRequest {
     """
     Opens a cursor with key only flag set over the records matching query, ordered by direction. If query is null, all records in store are matched.
        *
@@ -16188,9 +16228,9 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_openKeyCursor)
   }
-  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): Any { aliasFor(__js_openKeyCursor) }
-  function openKeyCursor(): Any { aliasFor(__js_openKeyCursor) }
-  function put(value: Any, key: IDBValidKey): Any {
+  function openKeyCursor(query: Union[IDBValidKey, IDBKeyRange, Null]): IDBRequest { aliasFor(__js_openKeyCursor) }
+  function openKeyCursor(): IDBRequest { aliasFor(__js_openKeyCursor) }
+  function put(value: Any, key: IDBValidKey): IDBRequest {
     """
     Adds or updates a record in store with the given value and key.
        *
@@ -16208,11 +16248,11 @@ export interface IDBObjectStore {
     """
     aliasFor(__js_put)
   }
-  function put(value: Any): Any { aliasFor(__js_put) }
+  function put(value: Any): IDBRequest { aliasFor(__js_put) }
 }
 export interface IDBOpenDBRequestEventMap extends IDBRequestEventMap {
 }
-export interface IDBOpenDBRequest {
+export interface IDBOpenDBRequest extends IDBRequest {
   """
   Also inherits methods from its parents IDBRequest and EventTarget.
   *
@@ -17463,6 +17503,8 @@ export interface MediaList {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): String { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: String): String { aliasFor(__op_setitem__) }
 }
 export interface MediaMetadata {
   """
@@ -18039,6 +18081,8 @@ export interface MimeTypeArray {
     var prototype: MimeTypeArray = aliasFor(__js_prototype)
     function new(): MimeTypeArray { aliasFor(__op_new__) }
   }
+  function __getitem__(index: Number): MimeType { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: MimeType): MimeType { aliasFor(__op_setitem__) }
 }
 export interface MouseEvent extends UIEvent {
   """
@@ -18307,6 +18351,8 @@ export interface NamedNodeMap {
     """
     aliasFor(__js_setNamedItemNS)
   }
+  function __getitem__(index: Number): Attr { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Attr): Attr { aliasFor(__op_setitem__) }
 }
 export interface NavigationPreloadManager {
   """
@@ -18882,6 +18928,8 @@ export interface NodeList {
     aliasFor(__js_forEach)
   }
   function forEach(callbackfn: function(value: Node, key: Number, parent: NodeList): Null): Null { aliasFor(__js_forEach) }
+  function __getitem__(index: Number): Node { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Node): Node { aliasFor(__op_setitem__) }
 }
 export interface NonDocumentTypeChildNode {
   const nextElementSibling: Union[Element, Null] """
@@ -20101,6 +20149,8 @@ export interface Plugin {
     var prototype: Plugin = aliasFor(__js_prototype)
     function new(): Plugin { aliasFor(__op_new__) }
   }
+  function __getitem__(index: Number): MimeType { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: MimeType): MimeType { aliasFor(__op_setitem__) }
 }
 export interface PluginArray {
   """
@@ -20111,6 +20161,8 @@ export interface PluginArray {
     var prototype: PluginArray = aliasFor(__js_prototype)
     function new(): PluginArray { aliasFor(__op_new__) }
   }
+  function __getitem__(index: Number): Plugin { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Plugin): Plugin { aliasFor(__op_setitem__) }
 }
 export interface PointerEvent extends MouseEvent {
   """
@@ -23209,6 +23261,8 @@ export interface SVGLengthList {
   function insertItemBefore(newItem: SVGLength, index: Number): SVGLength { aliasFor(__js_insertItemBefore) }
   function removeItem(index: Number): SVGLength { aliasFor(__js_removeItem) }
   function replaceItem(newItem: SVGLength, index: Number): SVGLength { aliasFor(__js_replaceItem) }
+  function __getitem__(index: Number): SVGLength { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: SVGLength): SVGLength { aliasFor(__op_setitem__) }
 }
 export interface SVGLineElement extends SVGGeometryElement {
   """
@@ -23412,6 +23466,8 @@ export interface SVGNumberList {
   function insertItemBefore(newItem: SVGNumber, index: Number): SVGNumber { aliasFor(__js_insertItemBefore) }
   function removeItem(index: Number): SVGNumber { aliasFor(__js_removeItem) }
   function replaceItem(newItem: SVGNumber, index: Number): SVGNumber { aliasFor(__js_replaceItem) }
+  function __getitem__(index: Number): SVGNumber { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: SVGNumber): SVGNumber { aliasFor(__op_setitem__) }
 }
 export interface SVGPathElement extends SVGGeometryElement {
   """
@@ -23511,6 +23567,8 @@ export interface SVGPointList {
     """
     aliasFor(__js_replaceItem)
   }
+  function __getitem__(index: Number): DOMPoint { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: DOMPoint): DOMPoint { aliasFor(__op_setitem__) }
 }
 export interface SVGPolygonElement extends SVGGeometryElement, SVGAnimatedPoints {
   """
@@ -23751,6 +23809,8 @@ export interface SVGStringList {
   function insertItemBefore(newItem: String, index: Number): String { aliasFor(__js_insertItemBefore) }
   function removeItem(index: Number): String { aliasFor(__js_removeItem) }
   function replaceItem(newItem: String, index: Number): String { aliasFor(__js_replaceItem) }
+  function __getitem__(index: Number): String { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: String): String { aliasFor(__op_setitem__) }
 }
 export interface SVGStyleElement extends SVGElement, LinkStyle {
   """
@@ -24014,6 +24074,8 @@ export interface SVGTransformList {
   function insertItemBefore(newItem: SVGTransform, index: Number): SVGTransform { aliasFor(__js_insertItemBefore) }
   function removeItem(index: Number): SVGTransform { aliasFor(__js_removeItem) }
   function replaceItem(newItem: SVGTransform, index: Number): SVGTransform { aliasFor(__js_replaceItem) }
+  function __getitem__(index: Number): SVGTransform { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: SVGTransform): SVGTransform { aliasFor(__op_setitem__) }
 }
 export interface SVGURIReference {
   const href: SVGAnimatedString = aliasFor(__js_href)
@@ -24665,6 +24727,8 @@ export interface SourceBufferList extends EventTarget {
   function addEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_addEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject, options: Union[Bool, EventListenerOptions]): Null { aliasFor(__js_removeEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_removeEventListener) }
+  function __getitem__(index: Number): SourceBuffer { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: SourceBuffer): SourceBuffer { aliasFor(__op_setitem__) }
 }
 export interface SpeechRecognitionAlternative {
   """
@@ -24703,6 +24767,8 @@ export interface SpeechRecognitionResult {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): SpeechRecognitionAlternative { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: SpeechRecognitionAlternative): SpeechRecognitionAlternative { aliasFor(__op_setitem__) }
 }
 export interface SpeechRecognitionResultList {
   """
@@ -24722,6 +24788,8 @@ export interface SpeechRecognitionResultList {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): SpeechRecognitionResult { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: SpeechRecognitionResult): SpeechRecognitionResult { aliasFor(__op_setitem__) }
 }
 export interface SpeechSynthesisEventMap {
 }
@@ -25014,6 +25082,8 @@ export interface Storage {
     """
     aliasFor(__js_setItem)
   }
+  function __getitem__(name: String): Any { aliasFor(__op_getitem__) }
+  function __setitem__(name: String, value: Any): Any { aliasFor(__op_setitem__) }
 }
 export interface StorageEvent extends Event {
   """
@@ -25210,6 +25280,8 @@ export interface StyleSheetList {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): CSSStyleSheet { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: CSSStyleSheet): CSSStyleSheet { aliasFor(__op_setitem__) }
 }
 export interface SubmitEvent extends Event {
   """
@@ -25756,6 +25828,8 @@ export interface TextTrackCueList {
     """
     aliasFor(__js_getCueById)
   }
+  function __getitem__(index: Number): TextTrackCue { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: TextTrackCue): TextTrackCue { aliasFor(__op_setitem__) }
 }
 export interface TextTrackListEventMap {
 }
@@ -25790,6 +25864,8 @@ export interface TextTrackList extends EventTarget {
   function addEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_addEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject, options: Union[Bool, EventListenerOptions]): Null { aliasFor(__js_removeEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_removeEventListener) }
+  function __getitem__(index: Number): TextTrack { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: TextTrack): TextTrack { aliasFor(__op_setitem__) }
 }
 export interface TimeRanges {
   """
@@ -25956,6 +26032,8 @@ export interface TouchList {
     """
     aliasFor(__js_item)
   }
+  function __getitem__(index: Number): Touch { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Touch): Touch { aliasFor(__op_setitem__) }
 }
 export interface TrackEvent extends Event {
   """
@@ -30747,6 +30825,8 @@ export interface Window extends EventTarget, AnimationFrameProvider, GlobalEvent
   function addEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_addEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject, options: Union[Bool, EventListenerOptions]): Null { aliasFor(__js_removeEventListener) }
   function removeEventListener(type: String, listener: EventListenerOrEventListenerObject): Null { aliasFor(__js_removeEventListener) }
+  function __getitem__(index: Number): Window { aliasFor(__op_getitem__) }
+  function __setitem__(index: Number, value: Window): Window { aliasFor(__op_setitem__) }
 }
 export interface WindowEventHandlersEventMap {
 }
@@ -34207,6 +34287,8 @@ export interface localStorage {
       """
       aliasFor(__js_setItem)
     }
+    function __getitem__(name: String): Any { aliasFor(__op_getitem__) }
+    function __setitem__(name: String, value: Any): Any { aliasFor(__op_setitem__) }
   }
 }
 export interface caches {
@@ -34481,6 +34563,8 @@ export interface sessionStorage {
       """
       aliasFor(__js_setItem)
     }
+    function __getitem__(name: String): Any { aliasFor(__op_getitem__) }
+    function __setitem__(name: String, value: Any): Any { aliasFor(__op_setitem__) }
   }
 }
 typedef NodeFilter = Any
@@ -34718,3 +34802,31 @@ interface QueuingStrategy {
 typedef IDBValidKey = Union[Number, String, Date, BufferSource,
   List[Union[Number, String, Date, BufferSource]]]
 
+export interface ProgressEvent extends Event {
+  static {
+    aliasFor(native "ProgressEvent")
+    var prototype: ProgressEvent = aliasFor(__js_prototype)
+    function new(type: String, eventInitDict: ProgressEventInit): ProgressEvent { aliasFor(__op_new__) }
+    function new(type: String): ProgressEvent { aliasFor(__op_new__) }
+  }
+  const lengthComputable: Bool """
+    [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/lengthComputable)
+  """ = aliasFor(__js_lengthComputable);
+  const loaded: Number """
+    [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/loaded)
+  """ = aliasFor(__js_loaded);
+  const target: Any = aliasFor(__js_target);
+  const total: Number """
+    [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/total)
+  """ = aliasFor(__js_total);
+}
+
+export interface IDBRequest extends EventTarget {
+  static {
+    aliasFor(native "IDBRequest")
+    var prototype: IDBRequest = aliasFor(__js_prototype)
+    function new(): IDBRequest { aliasFor(__op_new__) }
+  }
+
+  # TODO
+}

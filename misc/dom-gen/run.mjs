@@ -35,6 +35,7 @@ const BASENAMES_INCLUDING_INTERFACE_ONLY_TYPES = new Set([
 const TYPE_ALIAS_BLACKLIST_TABLE = new Map([
   ['lib.dom.d.ts', new Set([
     "IDBValidKey",
+    "ProgressEvent",
   ])],
 ]);
 
@@ -237,7 +238,7 @@ class Range {
  */
 
 /**
- * @typedef {StatementCommon | ComputedPropertyDeclaration | SpecialFunctionDeclaration} MemberStatement
+ * @typedef {StatementCommon | SpecialFunctionDeclaration} MemberStatement
  */
 
 class Identifier {
@@ -463,25 +464,6 @@ class UnknownStatement {
     this.range = range;
     this.identifier = identifier;
     this.comment = undefined;
-  }
-}
-
-class ComputedPropertyDeclaration {
-  /**
-   * @param {Range} range 
-   * @param {Token | undefined} comment
-   * @param {boolean} isReadonly 
-   * @param {Identifier} identifier 
-   * @param {TypeExpression} keyType
-   * @param {TypeExpression} valueType
-   */
-  constructor(range, comment, isReadonly, identifier, keyType, valueType) {
-    /** @readonly */ this.range = range;
-    /** @readonly */ this.comment = comment;
-    /** @readonly */ this.isReadonly = isReadonly;
-    /** @readonly */ this.identifier = identifier;
-    /** @readonly */ this.keyType = keyType;
-    /** @readonly */ this.valueType = valueType;
   }
 }
 
@@ -799,7 +781,9 @@ function* parse(s) {
     const body = /** @type {MemberStatement[]} */ ([]);
     const start = expect('{');
     while (!at(['EOF', '}'])) {
-      body.push(parseMemberStatement());
+      const stmt = parseMemberStatement();
+      if (Array.isArray(stmt)) body.push(...stmt);
+      else body.push(stmt);
     }
     const end = expect('}');
     return { start, body, end };
@@ -901,7 +885,7 @@ function* parse(s) {
   }
 
   /**
-   * @returns {MemberStatement}
+   * @returns {MemberStatement | MemberStatement[]}
   */
   function parseMemberStatement() {
     while (consume('COMMENT'));
@@ -938,7 +922,8 @@ function* parse(s) {
       const end = expect(';');
       return new VariableDeclaration(Range.join(start, end), comment, isReadonly, identifier, optional, type);
     }
-    if (consume('[')) {
+    if (at('[')) {
+      const openBracket = expect('[');
       const identifier = parseIdentifier();
       if (consume('NAME', 'in')) {
         // bleh. more unexpected syntax. skip these for now
@@ -953,11 +938,21 @@ function* parse(s) {
       }
       expect(':');
       const keyType = parseTypeExpression();
+      const keyParameter = new Parameter(Range.join(identifier, keyType), undefined, false, identifier, false, keyType);
       expect(']');
       expect(':');
       const valueType = parseTypeExpression();
       const end = expect(';');
-      return new ComputedPropertyDeclaration(Range.join(start, end), comment, isReadonly, identifier, keyType, valueType);
+      const getterIdentifier = new Identifier(Range.join(openBracket, identifier), '__getitem__');
+      const getter = new FunctionDeclaration(Range.join(start, end), comment, getterIdentifier, false,
+        new FunctionTypeDisplay(Range.join(start, end), undefined, [keyParameter], valueType));
+      if (isReadonly) return getter;
+      const valueParameter = new Parameter(
+        Range.join(valueType), undefined, false, new Identifier(Range.join(valueType), 'value'), false, valueType);
+      const setterIdentifier = new Identifier(Range.join(openBracket, identifier), '__setitem__');
+      const setter = new FunctionDeclaration(Range.join(start, end), comment, setterIdentifier, false,
+        new FunctionTypeDisplay(Range.join(start, end), undefined, [keyParameter, valueParameter], valueType));
+      return [getter, setter];
     }
     throw new Error(`Line ${peek.line}: Expected member statement but got ${peek}`);
   }
@@ -1175,6 +1170,9 @@ function translate(out, ...sources) {
           // YAL does not have a fancy enough type system to take advantage of 'is' style type
           // annotations in typescript
           return 'Bool';
+        case 'subscript':
+          // not gonna be supporting such fancy features
+          return 'Any';
         case 'reify': {
           if (type.args.length === 0) { // defensive
             console.warn(`FUBAR: reify special form with zero args`);
@@ -1195,6 +1193,11 @@ function translate(out, ...sources) {
                   return `List[${arg}]`;
                 }
                 break;
+
+              // That basically have 'any' default
+              case 'ProgressEvent': return 'ProgressEvent';
+              case 'IDBRequest': return 'IDBRequest';
+
               case 'Promise':
               case 'PromiseLike':
                 if (type.args.length === 2) {
@@ -1221,6 +1224,9 @@ function translate(out, ...sources) {
               case 'Exclude':
                 // No way my type system is going to support fancy things like
                 // 'Exclude' anytime soon
+                return 'Any';
+              case 'new':
+                // Can kind of support it... but might need to move some stuff around
                 return 'Any';
             }
           }
@@ -1250,6 +1256,8 @@ function translate(out, ...sources) {
         else if (type.token.type === 'STRING') return 'String';
       }
     }
+    // console.warn(`UNHANDLED TYPE TRANSLATION:`, util.inspect(type,
+    //   { showHidden: false, depth: null, colors: process.stdout.hasColors && process.stdout.hasColors() }));
     console.warn(`UNHANDLED TYPE TRANSLATION:`, type);
     return 'Any';
   }
@@ -1293,7 +1301,9 @@ function translate(out, ...sources) {
     const yalName = name === '' ? '__call__' : name;
     const opName = name === '' ? '__call__' :
       name === 'new' ? '__op_new__' :
-        `__js_${name}`;
+        name === '__getitem__' ? '__op_getitem__' :
+          name === '__setitem__' ? '__op_setitem__' :
+            `__js_${name}`;
     const returnType = member.type.returnType ? `: ${translateType(member.type.returnType)}` : '';
 
     const parameters = [...member.type.parameters];
@@ -1502,6 +1512,34 @@ interface QueuingStrategy {
 typedef IDBValidKey = Union[Number, String, Date, BufferSource,
   List[Union[Number, String, Date, BufferSource]]]
 
+export interface ProgressEvent extends Event {
+  static {
+    aliasFor(native "ProgressEvent")
+    var prototype: ProgressEvent = aliasFor(__js_prototype)
+    function new(type: String, eventInitDict: ProgressEventInit): ProgressEvent { aliasFor(__op_new__) }
+    function new(type: String): ProgressEvent { aliasFor(__op_new__) }
+  }
+  const lengthComputable: Bool """
+    [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/lengthComputable)
+  """ = aliasFor(__js_lengthComputable);
+  const loaded: Number """
+    [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/loaded)
+  """ = aliasFor(__js_loaded);
+  const target: Any = aliasFor(__js_target);
+  const total: Number """
+    [MDN Reference](https://developer.mozilla.org/docs/Web/API/ProgressEvent/total)
+  """ = aliasFor(__js_total);
+}
+
+export interface IDBRequest extends EventTarget {
+  static {
+    aliasFor(native "IDBRequest")
+    var prototype: IDBRequest = aliasFor(__js_prototype)
+    function new(): IDBRequest { aliasFor(__op_new__) }
+  }
+
+  # TODO
+}
 `]
 ]);
 
