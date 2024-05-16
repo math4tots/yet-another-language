@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as ast from './ast';
-import { lex, Position, Range, Token, TokenType } from './lexer';
+import { KeywordsMap, lex, Position, Range, Token, TokenType } from './lexer';
 import { registerSymbol, removeUriFromSymbolRegistry } from './symbolregistry';
 
 const PrecList: TokenType[][] = [
@@ -57,10 +57,7 @@ const UnopMethodMap: Map<TokenType, string> = new Map([
 ]);
 
 // Keywords that can be used as identifiers in some cases
-const VARIABLE_KEYWORDS = new Set<TokenType>([
-  'from',
-  'for',
-]);
+const VARIABLE_KEYWORDS = new Set<TokenType>(KeywordsMap.values());
 
 export function parse(uri: vscode.Uri, source: string, documentVersion: number = -1): ast.File {
   class Exception { }
