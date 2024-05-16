@@ -24,6 +24,10 @@ const EXPORT_AS_MAP = new Map([
   ['lib.dom.d.ts', 'dom'],
 ]);
 
+const NATIVE_CONSTEXPR_BASENAMES = new Set([
+  'lib.es5.d.ts',
+]);
+
 const FILE_CONTENTS = fs.readFileSync(ARGS.path, { encoding: 'utf8' });
 
 const SYMBOLS = new Set([
@@ -1023,6 +1027,9 @@ function translate(out, ...sources) {
   out.line('"""');
   out.line(`export as ${EXPORT_AS_MAP.get(BASENAME)}`);
 
+  const prefix = PREFIX_MAP.get(BASENAME);
+  if (prefix) out.write(prefix);
+
   const globalsMap = /** @type {Map<string, SymbolInfo>} */ (new Map());
   for (const source of sources) {
     for (const statement of parse(source)) {
@@ -1188,43 +1195,73 @@ function translate(out, ...sources) {
   for (const info of globalsMap.values()) {
     if (info.declarations.length !== 1) continue;
     const declaration = info.declarations[0];
-    const type = declaration.type;
-    if (!(type instanceof Identifier)) continue;
-    const typeInfo = globalsMap.get(type.name);
-    if (!typeInfo || typeInfo.interfaces.length === 0) continue;
-
-    const comment = info.interfaces[0]?.comment || info.declarations[0]?.comment;
+    const decltype = declaration.type; // I know, I know
+    if (decltype instanceof Identifier && !globalsMap.has(decltype.name)) continue;
     const name = info.identifier.name;
+    let comment = /** @type {Token | undefined} */ (undefined);
+    const staticMembers = /** @type {MemberStatement[]} */ ([]);
+    const instanceMembers = /** @type {MemberStatement[]} */ ([]);
+
+    // static members from declarations
+    comment ??= declaration.comment;
+    if (decltype instanceof Identifier) {
+      const singletonInfo = globalsMap.get(decltype.name);
+      for (const iface of singletonInfo?.interfaces || []) {
+        if (iface.typeParameters) continue;
+        staticMembers.push(...iface.body);
+      }
+    } else if (decltype instanceof RecordTypeDisplay) {
+      staticMembers.push(...decltype.body);
+    }
+
+    // instance members from interface declarations
+    // if the declared variable name matches the type name, we skip this
+    if (decltype instanceof Identifier && decltype.name === name) {
+      // skip - these were already added as static members
+    } else {
+      for (const iface of info.interfaces) {
+        if (iface.typeParameters) continue;
+        comment ??= iface.comment;
+        instanceMembers.push(...iface.body);
+      }
+    }
+
     out.line(`export interface ${name} {`);
     out.nest(() => {
       out.writeBlockComment(comment);
-      out.line('static {');
-      out.nest(() => {
-        out.line(`aliasFor(native constexpr "${name}")`);
-        for (const iface of typeInfo.interfaces) {
-          for (const member of iface.body) {
+      if (info.declarations.length > 0) {
+        out.line('static {');
+        out.nest(() => {
+          out.line(`aliasFor(native ${NATIVE_CONSTEXPR_BASENAMES.has(BASENAME) ? 'constexpr ' : ''}"${name}")`);
+          for (const member of staticMembers) {
             translateMember(member);
           }
+        });
+        out.line('}');
+      }
+      const oldCurrentThis = currentThis;
+      currentThis = name;
+      try {
+        for (const member of instanceMembers) {
+          translateMember(member);
         }
-      });
-      out.line('}');
-      if (typeInfo !== info && info.interfaces.length > 0 && !info.interfaces[0].typeParameters) {
-        const oldCurrentThis = currentThis;
-        currentThis = name;
-        try {
-          for (const iface of info.interfaces) {
-            for (const member of iface.body) {
-              translateMember(member);
-            }
-          }
-        } finally {
-          currentThis = oldCurrentThis;
-        }
+      } finally {
+        currentThis = oldCurrentThis;
       }
     });
     out.line('}');
   }
+  const suffix = SUFFIX_MAP.get(BASENAME);
+  if (suffix) out.write(suffix);
 }
+
+const PREFIX_MAP = new Map([
+  ['lib.dom.d.ts', `
+from './js' import Uint8Array
+from './js' import Float32Array
+
+`],
+]);
 
 const SUFFIX_MAP = new Map([
   ['lib.es5.d.ts', `
@@ -1296,8 +1333,6 @@ switch (ARGS.command) {
   case 'translate': {
     const sink = new Sink((text) => process.stdout.write(text));
     translate(sink, FILE_CONTENTS);
-    const suffix = SUFFIX_MAP.get(BASENAME);
-    if (suffix) sink.write(suffix);
     break;
   }
   default:
