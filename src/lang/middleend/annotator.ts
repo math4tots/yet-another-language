@@ -1702,6 +1702,12 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       }
       // If there is at least one possible method, pick the first one.
       method = possibleMethods[0];
+      if (!method) {
+        // no possible methods
+        this.markReference(firstGuessMethod.sourceVariable, n.identifier.location.range);
+        this.error(n.location, `No candidate methods for ${n.identifier.name} match the given arguments`);
+        return { type: AnyType, ir: n };
+      }
       maybeReturnType = method.returnType;
       this.markReference(method.sourceVariable, n.identifier.location.range);
     } else {
