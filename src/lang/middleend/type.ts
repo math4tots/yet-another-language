@@ -82,6 +82,8 @@ type InterfaceTypeData = {
   readonly typeType: InterfaceTypeType;
   readonly superTypes: InterfaceType[];
   readonly cache: WeakMap<Type, boolean>;
+  readonly ancestorSet: Set<Type>;
+  complete: boolean;
 };
 
 type InterfaceTypeDataWIP = InterfaceTypeData & {
@@ -335,6 +337,20 @@ export class Type {
       // required by the interface
       const cached = target.interfaceTypeData.cache.get(source);
       if (typeof cached === 'boolean') return cached;
+
+      // If the source is also an interface and target belongs to the ancestor set of source,
+      // we can infer assignability
+      if (source.interfaceTypeData && source.interfaceTypeData.ancestorSet.has(target)) {
+        target.interfaceTypeData.cache.set(source, true);
+        return true;
+      }
+
+      if (!target.interfaceTypeData.complete) {
+        // If the interface type is incomplete, it means that not all methods are available yet.
+        // If we're still here, it means we can't determine assingability.
+        // But, this can change as more methods are added, so we don't touch the cache
+        return false;
+      }
 
       // To prevent infinite recursion, optimistically assume
       // it *is* assignable while we try to test
@@ -1006,6 +1022,11 @@ export function newInterfaceTypeType(
     // We put an invalid type here first, so that we can have a cyclic reference between
     // InterfaceTypeType and InterfaceType
     typeType: new Type({ identifier: { name: '(fake)' } }) as InterfaceTypeType,
+
+    ancestorSet: new Set(superTypes.map(t => Array.from(t.interfaceTypeData.ancestorSet)).flat()
+      .concat(superTypes)),
+
+    complete: false,
   };
   const interfaceType = new Type({
     identifier,
@@ -1056,6 +1077,7 @@ export function newRecordLiteralType(location: ast.Location, entryVariables: Var
   const typeType = newInterfaceTypeType({ name, location }, [], undefined);
   const type = typeType.typeTypeData.type;
   addRecordTypeMembers(type, entryVariables);
+  type.interfaceTypeData.complete = true; // literal types are complete right away
   return type;
 }
 

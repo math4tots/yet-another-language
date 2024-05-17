@@ -863,7 +863,20 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
         }
       }
     }
-    const interfaceTypeType = newInterfaceTypeType(defn.identifier, [], comment);
+
+    // We can do this here because interfaces are already topologically sorted
+    // and interfaces can only inherit from other interfaces (note, typedefs are
+    // not allowed here)
+    const superTypes: InterfaceType[] = [];
+    for (const superTypeExpression of defn.superTypes) {
+      const superType = this.solveType(superTypeExpression);
+      if (superType.interfaceTypeData) {
+        superTypes.push(superType as InterfaceType);
+      } else {
+        this.error(superTypeExpression.location, `interfaces can only extend other interfaces`);
+      }
+    }
+    const interfaceTypeType = newInterfaceTypeType(defn.identifier, superTypes, comment);
     const variable: InterfaceVariable = {
       isPrivate: !defn.isExported,
       identifier: defn.identifier,
@@ -884,22 +897,6 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     }
     this.interfaceMap.set(defn, variable);
     this.declareVariable(variable);
-  }
-
-  private solveInterfaceSuperTypes(defn: ast.InterfaceDefinition) {
-    const variable = this.interfaceMap.get(defn);
-    if (!variable) throw new Error('assertion error');
-    const typeType = variable.type;
-    const type = typeType.typeTypeData.type;
-    const superTypes = type.interfaceTypeData.superTypes;
-    for (const superTypeExpression of defn.superTypes) {
-      const superType = this.solveType(superTypeExpression);
-      if (superType.interfaceTypeData) {
-        superTypes.push(superType as InterfaceType);
-      } else {
-        this.error(superTypeExpression.location, `interfaces can only extend other interfaces`);
-      }
-    }
   }
 
   private forwardDeclareClassMethods(defn: ast.ClassDefinition) {
@@ -935,12 +932,16 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     const interfaceTypeType = interfaceTypeTypeVariable.type;
     const interfaceType = interfaceTypeType.typeTypeData.type;
     this.addMethodsAndFields(interfaceTypeType, defn.statements);
+
     // inherit from all the super interfaces
     for (const superType of interfaceType.interfaceTypeData.superTypes) {
       for (const method of superType.getAllMethods()) {
         interfaceType.addMethod(method);
       }
     }
+
+    // with all methods available, this interface is now 'complete'
+    interfaceType.interfaceTypeData.complete = true;
   }
 
   private solveTypedef(defn: ast.Typedef) {
@@ -971,7 +972,6 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
         this.forwardDeclareClass(defn);
       } else if (defn instanceof ast.InterfaceDefinition) {
         this.forwardDeclareInterface(defn);
-        this.solveInterfaceSuperTypes(defn); // interfaces are already topologically sorted
       }
     }
 
