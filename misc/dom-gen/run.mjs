@@ -1394,6 +1394,8 @@ function translate(out, ...sources) {
       const decltype = declaration.type; // I know, I know, it reminds of you C++
       if (decltype instanceof Identifier && !globalsMap.has(decltype.name)) continue;
       comment ??= declaration.comment;
+      // // This removes some types that are still used elsewhere
+      // if (comment?.value?.includes("@deprecated")) continue;
 
       if (info.interfaces.length === 0 && (decltype instanceof Identifier || (
         decltype instanceof TypeSpecialForm
