@@ -813,6 +813,148 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
     }
   }
 
+  private forwardDeclareClass(defn: ast.ClassDefinition) {
+    const comment = getCommentFromClassDefinition(defn);
+    const superClassType = defn.superClass ? this.solveType(defn.superClass) : undefined;
+    const superClassLocation = defn.superClass?.location;
+    if (superClassLocation) {
+      if (!superClassType?.classTypeData) {
+        this.error(superClassLocation, `Classes can only inherit from other classes`);
+      } else if (!superClassType?.classTypeData?.isAbstract) {
+        this.error(superClassLocation, `Classes can only inherit from abstract classes`);
+      }
+    }
+    const variable: ClassVariable = {
+      isPrivate: !defn.isExported,
+      identifier: defn.identifier,
+      type: newClassTypeType(
+        defn.isAbstract,
+        defn.identifier,
+        superClassType?.classTypeData ? (superClassType as ClassType) : undefined,
+        comment),
+      comment,
+    };
+    this.classMap.set(defn, variable);
+    this.declareVariable(variable);
+  }
+
+  private forwardDeclareInterface(defn: ast.InterfaceDefinition) {
+    const comment = getCommentFromInterfaceDefinition(defn);
+    let hasStatic = false;
+    let aliasForValue: Value | undefined;
+    let inlineIR: ast.Expression | undefined;
+    for (const statement of defn.statements) {
+      if (statement instanceof ast.Static) {
+        hasStatic = true;
+        for (const stmt of statement.statements) {
+          if (stmt instanceof ast.ExpressionStatement) {
+            const expression = stmt.expression;
+            if (expression instanceof ast.MethodCall &&
+              expression.identifier.name === '__call__' &&
+              expression.args.length === 1) {
+              const owner = expression.owner;
+              if (owner instanceof ast.IdentifierNode && owner.name === 'aliasFor') {
+                const aliasForResult = this.solveExpr(expression.args[0]);
+                inlineIR = aliasForResult.ir;
+                aliasForValue = aliasForResult.value;
+              }
+            }
+          }
+        }
+      }
+    }
+    const interfaceTypeType = newInterfaceTypeType(defn.identifier, [], comment);
+    const variable: InterfaceVariable = {
+      isPrivate: !defn.isExported,
+      identifier: defn.identifier,
+      type: interfaceTypeType,
+      value: aliasForValue,
+      inlineIR,
+      comment,
+    };
+    if (hasStatic) {
+      // If the interface has a static block, we automatically add a marker method to
+      // make the interface a 'unique' type
+      const interfaceType = interfaceTypeType.typeTypeData.type;
+      interfaceType.addMethod({
+        identifier: { name: `__marker_${defn.identifier.name}`, location: defn.identifier.location },
+        parameters: [],
+        returnType: interfaceTypeType,
+      });
+    }
+    this.interfaceMap.set(defn, variable);
+    this.declareVariable(variable);
+  }
+
+  private solveInterfaceSuperTypes(defn: ast.InterfaceDefinition) {
+    const variable = this.interfaceMap.get(defn);
+    if (!variable) throw new Error('assertion error');
+    const typeType = variable.type;
+    const type = typeType.typeTypeData.type;
+    const superTypes = type.interfaceTypeData.superTypes;
+    for (const superTypeExpression of defn.superTypes) {
+      const superType = this.solveType(superTypeExpression);
+      if (superType.interfaceTypeData) {
+        superTypes.push(superType as InterfaceType);
+      } else {
+        this.error(superTypeExpression.location, `interfaces can only extend other interfaces`);
+      }
+    }
+  }
+
+  private forwardDeclareClassMethods(defn: ast.ClassDefinition) {
+    const classTypeTypeVariable = this.classMap.get(defn);
+    if (!classTypeTypeVariable) throw new Error(`FUBAR class ${classTypeTypeVariable}`);
+    const classTypeType = classTypeTypeVariable.type;
+    const classType = classTypeType.typeTypeData.type;
+
+    // inherit from super class
+    const superClassType = classType.classTypeData.superClassType;
+    if (superClassType) {
+      for (const method of superClassType.getAllMethods()) {
+        classType.addMethod(method);
+      }
+    }
+
+    this.addMethodsAndFields(classTypeType, defn.statements);
+    classTypeType.addMethod({
+      identifier: { name: 'new', location: defn.identifier.location },
+      parameters: [...classType.classTypeData.fields],
+      returnType: classType,
+      sourceVariable: {
+        identifier: { name: 'new', location: defn.identifier.location },
+        type: newLambdaType(undefined, [...classType.classTypeData.fields], classType),
+      },
+      aliasFor: '__op_new__',
+    });
+  }
+
+  private forwardDeclareInterfaceMethods(defn: ast.InterfaceDefinition) {
+    const interfaceTypeTypeVariable = this.interfaceMap.get(defn);
+    if (!interfaceTypeTypeVariable) throw new Error(`FUBAR interface ${interfaceTypeTypeVariable}`);
+    const interfaceTypeType = interfaceTypeTypeVariable.type;
+    const interfaceType = interfaceTypeType.typeTypeData.type;
+    this.addMethodsAndFields(interfaceTypeType, defn.statements);
+    // inherit from all the super interfaces
+    for (const superType of interfaceType.interfaceTypeData.superTypes) {
+      for (const method of superType.getAllMethods()) {
+        interfaceType.addMethod(method);
+      }
+    }
+  }
+
+  private solveTypedef(defn: ast.Typedef) {
+    const type = this.solveType(defn.type);
+    const aliasType = newAliasType(defn.identifier, type);
+    const variable: Variable = {
+      isPrivate: !defn.isExported,
+      identifier: defn.identifier,
+      type: aliasType,
+      comment: type.comment,
+    };
+    this.declareVariable(variable);
+  }
+
   private forwardDeclare(statements: ast.Statement[]) {
 
     // Enum types have no dependency on anything except its definition,
@@ -823,140 +965,32 @@ class Annotator implements ast.TypeExpressionVisitor<Type>, ast.ExpressionVisito
       }
     }
 
-    // forward declare classes, interfaces and process typedefs
+    // forward declare classes and interfaces
     for (const defn of statements) {
-      if (defn instanceof ast.Typedef) {
-        const type = this.solveType(defn.type);
-        const aliasType = newAliasType(defn.identifier, type);
-        const variable: Variable = {
-          isPrivate: !defn.isExported,
-          identifier: defn.identifier,
-          type: aliasType,
-          comment: type.comment,
-        };
-        this.declareVariable(variable);
-      } else if (defn instanceof ast.ClassDefinition) {
-        const comment = getCommentFromClassDefinition(defn);
-        const superClassType = defn.superClass ? this.solveType(defn.superClass) : undefined;
-        const superClassLocation = defn.superClass?.location;
-        if (superClassLocation) {
-          if (!superClassType?.classTypeData) {
-            this.error(superClassLocation, `Classes can only inherit from other classes`);
-          } else if (!superClassType?.classTypeData?.isAbstract) {
-            this.error(superClassLocation, `Classes can only inherit from abstract classes`);
-          }
-        }
-        const variable: ClassVariable = {
-          isPrivate: !defn.isExported,
-          identifier: defn.identifier,
-          type: newClassTypeType(
-            defn.isAbstract,
-            defn.identifier,
-            superClassType?.classTypeData ? (superClassType as ClassType) : undefined,
-            comment),
-          comment,
-        };
-        this.classMap.set(defn, variable);
-        this.declareVariable(variable);
+      if (defn instanceof ast.ClassDefinition) {
+        this.forwardDeclareClass(defn);
       } else if (defn instanceof ast.InterfaceDefinition) {
-        const comment = getCommentFromInterfaceDefinition(defn);
-        const superTypes: InterfaceType[] = [];
-        for (const superTypeExpression of defn.superTypes) {
-          const superType = this.solveType(superTypeExpression);
-          if (superType.interfaceTypeData) {
-            superTypes.push(superType as InterfaceType);
-          } else {
-            this.error(superTypeExpression.location, `interfaces can only extend other interfaces`);
-          }
-        }
-        let hasStatic = false;
-        let aliasForValue: Value | undefined;
-        let inlineIR: ast.Expression | undefined;
-        for (const statement of defn.statements) {
-          if (statement instanceof ast.Static) {
-            hasStatic = true;
-            for (const stmt of statement.statements) {
-              if (stmt instanceof ast.ExpressionStatement) {
-                const expression = stmt.expression;
-                if (expression instanceof ast.MethodCall &&
-                  expression.identifier.name === '__call__' &&
-                  expression.args.length === 1) {
-                  const owner = expression.owner;
-                  if (owner instanceof ast.IdentifierNode && owner.name === 'aliasFor') {
-                    const aliasForResult = this.solveExpr(expression.args[0]);
-                    inlineIR = aliasForResult.ir;
-                    aliasForValue = aliasForResult.value;
-                  }
-                }
-              }
-            }
-          }
-        }
-        const interfaceTypeType = newInterfaceTypeType(defn.identifier, superTypes, comment);
-        const variable: InterfaceVariable = {
-          isPrivate: !defn.isExported,
-          identifier: defn.identifier,
-          type: interfaceTypeType,
-          value: aliasForValue,
-          inlineIR,
-          comment,
-        };
-        if (hasStatic) {
-          // If the interface has a static block, we automatically add a marker method to
-          // make the interface a 'unique' type
-          const interfaceType = interfaceTypeType.typeTypeData.type;
-          interfaceType.addMethod({
-            identifier: { name: `__marker_${defn.identifier.name}`, location: defn.identifier.location },
-            parameters: [],
-            returnType: interfaceTypeType,
-          });
-        }
-        this.interfaceMap.set(defn, variable);
-        this.declareVariable(variable);
+        this.forwardDeclareInterface(defn);
+        this.solveInterfaceSuperTypes(defn); // interfaces are already topologically sorted
       }
     }
 
-    // forward declare methods
+    // solve typedefs
+    // TOOD: This is a bit of a clusterfck, because typedefs may require
+    // 'isAssignableTo' checks, but these checks really should not happen until
+    // methods are all solved. But methods may use typedefs
+    for (const defn of statements) {
+      if (defn instanceof ast.Typedef) {
+        this.solveTypedef(defn);
+      }
+    }
+
+    // forward declare methods and inherit them
     for (const defn of statements) {
       if (defn instanceof ast.ClassDefinition) {
-        const classTypeTypeVariable = this.classMap.get(defn);
-        if (!classTypeTypeVariable) throw new Error(`FUBAR class ${classTypeTypeVariable}`);
-        const classTypeType = classTypeTypeVariable.type;
-        const classType = classTypeType.typeTypeData.type;
-
-        // inherit from super class
-        const superClassType = classType.classTypeData.superClassType;
-        if (superClassType) {
-          for (const method of superClassType.getAllMethods()) {
-            classType.addMethod(method);
-          }
-        }
-
-        this.addMethodsAndFields(classTypeType, defn.statements);
-        classTypeType.addMethod({
-          identifier: { name: 'new', location: defn.identifier.location },
-          parameters: [...classType.classTypeData.fields],
-          returnType: classType,
-          sourceVariable: {
-            identifier: { name: 'new', location: defn.identifier.location },
-            type: newLambdaType(undefined, [...classType.classTypeData.fields], classType),
-          },
-          aliasFor: '__op_new__',
-        });
+        this.forwardDeclareClassMethods(defn);
       } else if (defn instanceof ast.InterfaceDefinition) {
-        const interfaceTypeTypeVariable = this.interfaceMap.get(defn);
-        if (!interfaceTypeTypeVariable) throw new Error(`FUBAR interface ${interfaceTypeTypeVariable}`);
-        const interfaceTypeType = interfaceTypeTypeVariable.type;
-        const interfaceType = interfaceTypeType.typeTypeData.type;
-
-        // inherit from all the super interfaces
-        for (const superType of interfaceType.interfaceTypeData.superTypes) {
-          for (const method of superType.getAllMethods()) {
-            interfaceType.addMethod(method);
-          }
-        }
-
-        this.addMethodsAndFields(interfaceTypeType, defn.statements);
+        this.forwardDeclareInterfaceMethods(defn);
       }
     }
 
