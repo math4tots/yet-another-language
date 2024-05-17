@@ -246,6 +246,7 @@ export class Type {
       this.valueTypeData ||
       this.listTypeData ||
       this.tupleTypeData ||
+      this.functionTypeData ||
       this.promiseTypeData ||
       this.classTypeData ||
       this.interfaceTypeData ||
@@ -389,8 +390,16 @@ export class Type {
     const lhs = this.lambdaErasure();
     const rhs = givenRhs.lambdaErasure();
 
+    if (lhs.identifier.name.includes('EventListener') && rhs.identifier.name.includes('EventListener')) {
+      console.log(`A unionElements = ${Array.from([lhs, rhs])}`);
+    }
+
     if (lhs === NullType) return rhs.nullable();
     if (rhs === NullType) return lhs.nullable();
+
+    if (lhs.identifier.name.includes('EventListener') && rhs.identifier.name.includes('EventListener')) {
+      console.log(`B unionElements = ${Array.from([lhs, rhs])}`);
+    }
 
     // if either type is nullable, get the common type without null first, then
     // re-apply nullable to it
@@ -399,9 +408,17 @@ export class Type {
         rhs.nullableTypeData?.itemType || rhs).nullable();
     }
 
+    if (lhs.identifier.name.includes('EventListener') && rhs.identifier.name.includes('EventListener')) {
+      console.log(`C unionElements = ${Array.from([lhs, rhs])}`);
+    }
+
     // If one is a generalization of the other, return the more general type
     if (lhs.isAssignableTo(rhs)) return rhs;
     if (rhs.isAssignableTo(lhs)) return lhs;
+
+    if (lhs.identifier.name.includes('EventListener') && rhs.identifier.name.includes('EventListener')) {
+      console.log(`D unionElements = ${Array.from([lhs, rhs])}`);
+    }
 
     // TODO: Make this play well with unions of Iterables
     if (lhs.iterableTypeData && rhs.iterableTypeData) {
@@ -635,10 +652,23 @@ export class Type {
     // template methods cannot be implemented (yet)
     if (targetMethod.typeParameters) return false;
 
-    // Due to the way default parameters work, when implementing methods,
-    // exact parameter count match is required.
-    const method = this.getMethodWithExactParameterCount(
-      targetMethod.identifier.name, targetMethod.parameters.length);
+    const methodName = targetMethod.identifier.name;
+
+    const candidateMethods = this.getAllMethodsWithName(methodName)
+      .filter(method =>
+        // for now, we do not take type parameters into account
+        !method.typeParameters &&
+
+        // Alias names must match
+        ((method.aliasFor ?? methodName) === (targetMethod.aliasFor ?? methodName)) &&
+
+        // candidate methods cannot have more methods than the target,
+        // because if method is called with the target's signature, those additional
+        // arguments will not be provided
+        method.parameters.length <= targetMethod.parameters.length
+      );
+
+    const method = candidateMethods[0];
     if (!method) {
       // If we have a non-abstract class, and the required method is a nullable field,
       // it's ok if the method is entirely missing.
@@ -651,14 +681,7 @@ export class Type {
       return false;
     }
 
-    // template methods cannot implement interface methods (yet)
-    if (method.typeParameters) return false;
-
-    // If there is any sort of method aliasing going on, the methods must match exactly.
-    // Otherwise, there could be strange errors at runtime.
-    if (method.aliasFor !== targetMethod.aliasFor) return false;
-
-    for (let i = 0; i < targetMethod.parameters.length; i++) {
+    for (let i = 0; i < method.parameters.length; i++) {
       if (!targetMethod.parameters[i].type.isAssignableTo(method.parameters[i].type)) return false;
     }
     return method.returnType.isAssignableTo(targetMethod.returnType);

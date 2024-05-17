@@ -1125,7 +1125,7 @@ function translate(out, ...sources) {
         case 'symbol': return 'Any'; // dunno if I care about Symbols yet
         case 'undefined': case 'null': return 'Null';
         case 'Object': case 'object': case 'any': return 'Any';
-        case 'void': return 'Null';
+        case 'void': return 'Any'; // functions that return void should be able to return anything
         case 'unknown': return 'Any';
         case 'Function': return 'Any'; // unqualified function type is not supported in YAL (yet?)
         case 'this': return currentThis;
