@@ -1391,8 +1391,9 @@ function translate(out, ...sources) {
     } else {
       if (info.declarations.length !== 1) continue;
       const declaration = info.declarations[0];
-      const decltype = declaration.type; // I know, I know
+      const decltype = declaration.type; // I know, I know, it reminds of you C++
       if (decltype instanceof Identifier && !globalsMap.has(decltype.name)) continue;
+      comment ??= declaration.comment;
 
       if (info.interfaces.length === 0 && (decltype instanceof Identifier || (
         decltype instanceof TypeSpecialForm
@@ -1402,12 +1403,18 @@ function translate(out, ...sources) {
         const storageClass = declaration.isReadonly ? 'const' : 'var';
         const nativeConstexpr = USE_NATIVE_CONSTEXPR ? ' constexpr' : '';
         const type = translateType(decltype);
-        out.line(`export ${storageClass} ${name} = native${nativeConstexpr} "${name}" as ${type}`);
+        out.startLine();
+        out.write(`export ${storageClass} ${name}`);
+        if (comment) {
+          out.write(' ');
+          out.writeInlineComment(comment);
+        }
+        out.write(` = native${nativeConstexpr} "${name}" as ${type}`);
+        out.endLine();
         continue;
       }
 
       // static members from declarations
-      comment ??= declaration.comment;
       if (decltype instanceof Identifier) {
         const singletonInfo = globalsMap.get(decltype.name);
         for (const iface of singletonInfo?.interfaces || []) {

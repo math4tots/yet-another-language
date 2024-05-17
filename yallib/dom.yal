@@ -30782,9 +30782,19 @@ export interface Option {
     function new(): HTMLOptionElement { aliasFor(__op_new__) }
   }
 }
-export var clientInformation = native "clientInformation" as Navigator
-export var customElements = native "customElements" as CustomElementRegistry
-export var document = native "document" as Document
+export var clientInformation """
+@deprecated This is a legacy alias of `navigator`.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
+""" = native "clientInformation" as Navigator
+export var customElements """
+Defines a new custom element, mapping the given name to the given constructor as an autonomous custom element.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/customElements)
+""" = native "customElements" as CustomElementRegistry
+export var document """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/document)
+""" = native "document" as Document
 export interface event {
   """
   @deprecated
@@ -30795,7 +30805,11 @@ export interface event {
     aliasFor(native "event")
   }
 }
-export var external = native "external" as External
+export var external """
+@deprecated
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/external)
+""" = native "external" as External
 export interface frameElement {
   """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/frameElement)
@@ -30804,11 +30818,25 @@ export interface frameElement {
     aliasFor(native "frameElement")
   }
 }
-export var history = native "history" as History
-export var location = native "location" as Location
-export var locationbar = native "locationbar" as BarProp
-export var menubar = native "menubar" as BarProp
-export var navigator = native "navigator" as Navigator
+export var history """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/history)
+""" = native "history" as History
+export var location """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/location)
+""" = native "location" as Location
+export var locationbar """
+Returns true if the location bar is visible; otherwise, returns false.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/locationbar)
+""" = native "locationbar" as BarProp
+export var menubar """
+Returns true if the menu bar is visible; otherwise, returns false.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/menubar)
+""" = native "menubar" as BarProp
+export var navigator """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/navigator)
+""" = native "navigator" as Navigator
 export interface ondevicemotion {
   """
   Available only in secure contexts.
@@ -30849,13 +30877,35 @@ export interface onorientationchange {
     aliasFor(native "onorientationchange")
   }
 }
-export var personalbar = native "personalbar" as BarProp
-export var screen = native "screen" as Screen
-export var scrollbars = native "scrollbars" as BarProp
-export var self = native "self" as Window
-export var speechSynthesis = native "speechSynthesis" as SpeechSynthesis
-export var statusbar = native "statusbar" as BarProp
-export var toolbar = native "toolbar" as BarProp
+export var personalbar """
+Returns true if the personal bar is visible; otherwise, returns false.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/personalbar)
+""" = native "personalbar" as BarProp
+export var screen """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/screen)
+""" = native "screen" as Screen
+export var scrollbars """
+Returns true if the scrollbars are visible; otherwise, returns false.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/scrollbars)
+""" = native "scrollbars" as BarProp
+export var self """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/self)
+""" = native "self" as Window
+export var speechSynthesis """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/speechSynthesis)
+""" = native "speechSynthesis" as SpeechSynthesis
+export var statusbar """
+Returns true if the status bar is visible; otherwise, returns false.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/statusbar)
+""" = native "statusbar" as BarProp
+export var toolbar """
+Returns true if the toolbar is visible; otherwise, returns false.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/toolbar)
+""" = native "toolbar" as BarProp
 export interface top {
   """
   [MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/top)
@@ -30872,7 +30922,9 @@ export interface visualViewport {
     aliasFor(native "visualViewport")
   }
 }
-export var window = native "window" as Window
+export var window """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/window)
+""" = native "window" as Window
 export interface onabort {
   """
   Fires when the user aborts the download.
@@ -31920,12 +31972,26 @@ export interface onunload {
     aliasFor(native "onunload")
   }
 }
-export var localStorage = native "localStorage" as Storage
-export var caches = native "caches" as CacheStorage
-export var crypto = native "crypto" as Crypto
-export var indexedDB = native "indexedDB" as IDBFactory
-export var performance = native "performance" as Performance
-export var sessionStorage = native "sessionStorage" as Storage
+export var localStorage """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/localStorage)
+""" = native "localStorage" as Storage
+export var caches """
+Available only in secure contexts.
+*
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/caches)
+""" = native "caches" as CacheStorage
+export var crypto """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/crypto_property)
+""" = native "crypto" as Crypto
+export var indexedDB """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/indexedDB)
+""" = native "indexedDB" as IDBFactory
+export var performance """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/performance_property)
+""" = native "performance" as Performance
+export var sessionStorage """
+[MDN Reference](https://developer.mozilla.org/docs/Web/API/Window/sessionStorage)
+""" = native "sessionStorage" as Storage
 typedef NodeFilter = Any
 typedef XPathNSResolver = Any
 typedef SVGMatrix = DOMMatrix

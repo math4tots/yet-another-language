@@ -1321,7 +1321,7 @@ export interface DataView {
     aliasFor(__js_getUint32)
   }
   function getUint32(byteOffset: Number): Number { aliasFor(__js_getUint32) }
-  function setFloat32(byteOffset: Number, value: Number, littleEndian: Bool): Null {
+  function setFloat32(byteOffset: Number, value: Number, littleEndian: Bool): Any {
     """
     Stores an Float32 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1330,8 +1330,8 @@ export interface DataView {
     """
     aliasFor(__js_setFloat32)
   }
-  function setFloat32(byteOffset: Number, value: Number): Null { aliasFor(__js_setFloat32) }
-  function setFloat64(byteOffset: Number, value: Number, littleEndian: Bool): Null {
+  function setFloat32(byteOffset: Number, value: Number): Any { aliasFor(__js_setFloat32) }
+  function setFloat64(byteOffset: Number, value: Number, littleEndian: Bool): Any {
     """
     Stores an Float64 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1340,8 +1340,8 @@ export interface DataView {
     """
     aliasFor(__js_setFloat64)
   }
-  function setFloat64(byteOffset: Number, value: Number): Null { aliasFor(__js_setFloat64) }
-  function setInt8(byteOffset: Number, value: Number): Null {
+  function setFloat64(byteOffset: Number, value: Number): Any { aliasFor(__js_setFloat64) }
+  function setInt8(byteOffset: Number, value: Number): Any {
     """
     Stores an Int8 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1349,7 +1349,7 @@ export interface DataView {
     """
     aliasFor(__js_setInt8)
   }
-  function setInt16(byteOffset: Number, value: Number, littleEndian: Bool): Null {
+  function setInt16(byteOffset: Number, value: Number, littleEndian: Bool): Any {
     """
     Stores an Int16 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1358,8 +1358,8 @@ export interface DataView {
     """
     aliasFor(__js_setInt16)
   }
-  function setInt16(byteOffset: Number, value: Number): Null { aliasFor(__js_setInt16) }
-  function setInt32(byteOffset: Number, value: Number, littleEndian: Bool): Null {
+  function setInt16(byteOffset: Number, value: Number): Any { aliasFor(__js_setInt16) }
+  function setInt32(byteOffset: Number, value: Number, littleEndian: Bool): Any {
     """
     Stores an Int32 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1368,8 +1368,8 @@ export interface DataView {
     """
     aliasFor(__js_setInt32)
   }
-  function setInt32(byteOffset: Number, value: Number): Null { aliasFor(__js_setInt32) }
-  function setUint8(byteOffset: Number, value: Number): Null {
+  function setInt32(byteOffset: Number, value: Number): Any { aliasFor(__js_setInt32) }
+  function setUint8(byteOffset: Number, value: Number): Any {
     """
     Stores an Uint8 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1377,7 +1377,7 @@ export interface DataView {
     """
     aliasFor(__js_setUint8)
   }
-  function setUint16(byteOffset: Number, value: Number, littleEndian: Bool): Null {
+  function setUint16(byteOffset: Number, value: Number, littleEndian: Bool): Any {
     """
     Stores an Uint16 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1386,8 +1386,8 @@ export interface DataView {
     """
     aliasFor(__js_setUint16)
   }
-  function setUint16(byteOffset: Number, value: Number): Null { aliasFor(__js_setUint16) }
-  function setUint32(byteOffset: Number, value: Number, littleEndian: Bool): Null {
+  function setUint16(byteOffset: Number, value: Number): Any { aliasFor(__js_setUint16) }
+  function setUint32(byteOffset: Number, value: Number, littleEndian: Bool): Any {
     """
     Stores an Uint32 value at the specified byte offset from the start of the view.
     @param byteOffset The place in the buffer at which the value should be set.
@@ -1396,7 +1396,7 @@ export interface DataView {
     """
     aliasFor(__js_setUint32)
   }
-  function setUint32(byteOffset: Number, value: Number): Null { aliasFor(__js_setUint32) }
+  function setUint32(byteOffset: Number, value: Number): Any { aliasFor(__js_setUint32) }
 }
 export interface Int8Array {
   """
@@ -1519,7 +1519,7 @@ export interface Int8Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Int8Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Int8Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Int8Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -1529,7 +1529,7 @@ export interface Int8Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Int8Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Int8Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -1608,7 +1608,7 @@ export interface Int8Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -1616,7 +1616,7 @@ export interface Int8Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Int8Array {
     """
     Returns a section of an array.
@@ -1805,7 +1805,7 @@ export interface Uint8Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint8Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -1815,7 +1815,7 @@ export interface Uint8Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -1894,7 +1894,7 @@ export interface Uint8Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -1902,7 +1902,7 @@ export interface Uint8Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Uint8Array {
     """
     Returns a section of an array.
@@ -2091,7 +2091,7 @@ export interface Uint8ClampedArray {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint8ClampedArray): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8ClampedArray): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8ClampedArray): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -2101,7 +2101,7 @@ export interface Uint8ClampedArray {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8ClampedArray): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint8ClampedArray): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -2180,7 +2180,7 @@ export interface Uint8ClampedArray {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -2188,7 +2188,7 @@ export interface Uint8ClampedArray {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Uint8ClampedArray {
     """
     Returns a section of an array.
@@ -2377,7 +2377,7 @@ export interface Int16Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Int16Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Int16Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Int16Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -2387,7 +2387,7 @@ export interface Int16Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Int16Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Int16Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -2466,7 +2466,7 @@ export interface Int16Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -2474,7 +2474,7 @@ export interface Int16Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Int16Array {
     """
     Returns a section of an array.
@@ -2663,7 +2663,7 @@ export interface Uint16Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint16Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint16Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint16Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -2673,7 +2673,7 @@ export interface Uint16Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint16Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint16Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -2752,7 +2752,7 @@ export interface Uint16Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -2760,7 +2760,7 @@ export interface Uint16Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Uint16Array {
     """
     Returns a section of an array.
@@ -2949,7 +2949,7 @@ export interface Int32Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Int32Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Int32Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Int32Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -2959,7 +2959,7 @@ export interface Int32Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Int32Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Int32Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -3038,7 +3038,7 @@ export interface Int32Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -3046,7 +3046,7 @@ export interface Int32Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Int32Array {
     """
     Returns a section of an array.
@@ -3235,7 +3235,7 @@ export interface Uint32Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Uint32Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint32Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint32Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -3245,7 +3245,7 @@ export interface Uint32Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Uint32Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Uint32Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -3324,7 +3324,7 @@ export interface Uint32Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -3332,7 +3332,7 @@ export interface Uint32Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Uint32Array {
     """
     Returns a section of an array.
@@ -3521,7 +3521,7 @@ export interface Float32Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Float32Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Float32Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Float32Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -3531,7 +3531,7 @@ export interface Float32Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Float32Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Float32Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -3610,7 +3610,7 @@ export interface Float32Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -3618,7 +3618,7 @@ export interface Float32Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Float32Array {
     """
     Returns a section of an array.
@@ -3807,7 +3807,7 @@ export interface Float64Array {
     aliasFor(__js_findIndex)
   }
   function findIndex(predicate: function(value: Number, index: Number, obj: Float64Array): Bool): Number { aliasFor(__js_findIndex) }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Float64Array): Null, thisArg: Any): Null {
+  function forEach(callbackfn: function(value: Number, index: Number, array: Float64Array): Any, thisArg: Any): Any {
     """
     Performs the specified action for each element in an array.
     @param callbackfn  A function that accepts up to three arguments. forEach calls the
@@ -3817,7 +3817,7 @@ export interface Float64Array {
     """
     aliasFor(__js_forEach)
   }
-  function forEach(callbackfn: function(value: Number, index: Number, array: Float64Array): Null): Null { aliasFor(__js_forEach) }
+  function forEach(callbackfn: function(value: Number, index: Number, array: Float64Array): Any): Any { aliasFor(__js_forEach) }
   function indexOf(searchElement: Number, fromIndex: Number): Number {
     """
     Returns the index of the first occurrence of a value in an array.
@@ -3896,7 +3896,7 @@ export interface Float64Array {
     """
     aliasFor(__js_reverse)
   }
-  function set(array: List[Number], offset: Number): Null {
+  function set(array: List[Number], offset: Number): Any {
     """
     Sets a value or an array of values.
     @param array A typed or untyped array of values to set.
@@ -3904,7 +3904,7 @@ export interface Float64Array {
     """
     aliasFor(__js_set)
   }
-  function set(array: List[Number]): Null { aliasFor(__js_set) }
+  function set(array: List[Number]): Any { aliasFor(__js_set) }
   function slice(start: Number, end: Number): Float64Array {
     """
     Returns a section of an array.
