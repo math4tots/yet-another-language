@@ -1150,6 +1150,9 @@ function translate(out, ...sources) {
     }
     if (type instanceof TypeSpecialForm) {
       switch (type.name) {
+        case 'new':
+          // Might be able to support this... but would have to think about it a bit
+          return 'Any';
         case 'array':
           if (type.args.length === 1) return `List[${translateType(type.args[0])}]`;
         case 'union': {
@@ -1311,8 +1314,14 @@ function translate(out, ...sources) {
    * @param {FunctionDeclaration} member
    */
   function translateMemberFunction(member) {
-    if (member.optional) return;
-    if (member.type.typeParameters) return;
+    if (member.optional) {
+      // console.warn(`SKIPPING OPTIONAL MEMBER FUNCTION ${JSON.stringify(member.identifier.name)}`);
+      return;
+    }
+    if (member.type.typeParameters) {
+      // console.warn(`SKIPPING OPTIONAL TEMPLATE FUNCTION ${JSON.stringify(member.identifier.name)}`);
+      return;
+    }
     let comment = member.comment;
     const name = member.identifier.name;
     const yalName = name === '' ? '__call__' : name;
