@@ -81,7 +81,7 @@ export type StringValueTokenType = (
   'TEMPLATE_START' | 'TEMPLATE_MIDDLE' | 'TEMPLATE_END'
 );
 export type NumberValueTokenType = 'NUMBER';
-export type NoValueTokenType = KeywordTokenType | PunctuatorTokenType | 'EOF';
+export type NoValueTokenType = KeywordTokenType | PunctuatorTokenType | 'NEWLINE' | 'EOF';
 
 export type TokenType = StringValueTokenType | NumberValueTokenType | NoValueTokenType;
 
@@ -136,7 +136,7 @@ export function* lex(s: string): Generator<Token, Token, any> {
   const rangeFrom = (start: Position) => new Range(start, here());
 
   nextToken: while (true) {
-    while (i < s.length && isSpace(s[i])) {
+    while (i < s.length && isSpace(s[i]) && (groupingStack.length > 0 || s[i] !== '\n')) {
       if (s[i] === '\n') i++, line++, column = 0;
       else i++, column++;
     }
@@ -144,6 +144,13 @@ export function* lex(s: string): Generator<Token, Token, any> {
     const start = here();
     const j = i;
     const c = s[i];
+
+    // newline
+    if (s[i] === '\n') {
+      while (i < s.length && s[i] === '\n') i++, line++, column = 0;
+      yield { range: rangeFrom(start), type: 'NEWLINE' };
+      continue;
+    }
 
     // number
     if (isDigit(c)) {
@@ -189,6 +196,7 @@ export function* lex(s: string): Generator<Token, Token, any> {
       continue;
     }
 
+    // name or keyword
     if (isLetterOrUnderscore(c)) {
       while (i < s.length && isLetterOrUnderscoreOrDigit(s[i])) i++, column++;
       const range = rangeFrom(start);
