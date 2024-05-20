@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import * as yal from '../lang/yal';
 import { getSelectionOrAllText, writeToNewEditor } from './utils';
+import { lex } from '../lang2/frontend/lexer';
 
 
 
@@ -10,7 +10,7 @@ export async function tokenizeCommand() {
     return;
   }
   const text = getSelectionOrAllText(editor);
-  const tokens = yal.lex(text);
+  const tokens = Array.from(lex(text));
 
   await writeToNewEditor(emit => {
     for (const token of tokens) {
