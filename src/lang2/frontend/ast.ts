@@ -20,16 +20,23 @@ export type Expression = NilLiteral |
   TypeAssertion |
   NativeExpression;
 
+export type HeaderItem = StringLiteral |
+  ExportAs |
+  ImportAs |
+  FromImport;
+
+export type Declaration = VariableDeclaration |
+  FunctionDefinition |
+  InterfaceDefinition |
+  ClassDefinition;
+
 export type Statement = ExpressionStatement |
   IfStatement |
   WhileStatement |
   BreakStatement |
   ContinueStatement |
   ReturnStatement |
-  VariableDeclaration |
-  FunctionDefinition |
-  InterfaceDefinition |
-  ClassDefinition;
+  Declaration;
 
 
 export class NilLiteral {
@@ -409,5 +416,51 @@ export class ClassDefinition {
     this.identifier = identifier;
     this.baseClass = baseClass;
     this.body = body;
+  }
+}
+
+export class ExportAs {
+  readonly range: Range;
+  readonly identifier: Identifier;
+
+  constructor(range: Range, identifier: Identifier) {
+    this.range = range;
+    this.identifier = identifier;
+  }
+}
+
+export class ImportAs {
+  readonly range: Range;
+  readonly path: StringLiteral;
+  readonly identifier: Identifier;
+
+  constructor(range: Range, path: StringLiteral, identifier: Identifier) {
+    this.range = range;
+    this.path = path;
+    this.identifier = identifier;
+  }
+}
+
+export class FromImport {
+  readonly range: Range;
+  readonly path: StringLiteral;
+  readonly identifier: Identifier;
+
+  constructor(range: Range, path: StringLiteral, identifier: Identifier) {
+    this.range = range;
+    this.path = path;
+    this.identifier = identifier;
+  }
+}
+
+export class ModuleDisplay {
+  readonly range: Range;
+  readonly header: HeaderItem[];
+  readonly statements: Statement[];
+
+  constructor(range: Range, header: HeaderItem[], statements: Statement[]) {
+    this.range = range;
+    this.header = header;
+    this.statements = statements;
   }
 }
