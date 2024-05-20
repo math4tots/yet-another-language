@@ -136,13 +136,13 @@ export function* lex(s: string): Generator<Token, Token, any> {
   let i = 0;
   let line = 0;
   let column = 0;
-  const groupingStack = [];
+  let groupingDepth = 0;
   const indentStack = [''];
   const here = () => new Position(line, column, i);
   const rangeFrom = (start: Position) => new Range(start, here());
 
   nextToken: while (true) {
-    while (i < s.length && isSpace(s[i]) && (groupingStack.length > 0 || s[i] !== '\n')) {
+    while (i < s.length && isSpace(s[i]) && (groupingDepth > 0 || s[i] !== '\n')) {
       if (s[i] === '\n') i++, line++, column = 0;
       else i++, column++;
     }
@@ -243,6 +243,18 @@ export function* lex(s: string): Generator<Token, Token, any> {
     // punctuator
     for (const punctuator of ReverseSortedPunctuators) {
       if (s.startsWith(punctuator, i)) {
+        switch (punctuator) {
+          case '(':
+          case '[':
+          case '{':
+            groupingDepth++;
+            break;
+          case ')':
+          case ']':
+          case '}':
+            groupingDepth--;
+            break;
+        }
         i += punctuator.length, column += punctuator.length;
         yield { range: rangeFrom(start), type: punctuator };
         continue nextToken;
