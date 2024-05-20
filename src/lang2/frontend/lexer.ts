@@ -81,7 +81,12 @@ export type StringValueTokenType = (
   'TEMPLATE_START' | 'TEMPLATE_MIDDLE' | 'TEMPLATE_END'
 );
 export type NumberValueTokenType = 'NUMBER';
-export type NoValueTokenType = KeywordTokenType | PunctuatorTokenType | 'NEWLINE' | 'EOF';
+export type NoValueTokenType = KeywordTokenType |
+  PunctuatorTokenType |
+  'NEWLINE' |
+  'INDENT' |
+  'DEDENT' |
+  'EOF';
 
 export type TokenType = StringValueTokenType | NumberValueTokenType | NoValueTokenType;
 
@@ -132,6 +137,7 @@ export function* lex(s: string): Generator<Token, Token, any> {
   let line = 0;
   let column = 0;
   const groupingStack = [];
+  const indentStack = [''];
   const here = () => new Position(line, column, i);
   const rangeFrom = (start: Position) => new Range(start, here());
 
@@ -140,17 +146,44 @@ export function* lex(s: string): Generator<Token, Token, any> {
       if (s[i] === '\n') i++, line++, column = 0;
       else i++, column++;
     }
+
+    // newline
+    if ((i < s.length && s[i] === '\n') || i >= s.length) {
+      const start = here();
+      i++, line++, column = 0;
+      yield { range: rangeFrom(start), type: 'NEWLINE' };
+
+      // indent and dedent
+      while (true) {
+        const lineStart = here();
+        while (i < s.length && s[i] !== '\n' && isSpace(s[i])) i++, column++;
+        if (i < s.length && s[i] === '\n') {
+          i++, line++, column = 0;
+          continue;
+        }
+        const newIndent = i >= s.length ? '' : s.substring(lineStart.index, i);
+        const oldIndent = indentStack[indentStack.length - 1];
+        if (newIndent === oldIndent) {
+          // nothing to do
+        } else if (newIndent.startsWith(oldIndent)) {
+          yield { range: rangeFrom(lineStart), type: 'INDENT' };
+          indentStack.push(newIndent);
+        } else if (oldIndent.startsWith(newIndent)) {
+          yield { range: rangeFrom(lineStart), type: 'DEDENT' };
+          indentStack.pop();
+        } else {
+          yield { range: rangeFrom(lineStart), type: 'ERROR', value: 'invalid indentation' };
+        }
+        break;
+      }
+
+      if (i < s.length) continue;
+    }
+
     if (i >= s.length) break;
     const start = here();
     const j = i;
     const c = s[i];
-
-    // newline
-    if (s[i] === '\n') {
-      while (i < s.length && s[i] === '\n') i++, line++, column = 0;
-      yield { range: rangeFrom(start), type: 'NEWLINE' };
-      continue;
-    }
 
     // number
     if (isDigit(c)) {
