@@ -7,7 +7,14 @@ export type Expression = NilLiteral |
   BoolLiteral |
   NumberLiteral |
   StringLiteral |
-  Identifier;
+  Identifier |
+  Assignment |
+  ListDisplay |
+  MapDisplay |
+  MethodCall |
+  LogicalOperator |
+  TypeAssertion |
+  NativeExpression;
 
 export type Statement = ExpressionStatement |
   IfStatement |
@@ -77,6 +84,88 @@ export class QualifiedIdentifier {
     this.range = range;
     this.qualifier = qualifier;
     this.member = member;
+  }
+}
+
+export class Assignment {
+  readonly range: Range;
+  readonly target: Identifier;
+  readonly value: Expression;
+
+  constructor(range: Range, target: Identifier, value: Expression) {
+    this.range = range;
+    this.target = target;
+    this.value = value;
+  }
+}
+
+export class ListDisplay {
+  readonly range: Range;
+  readonly values: Expression[];
+
+  constructor(range: Range, values: Expression[]) {
+    this.range = range;
+    this.values = values;
+  }
+}
+
+export class MapDisplay {
+  readonly range: Range;
+  readonly entries: [Expression, Expression][];
+
+  constructor(range: Range, entries: [Expression, Expression][]) {
+    this.range = range;
+    this.entries = entries;
+  }
+}
+
+export class MethodCall {
+  readonly range: Range;
+  readonly owner: Expression;
+  readonly identifier: Identifier;
+  readonly args: Expression[];
+
+  constructor(range: Range, owner: Expression, identifier: Identifier, args: Expression[]) {
+    this.range = range;
+    this.owner = owner;
+    this.identifier = identifier;
+    this.args = args;
+  }
+}
+
+export type LogicalOperatorType = 'and' | 'or' | 'if' | 'not';
+
+export class LogicalOperator {
+  readonly range: Range;
+  readonly type: LogicalOperatorType;
+  readonly args: Expression[];
+
+  constructor(range: Range, type: LogicalOperatorType, args: Expression[]) {
+    this.range = range;
+    this.type = type;
+    this.args = args;
+  }
+}
+
+export class TypeAssertion {
+  readonly range: Range;
+  readonly expression: Expression;
+  readonly type: TypeExpression;
+
+  constructor(range: Range, expression: Expression, type: TypeExpression) {
+    this.range = range;
+    this.expression = expression;
+    this.type = type;
+  }
+}
+
+export class NativeExpression {
+  readonly range: Range;
+  readonly code: StringLiteral;
+
+  constructor(range: Range, code: StringLiteral) {
+    this.range = range;
+    this.code = code;
   }
 }
 
