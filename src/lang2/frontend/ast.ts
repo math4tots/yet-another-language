@@ -7,7 +7,7 @@ export type TypeExpression =
   ReifiedTypeDisplay |
   FunctionTypeDisplay;
 
-export type Expression = NilLiteral |
+export type Expression = NullLiteral |
   BoolLiteral |
   NumberLiteral |
   StringLiteral |
@@ -38,8 +38,17 @@ export type Statement = ExpressionStatement |
   ReturnStatement |
   Declaration;
 
+export class ParseError {
+  readonly range: Range;
+  readonly message: string;
 
-export class NilLiteral {
+  constructor(range: Range, message: string) {
+    this.range = range;
+    this.message = message;
+  }
+}
+
+export class NullLiteral {
   readonly range: Range;
 
   constructor(range: Range) {
@@ -328,6 +337,7 @@ export class Parameter {
 
 export class VariableDeclaration {
   readonly range: Range;
+  readonly isExported: boolean;
   readonly isStatic: boolean;
   readonly isMutable: boolean;
   readonly identifier: Identifier;
@@ -336,12 +346,14 @@ export class VariableDeclaration {
 
   constructor(
     range: Range,
+    isExported: boolean,
     isStatic: boolean,
     isMutable: boolean,
     identifier: Identifier,
     type: TypeExpression | undefined,
     value: Expression | undefined) {
     this.range = range;
+    this.isExported = isExported;
     this.isStatic = isStatic;
     this.isMutable = isMutable;
     this.identifier = identifier;
@@ -352,6 +364,7 @@ export class VariableDeclaration {
 
 export class FunctionDefinition {
   readonly range: Range;
+  readonly isExported: boolean;
   readonly isStatic: boolean;
   readonly identifier: Identifier;
   readonly typeParameters: TypeParameter[] | undefined;
@@ -361,6 +374,7 @@ export class FunctionDefinition {
 
   constructor(
     range: Range,
+    isExported: boolean,
     isStatic: boolean,
     identifier: Identifier,
     typeParameters: TypeParameter[] | undefined,
@@ -368,6 +382,7 @@ export class FunctionDefinition {
     returnType: TypeExpression | undefined,
     body: Block) {
     this.range = range;
+    this.isExported = isExported;
     this.isStatic = isStatic;
     this.identifier = identifier;
     this.typeParameters = typeParameters;
@@ -379,20 +394,23 @@ export class FunctionDefinition {
 
 export class InterfaceDefinition {
   readonly range: Range;
-  readonly typeParameters: TypeParameter[] | undefined;
+  readonly isExported: boolean;
   readonly identifier: Identifier;
+  readonly typeParameters: TypeParameter[] | undefined;
   readonly superTypes: TypeExpression[];
   readonly body: Block;
 
   constructor(
     range: Range,
-    typeParameters: TypeParameter[] | undefined,
+    isExported: boolean,
     identifier: Identifier,
+    typeParameters: TypeParameter[] | undefined,
     superTypes: TypeExpression[],
     body: Block) {
     this.range = range;
-    this.typeParameters = typeParameters;
+    this.isExported = isExported;
     this.identifier = identifier;
+    this.typeParameters = typeParameters;
     this.superTypes = superTypes;
     this.body = body;
   }
@@ -400,20 +418,23 @@ export class InterfaceDefinition {
 
 export class ClassDefinition {
   readonly range: Range;
-  readonly typeParameters: TypeParameter[] | undefined;
+  readonly isExported: boolean;
   readonly identifier: Identifier;
+  readonly typeParameters: TypeParameter[] | undefined;
   readonly baseClass: TypeExpression | undefined;
   readonly body: Block;
 
   constructor(
     range: Range,
-    typeParameters: TypeParameter[] | undefined,
+    isExported: boolean,
     identifier: Identifier,
+    typeParameters: TypeParameter[] | undefined,
     baseClass: TypeExpression | undefined,
     body: Block) {
     this.range = range;
-    this.typeParameters = typeParameters;
+    this.isExported = isExported;
     this.identifier = identifier;
+    this.typeParameters = typeParameters;
     this.baseClass = baseClass;
     this.body = body;
   }
@@ -457,10 +478,12 @@ export class ModuleDisplay {
   readonly range: Range;
   readonly header: HeaderItem[];
   readonly statements: Statement[];
+  readonly errors: ParseError[];
 
-  constructor(range: Range, header: HeaderItem[], statements: Statement[]) {
+  constructor(range: Range, header: HeaderItem[], statements: Statement[], errors: ParseError[]) {
     this.range = range;
     this.header = header;
     this.statements = statements;
+    this.errors = errors;
   }
 }

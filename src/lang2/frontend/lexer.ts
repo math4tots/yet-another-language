@@ -20,9 +20,13 @@ export class Range {
   private static getEnd(r: Rangeable): Position { return r instanceof Range ? r.end : r.range.end; }
   private static getStartIndex(r: Rangeable): number { return Range.getStart(r).index; }
   private static getEndIndex(r: Rangeable): number { return Range.getEnd(r).index; }
-  static join(...rangeables: Rangeable[]) {
-    const min = rangeables.reduce((a, b) => Range.getStartIndex(a) < Range.getStartIndex(b) ? a : b);
-    const max = rangeables.reduce((a, b) => Range.getEndIndex(a) > Range.getEndIndex(b) ? a : b);
+  static join(...rangeables: (Rangeable | undefined)[]) {
+    const rr: Rangeable[] = [];
+    for (const r of rangeables) {
+      if (r !== undefined) rr.push(r);
+    }
+    const min = rr.reduce((a, b) => Range.getStartIndex(a) < Range.getStartIndex(b) ? a : b);
+    const max = rr.reduce((a, b) => Range.getEndIndex(a) > Range.getEndIndex(b) ? a : b);
     return new Range(Range.getStart(min), Range.getEnd(max));
   }
 
@@ -43,7 +47,7 @@ export const Keywords = [
   'static', 'inline', 'constexpr',
   'class', 'interface', 'enum', 'typedef',
   'function', 'var', 'const', 'let', 'final', 'extends',
-  'if', 'then', 'else', 'for', 'while', 'break', 'continue',
+  'if', 'elif', 'then', 'else', 'for', 'while', 'break', 'continue',
   'return', 'yield', 'async', 'await',
   'native',
   'abstract',
@@ -61,7 +65,10 @@ export const Punctuators = [
 
   // double character tokens
   '//', '**', '!=', '==', '<<', '<=', '>>', '>=', '??',
-  '=>',
+  '=>', '->',
+
+  // triple character tokens
+  '...',
 ] as const;
 
 export type KeywordTokenType = typeof Keywords[number];
@@ -77,7 +84,7 @@ export const PunctuatorsMap: Map<string, PunctuatorTokenType> = new Map(
 const ReverseSortedPunctuators = Array.from(Punctuators).sort().reverse();
 
 export type StringValueTokenType = (
-  'ERROR' | 'NAME' | 'STRING' | 'COMMENT' |
+  'ERROR' | 'IDENTIFIER' | 'STRING' | 'COMMENT' |
   'TEMPLATE_START' | 'TEMPLATE_MIDDLE' | 'TEMPLATE_END'
 );
 export type NumberValueTokenType = 'NUMBER';
@@ -221,7 +228,26 @@ export function* lex(s: string): Generator<Token, Token, any> {
       }
       i++, column++;
       try {
-        const value = eval(s.substring(j, i));
+        const value = '' + (0, eval)(s.substring(j, i)); // TODO: avoid eval
+        yield { range: rangeFrom(start), type: 'STRING', value };
+      } catch (err) {
+        yield { range: rangeFrom(start), type: 'ERROR', value: `Invalid string literal ${err}` };
+      }
+      continue;
+    }
+
+    // TOOD: template literals
+    if (c === '`') {
+      i++, column++;
+      i++, column++;
+      while (i < s.length && s[i] !== c) {
+        if (s[i] === '\\') i++, column++;
+        if (s[i] === '\n') i++, line++, column = 0;
+        else i++, column++;
+      }
+      i++, column++;
+      try {
+        const value = '' + (0, eval)(s.substring(j, i)); // TODO: avoid eval
         yield { range: rangeFrom(start), type: 'STRING', value };
       } catch (err) {
         yield { range: rangeFrom(start), type: 'ERROR', value: `Invalid string literal ${err}` };
@@ -236,7 +262,7 @@ export function* lex(s: string): Generator<Token, Token, any> {
       const value = s.substring(j, i);
       const keyword = KeywordsMap.get(value);
       if (keyword) yield { range, type: keyword };
-      else yield { range, type: 'NAME', value };
+      else yield { range, type: 'IDENTIFIER', value };
       continue;
     }
 
