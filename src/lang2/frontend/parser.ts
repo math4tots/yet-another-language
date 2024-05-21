@@ -141,15 +141,15 @@ export function parse(s: string) {
     return new ast.StringLiteral(token.range, token.value);
   }
 
-  function parseIdentifier() {
-    const token = expect('IDENTIFIER');
-    return new ast.Identifier(token.range, token.value);
+  function parseName() {
+    const token = expect('NAME');
+    return new ast.Name(token.range, token.value);
   }
 
   function parseTypeParameter(): ast.TypeParameter {
-    const identifier = parseIdentifier();
+    const name = parseName();
     const upperBound = consume('extends') ? parseTypeExpression() : undefined;
-    return new ast.TypeParameter(Range.join(identifier, upperBound), identifier, upperBound);
+    return new ast.TypeParameter(Range.join(name, upperBound), name, upperBound);
   }
 
   function parseTypeParameters(): { start: Rangeable, params: ast.TypeParameter[], end: Rangeable; } {
@@ -166,11 +166,11 @@ export function parse(s: string) {
   function parseParameter(): ast.Parameter {
     const start = peek;
     const isVariadic = consume('...');
-    const identifier = parseIdentifier();
+    const name = parseName();
     expect(':');
     const type = parseTypeExpression();
     const defaultValue = consume('=') ? parseExpression() : undefined;
-    return new ast.Parameter(Range.join(start, type, defaultValue), isVariadic, identifier, type, defaultValue);
+    return new ast.Parameter(Range.join(start, type, defaultValue), isVariadic, name, type, defaultValue);
   }
 
   function parseParameters(): { start: Rangeable, params: ast.Parameter[], end: Rangeable; } {
@@ -203,19 +203,19 @@ export function parse(s: string) {
       const returnType = parseTypeExpression();
       return new ast.FunctionTypeDisplay(Range.join(start, returnType), typeParameters, parameters, returnType);
     }
-    if (!at('IDENTIFIER')) {
+    if (!at('NAME')) {
       throw new ast.ParseError(peek.range, `Expected type expression but got ${formatToken(peek)}`);
     }
-    let ident: ast.Identifier | ast.QualifiedIdentifier = parseIdentifier();
+    let name: ast.Name | ast.QualifiedName = parseName();
     if (consume('.')) {
-      const secondIdentifier = parseIdentifier();
-      ident = new ast.QualifiedIdentifier(Range.join(ident, secondIdentifier), ident, secondIdentifier);
+      const secondName = parseName();
+      name = new ast.QualifiedName(Range.join(name, secondName), name, secondName);
     }
     if (at('[')) {
       const { args, end } = parseTypeArgs();
-      return new ast.ReifiedTypeDisplay(Range.join(start, end), ident, args);
+      return new ast.ReifiedTypeDisplay(Range.join(start, end), name, args);
     }
-    return ident;
+    return name;
   }
 
   function parsePrefix(): ast.Expression {
@@ -224,7 +224,7 @@ export function parse(s: string) {
     if (at('false')) return new ast.BoolLiteral(next().range, false);
     if (at('NUMBER')) return parseNumberLiteral();
     if (at('STRING')) return parseStringLiteral();
-    if (at('IDENTIFIER')) return parseIdentifier();
+    if (at('NAME')) return parseName();
     if (consume('(')) {
       const expression = parseExpression();
       expect(')');
@@ -241,9 +241,9 @@ export function parse(s: string) {
       return new ast.ListDisplay(Range.join(start, end), values);
     }
     if (consume('{')) {
-      const entries: [(ast.Identifier | ast.StringLiteral), ast.Expression][] = [];
+      const entries: [(ast.Name | ast.StringLiteral), ast.Expression][] = [];
       while (!at('}')) {
-        const key = at('IDENTIFIER') ? parseIdentifier() : parseStringLiteral();
+        const key = at('NAME') ? parseName() : parseStringLiteral();
         expect(':');
         const value = parseExpression();
         entries.push([key, value]);
@@ -287,10 +287,10 @@ export function parse(s: string) {
     const tokenType = optok.type;
     if (tokenType === '(') {
       let methodIdentifierRange = optok.range;
-      if (lhs instanceof ast.Identifier) {
+      if (lhs instanceof ast.Name) {
         methodIdentifierRange = Range.join(lhs, optok);
       }
-      const methodIdentifier = new ast.Identifier(methodIdentifierRange, '__call__');
+      const methodIdentifier = new ast.Name(methodIdentifierRange, '__call__');
       const { args, end } = parseArgs();
       return new ast.MethodCall(
         Range.join(start, end), lhs, methodIdentifier, args);
@@ -300,23 +300,23 @@ export function parse(s: string) {
       return new ast.TypeAssertion(Range.join(start, type), lhs, type);
     }
     if (consume('.')) {
-      // There needs to be an identifier here, but if there isn't, don't fail the
+      // There needs to be an name here, but if there isn't, don't fail the
       // parse completely.
-      if (!at('IDENTIFIER')) {
-        return new ast.MethodCall(start, lhs, new ast.Identifier(start, ''), []);
+      if (!at('NAME')) {
+        return new ast.MethodCall(start, lhs, new ast.Name(start, ''), []);
       }
-      const identifier = parseIdentifier();
+      const name = parseName();
       if (at('(')) {
         const { args, end } = parseArgs();
-        return new ast.MethodCall(Range.join(start, end), lhs, identifier, args);
+        return new ast.MethodCall(Range.join(start, end), lhs, name, args);
       }
       if (consume('=')) {
-        const methodIdentifier = new ast.Identifier(identifier.range, `__set_${identifier.name}`);
+        const methodIdentifier = new ast.Name(name.range, `__set_${name.name}`);
         const value = parseExpression();
         const end = value;
         return new ast.MethodCall(Range.join(start, end), lhs, methodIdentifier, [value]);
       }
-      const methodIdentifier = new ast.Identifier(Range.join(identifier), `__get_${identifier.name}`);
+      const methodIdentifier = new ast.Name(Range.join(name), `__get_${name.name}`);
       const end = methodIdentifier;
       return new ast.MethodCall(Range.join(start, end), lhs, methodIdentifier, []);
     }
@@ -324,11 +324,11 @@ export function parse(s: string) {
       const index = parseExpression();
       const bracketEnd = expect(']').range;
       if (consume('=')) {
-        const methodIdentifier = new ast.Identifier(optok.range, '__setitem__');
+        const methodIdentifier = new ast.Name(optok.range, '__setitem__');
         const value = parseExpression();
         return new ast.MethodCall(Range.join(start, value), lhs, methodIdentifier, [index, value]);
       }
-      const methodIdentifier = new ast.Identifier(optok.range, '__getitem__');
+      const methodIdentifier = new ast.Name(optok.range, '__getitem__');
       return new ast.MethodCall(Range.join(start, bracketEnd), lhs, methodIdentifier, [index]);
     }
     const precedence = PrecMap.get(tokenType);
@@ -349,7 +349,7 @@ export function parse(s: string) {
       const rhs = rightAssociative ?
         parsePrec(precedence) :
         parsePrec(precedence + 1);
-      const methodIdentifier = new ast.Identifier(operatorRange, methodName);
+      const methodIdentifier = new ast.Name(operatorRange, methodName);
       return new ast.MethodCall(Range.join(lhs, rhs), lhs, methodIdentifier, [rhs]);
     }
     throw new ast.ParseError(peek.range, `Expected infix token but got ${formatToken(peek)}`);
@@ -382,7 +382,7 @@ export function parse(s: string) {
 
   function parseFunctionDefinition(start: Rangeable, isExported: boolean, isStatic: boolean): ast.FunctionDefinition {
     expect('function');
-    const name = parseIdentifier();
+    const name = parseName();
     const typeParameters = at('[') ? parseTypeParameters().params : undefined;
     const parameters = parseParameters().params;
     const rtype = consume('->') ? parseTypeExpression() : undefined;
@@ -395,7 +395,7 @@ export function parse(s: string) {
     start: Rangeable, isExported: boolean, isStatic: boolean): ast.VariableDeclaration {
     const isMutable = consume('var');
     if (!isMutable) expect('const');
-    const name = parseIdentifier();
+    const name = parseName();
     const type = consume(':') ? parseTypeExpression() : undefined;
     const value = consume('=') ? parseExpression() : undefined;
     const range = Range.join(start, name, type, value);
@@ -404,7 +404,7 @@ export function parse(s: string) {
 
   function parseClassDefinition(start: Rangeable, isExported: boolean): ast.ClassDefinition {
     expect('class');
-    const name = parseIdentifier();
+    const name = parseName();
     const typeParameters = at('[') ? parseTypeParameters().params : undefined;
     const baseClass = consume('extends') ? parseTypeExpression() : undefined;
     const body = parseBlock();
@@ -414,7 +414,7 @@ export function parse(s: string) {
 
   function parseInterfaceDefinition(start: Rangeable, isExported: boolean): ast.InterfaceDefinition {
     expect('class');
-    const name = parseIdentifier();
+    const name = parseName();
     const typeParameters = at('[') ? parseTypeParameters().params : undefined;
     const superTypes: ast.TypeExpression[] = [];
     if (consume('extends')) {
@@ -509,25 +509,25 @@ export function parse(s: string) {
       const start = peek;
       if (at('export') && peekAt(1).type === 'as') {
         expect('as');
-        const identifier = parseIdentifier();
+        const name = parseName();
         const end = expect('NEWLINE');
-        headers.push(new ast.ExportAs(Range.join(start, end), identifier));
+        headers.push(new ast.ExportAs(Range.join(start, end), name));
         continue;
       }
       if (at('from')) {
         const path = parseStringLiteral();
         expect('import');
-        const identifier = parseIdentifier();
+        const name = parseName();
         const end = expect('NEWLINE');
-        headers.push(new ast.FromImport(Range.join(start, end), path, identifier));
+        headers.push(new ast.FromImport(Range.join(start, end), path, name));
         continue;
       }
       if (at('import')) {
         const path = parseStringLiteral();
         expect('as');
-        const identifier = parseIdentifier();
+        const name = parseName();
         const end = expect('NEWLINE');
-        headers.push(new ast.ImportAs(Range.join(start, end), path, identifier));
+        headers.push(new ast.ImportAs(Range.join(start, end), path, name));
         continue;
       }
       break;

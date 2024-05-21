@@ -84,7 +84,7 @@ export const PunctuatorsMap: Map<string, PunctuatorTokenType> = new Map(
 const ReverseSortedPunctuators = Array.from(Punctuators).sort().reverse();
 
 export type StringValueTokenType = (
-  'ERROR' | 'IDENTIFIER' | 'STRING' | 'COMMENT' |
+  'ERROR' | 'NAME' | 'STRING' | 'COMMENT' |
   'TEMPLATE_START' | 'TEMPLATE_MIDDLE' | 'TEMPLATE_END'
 );
 export type NumberValueTokenType = 'NUMBER';
@@ -262,7 +262,7 @@ export function* lex(s: string): Generator<Token, Token, any> {
       const value = s.substring(j, i);
       const keyword = KeywordsMap.get(value);
       if (keyword) yield { range, type: keyword };
-      else yield { range, type: 'IDENTIFIER', value };
+      else yield { range, type: 'NAME', value };
       continue;
     }
 
