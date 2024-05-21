@@ -1,15 +1,5 @@
 import * as ast from '../frontend/ast';
-import { Range } from '../frontend/lexer';
-
-export class Location {
-  readonly uri: string;
-  readonly range: Range;
-
-  constructor(uri: string, range: Range) {
-    this.uri = uri;
-    this.range = range;
-  }
-}
+import { Location } from '../frontend/location';
 
 export type AnnotationError = ast.ParseError;
 
