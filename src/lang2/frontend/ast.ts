@@ -110,12 +110,12 @@ export class QualifiedName {
 
 export class ReifiedTypeDisplay {
   readonly range: Range;
-  readonly identifier: Name | QualifiedName;
+  readonly name: Name | QualifiedName;
   readonly args: TypeExpression[];
 
-  constructor(range: Range, identifier: Name | QualifiedName, args: TypeExpression[]) {
+  constructor(range: Range, name: Name | QualifiedName, args: TypeExpression[]) {
     this.range = range;
-    this.identifier = identifier;
+    this.name = name;
     this.args = args;
   }
 }
@@ -173,13 +173,13 @@ export class RecordDisplay {
 export class MethodCall {
   readonly range: Range;
   readonly owner: Expression;
-  readonly identifier: Name;
+  readonly name: Name;
   readonly args: Expression[];
 
-  constructor(range: Range, owner: Expression, identifier: Name, args: Expression[]) {
+  constructor(range: Range, owner: Expression, name: Name, args: Expression[]) {
     this.range = range;
     this.owner = owner;
-    this.identifier = identifier;
+    this.name = name;
     this.args = args;
   }
 }
@@ -304,12 +304,12 @@ export class ReturnStatement {
 
 export class TypeParameter {
   readonly range: Range;
-  readonly identifier: Name;
+  readonly name: Name;
   readonly upperBound: TypeExpression | undefined;
 
-  constructor(range: Range, identifier: Name, upperBound: TypeExpression | undefined) {
+  constructor(range: Range, name: Name, upperBound: TypeExpression | undefined) {
     this.range = range;
-    this.identifier = identifier;
+    this.name = name;
     this.upperBound = upperBound;
   }
 }
@@ -317,19 +317,19 @@ export class TypeParameter {
 export class Parameter {
   readonly range: Range;
   readonly isVariadic: boolean;
-  readonly identifier: Name;
+  readonly name: Name;
   readonly type: TypeExpression | undefined;
   readonly defaultValue: Expression | undefined;
 
   constructor(
     range: Range,
     isVariadic: boolean,
-    identifier: Name,
+    name: Name,
     type: TypeExpression | undefined,
     defaultValue: Expression | undefined) {
     this.range = range;
     this.isVariadic = isVariadic;
-    this.identifier = identifier;
+    this.name = name;
     this.type = type;
     this.defaultValue = defaultValue;
   }
@@ -340,7 +340,7 @@ export class VariableDeclaration {
   readonly isExported: boolean;
   readonly isStatic: boolean;
   readonly isMutable: boolean;
-  readonly identifier: Name;
+  readonly name: Name;
   readonly type: TypeExpression | undefined;
   readonly value: Expression | undefined;
 
@@ -349,14 +349,14 @@ export class VariableDeclaration {
     isExported: boolean,
     isStatic: boolean,
     isMutable: boolean,
-    identifier: Name,
+    name: Name,
     type: TypeExpression | undefined,
     value: Expression | undefined) {
     this.range = range;
     this.isExported = isExported;
     this.isStatic = isStatic;
     this.isMutable = isMutable;
-    this.identifier = identifier;
+    this.name = name;
     this.type = type;
     this.value = value;
   }
@@ -366,7 +366,7 @@ export class FunctionDefinition {
   readonly range: Range;
   readonly isExported: boolean;
   readonly isStatic: boolean;
-  readonly identifier: Name;
+  readonly name: Name;
   readonly typeParameters: TypeParameter[] | undefined;
   readonly parameters: Parameter[];
   readonly returnType: TypeExpression | undefined;
@@ -376,7 +376,7 @@ export class FunctionDefinition {
     range: Range,
     isExported: boolean,
     isStatic: boolean,
-    identifier: Name,
+    name: Name,
     typeParameters: TypeParameter[] | undefined,
     parameters: Parameter[],
     returnType: TypeExpression | undefined,
@@ -384,7 +384,7 @@ export class FunctionDefinition {
     this.range = range;
     this.isExported = isExported;
     this.isStatic = isStatic;
-    this.identifier = identifier;
+    this.name = name;
     this.typeParameters = typeParameters;
     this.parameters = parameters;
     this.returnType = returnType;
@@ -395,7 +395,7 @@ export class FunctionDefinition {
 export class InterfaceDefinition {
   readonly range: Range;
   readonly isExported: boolean;
-  readonly identifier: Name;
+  readonly name: Name;
   readonly typeParameters: TypeParameter[] | undefined;
   readonly superTypes: TypeExpression[];
   readonly body: Block;
@@ -403,13 +403,13 @@ export class InterfaceDefinition {
   constructor(
     range: Range,
     isExported: boolean,
-    identifier: Name,
+    name: Name,
     typeParameters: TypeParameter[] | undefined,
     superTypes: TypeExpression[],
     body: Block) {
     this.range = range;
     this.isExported = isExported;
-    this.identifier = identifier;
+    this.name = name;
     this.typeParameters = typeParameters;
     this.superTypes = superTypes;
     this.body = body;
@@ -419,7 +419,7 @@ export class InterfaceDefinition {
 export class ClassDefinition {
   readonly range: Range;
   readonly isExported: boolean;
-  readonly identifier: Name;
+  readonly name: Name;
   readonly typeParameters: TypeParameter[] | undefined;
   readonly baseClass: TypeExpression | undefined;
   readonly body: Block;
@@ -427,13 +427,13 @@ export class ClassDefinition {
   constructor(
     range: Range,
     isExported: boolean,
-    identifier: Name,
+    name: Name,
     typeParameters: TypeParameter[] | undefined,
     baseClass: TypeExpression | undefined,
     body: Block) {
     this.range = range;
     this.isExported = isExported;
-    this.identifier = identifier;
+    this.name = name;
     this.typeParameters = typeParameters;
     this.baseClass = baseClass;
     this.body = body;
@@ -442,35 +442,35 @@ export class ClassDefinition {
 
 export class ExportAs {
   readonly range: Range;
-  readonly identifier: Name;
+  readonly name: Name;
 
-  constructor(range: Range, identifier: Name) {
+  constructor(range: Range, name: Name) {
     this.range = range;
-    this.identifier = identifier;
+    this.name = name;
   }
 }
 
 export class ImportAs {
   readonly range: Range;
   readonly path: StringLiteral;
-  readonly identifier: Name;
+  readonly name: Name;
 
-  constructor(range: Range, path: StringLiteral, identifier: Name) {
+  constructor(range: Range, path: StringLiteral, name: Name) {
     this.range = range;
     this.path = path;
-    this.identifier = identifier;
+    this.name = name;
   }
 }
 
 export class FromImport {
   readonly range: Range;
   readonly path: StringLiteral;
-  readonly identifier: Name;
+  readonly name: Name;
 
-  constructor(range: Range, path: StringLiteral, identifier: Name) {
+  constructor(range: Range, path: StringLiteral, name: Name) {
     this.range = range;
     this.path = path;
-    this.identifier = identifier;
+    this.name = name;
   }
 }
 
