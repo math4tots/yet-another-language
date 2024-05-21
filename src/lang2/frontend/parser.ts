@@ -311,12 +311,12 @@ export function parse(s: string) {
         return new ast.MethodCall(Range.join(start, end), lhs, name, args);
       }
       if (consume('=')) {
-        const methodIdentifier = new ast.Name(name.range, `__set_${name.name}`);
+        const methodIdentifier = new ast.Name(name.range, `__set_${name.value}`);
         const value = parseExpression();
         const end = value;
         return new ast.MethodCall(Range.join(start, end), lhs, methodIdentifier, [value]);
       }
-      const methodIdentifier = new ast.Name(Range.join(name), `__get_${name.name}`);
+      const methodIdentifier = new ast.Name(Range.join(name), `__get_${name.value}`);
       const end = methodIdentifier;
       return new ast.MethodCall(Range.join(start, end), lhs, methodIdentifier, []);
     }

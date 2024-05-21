@@ -88,11 +88,11 @@ export class StringLiteral {
 
 export class Name {
   readonly range: Range;
-  readonly name: string;
+  readonly value: string;
 
-  constructor(range: Range, name: string) {
+  constructor(range: Range, value: string) {
     this.range = range;
-    this.name = name;
+    this.value = value;
   }
 }
 
