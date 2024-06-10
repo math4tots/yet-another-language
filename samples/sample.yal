@@ -1,7 +1,7 @@
 hello world
 "FOOBAR"
 "日本"
-"\u65e5\u672c"
+"\u65e5\u672c\x55\x54"
 123
 123.4
 

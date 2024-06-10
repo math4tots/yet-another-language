@@ -99,7 +99,6 @@ function unescape(s: string): string {
           let value = 0;
           for (let j = 0; j < maxLen && isHexDigit(s[i]); j++) {
             value = value * 16 + hexValueOf(s[i++]);
-            console.log(`j = ${j}, value = ${value}, (0x${value.toString(16)}, ch = ${s[i - 1]})`);
           }
           out += String.fromCodePoint(value);
           break;
