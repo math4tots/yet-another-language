@@ -1,0 +1,11 @@
+hello world
+"FOOBAR"
+"日本"
+"\u65e5\u672c"
+123
+123.4
+
+
+def foo():
+  pass
+

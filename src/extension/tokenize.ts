@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getSelectionOrAllText, writeToNewEditor } from './utils';
-import { lex } from '../lang2/frontend/lexer';
+import { lex } from '../lang3/frontend/lexer';
 
 
 
