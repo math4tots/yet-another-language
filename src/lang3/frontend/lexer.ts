@@ -32,6 +32,7 @@ export const KeywordArray = [
   'raise', 'try', 'except', 'finally', 'with',
   'import', 'as', 'from',
   'pass',
+  'typedef',
 ] as const;
 
 export type KeywordTokenType = typeof KeywordArray[number];

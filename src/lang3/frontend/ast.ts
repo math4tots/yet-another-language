@@ -16,10 +16,21 @@ export interface ExpressionVisitor<R> {
   visitOperation(e: Operation): R;
   visitMethodCall(e: MethodCall): R;
   visitListDisplay(e: ListDisplay): R;
-  visitMapDisplay(e: MapDisplay): R;
+  visitTableDisplay(e: TableDisplay): R;
 }
 
-export interface StatementVisitor<R> { }
+export interface StatementVisitor<R> {
+  visitExpressionStatement(s: ExpressionStatement): R;
+  visitIf(s: If): R;
+  visitWhile(s: While): R;
+  visitBreak(s: Break): R;
+  visitContinue(s: Continue): R;
+  visitVariableDeclaration(s: VariableDeclaration): R;
+  visitAssignment(s: Assignment): R;
+  visitFunctionDefinition(s: FunctionDefinition): R;
+  visitReturn(s: Return): R;
+  visitTypedef(s: Typedef): R;
+}
 
 export abstract class Node {
   readonly location: Location;
@@ -100,11 +111,141 @@ export class ListDisplay extends Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitListDisplay(this); }
 }
 
-export class MapDisplay extends Expression {
+export class TableDisplay extends Expression {
   readonly pairs: [Expression, Expression][];
   constructor(location: Location, pairs: [Expression, Expression][]) {
     super(location);
     this.pairs = pairs;
   }
-  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitMapDisplay(this); }
+  accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitTableDisplay(this); }
+}
+
+export class Block extends Node {
+  readonly statements: Statement[];
+  constructor(location: Location, statements: Statement[]) {
+    super(location);
+    this.statements = statements;
+  }
+}
+
+export class ExpressionStatement extends Statement {
+  readonly expression: Expression;
+  constructor(location: Location, expression: Expression) {
+    super(location);
+    this.expression = expression;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitExpressionStatement(this); }
+}
+
+export class If extends Statement {
+  readonly test: Expression;
+  readonly body: Block;
+  readonly orelse: Block | If | undefined;
+  constructor(location: Location, test: Expression, body: Block, orelse: Block | If | undefined) {
+    super(location);
+    this.test = test;
+    this.body = body;
+    this.orelse = orelse;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitIf(this); }
+}
+
+export class While extends Statement {
+  readonly test: Expression;
+  readonly body: Block;
+  constructor(location: Location, test: Expression, body: Block) {
+    super(location);
+    this.test = test;
+    this.body = body;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitWhile(this); }
+}
+
+export class Break extends Statement {
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitBreak(this); }
+}
+
+export class Continue extends Statement {
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitContinue(this); }
+}
+
+export class VariableDeclaration extends Statement {
+  readonly isMutable: boolean;
+  readonly identifier: Identifier;
+  readonly type: Expression | undefined;
+  readonly value: Expression;
+  constructor(
+    location: Location,
+    isMutable: boolean,
+    identifier: Identifier,
+    type: Expression | undefined,
+    value: Expression) {
+    super(location);
+    this.isMutable = isMutable;
+    this.identifier = identifier;
+    this.type = type;
+    this.value = value;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitVariableDeclaration(this); }
+}
+
+export class Assignment extends Statement {
+  readonly identifier: Identifier;
+  readonly value: Expression;
+  constructor(location: Location, identifier: Identifier, value: Expression) {
+    super(location);
+    this.identifier = identifier;
+    this.value = value;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitAssignment(this); }
+}
+
+export class Parameter extends Node {
+  readonly identifier: Identifier;
+  readonly type: Expression;
+  constructor(location: Location, identifier: Identifier, type: Expression) {
+    super(location);
+    this.identifier = identifier;
+    this.type = type;
+  }
+}
+
+export class FunctionDefinition extends Statement {
+  readonly identifier: Identifier;
+  readonly parameters: Parameter[];
+  readonly returnType: Expression;
+  readonly body: Block;
+  constructor(
+    location: Location,
+    identifier: Identifier,
+    parameters: Parameter[],
+    returnType: Expression,
+    body: Block) {
+    super(location);
+    this.identifier = identifier;
+    this.parameters = parameters;
+    this.returnType = returnType;
+    this.body = body;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitFunctionDefinition(this); }
+}
+
+export class Return extends Statement {
+  readonly expression: Expression;
+  constructor(location: Location, expression: Expression) {
+    super(location);
+    this.expression = expression;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitReturn(this); }
+}
+
+export class Typedef extends Statement {
+  readonly identifier: Identifier;
+  readonly type: Expression;
+  constructor(location: Location, identifier: Identifier, type: Expression) {
+    super(location);
+    this.identifier = identifier;
+    this.type = type;
+  }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitTypedef(this); }
 }
