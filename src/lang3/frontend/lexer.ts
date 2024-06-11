@@ -25,7 +25,8 @@ export class Range {
 
 export const KeywordArray = [
   'null', 'true', 'false',
-  'var', 'def', 'class', 'return', 'yield', 'async', 'await',
+  'var', 'const', 'def', 'class',
+  'return', 'yield', 'async', 'await',
   'for', 'while', 'break', 'continue',
   'if', 'elif', 'else', 'and', 'or', 'not',
   'raise', 'try', 'except', 'finally', 'with',
