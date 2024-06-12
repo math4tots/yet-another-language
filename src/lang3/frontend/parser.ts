@@ -25,6 +25,7 @@ const PrecList: TokenType[][] = [
   ['+', '-'],
   ['*', '/', '//', '%'],
   [],        // precedence for unary operators '-', '+' and '~'
+  ['?'],
   ['**'],
   ['.', '(', '['],
 ];
@@ -242,6 +243,10 @@ export function parse(source: string, uri: string) {
       }
       const methodIdentifier = new ast.Identifier(join(optok), '__getitem__');
       return new ast.MethodCall(join(start, bracketEnd), lhs, methodIdentifier, [index]);
+    }
+    if (consume('?')) {
+      const methodIdentifier = new ast.Identifier(join(optok), '__optional__');
+      return new ast.MethodCall(join(start, optok), lhs, methodIdentifier, []);
     }
     const precedence = PrecMap.get(tokenType);
     if (precedence && consume('and')) {
