@@ -30,7 +30,6 @@ export const KeywordArray = [
   'for', 'while', 'break', 'continue',
   'if', 'elif', 'else', 'and', 'or', 'not',
   'raise', 'try', 'except', 'finally', 'with',
-  'import', 'as', 'from',
   'pass',
   'typedef',
 ] as const;

@@ -200,6 +200,16 @@ export class Assignment extends Statement {
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitAssignment(this); }
 }
 
+export class TypeParameter extends Node {
+  readonly identifier: Identifier;
+  readonly constraint: Expression | undefined;
+  constructor(location: Location, identifier: Identifier, constraint: Expression | undefined) {
+    super(location);
+    this.identifier = identifier;
+    this.constraint = constraint;
+  }
+}
+
 export class Parameter extends Node {
   readonly identifier: Identifier;
   readonly type: Expression;
@@ -212,17 +222,20 @@ export class Parameter extends Node {
 
 export class FunctionDefinition extends Statement {
   readonly identifier: Identifier;
+  readonly typeParameters: TypeParameter[] | undefined;
   readonly parameters: Parameter[];
   readonly returnType: Expression;
   readonly body: Block;
   constructor(
     location: Location,
     identifier: Identifier,
+    typeParameters: TypeParameter[] | undefined,
     parameters: Parameter[],
     returnType: Expression,
     body: Block) {
     super(location);
     this.identifier = identifier;
+    this.typeParameters = typeParameters;
     this.parameters = parameters;
     this.returnType = returnType;
     this.body = body;
@@ -241,10 +254,16 @@ export class Return extends Statement {
 
 export class Typedef extends Statement {
   readonly identifier: Identifier;
+  readonly typeParameters: TypeParameter[] | undefined;
   readonly type: Expression;
-  constructor(location: Location, identifier: Identifier, type: Expression) {
+  constructor(
+    location: Location,
+    identifier: Identifier,
+    typeParameters: TypeParameter[] | undefined,
+    type: Expression) {
     super(location);
     this.identifier = identifier;
+    this.typeParameters = typeParameters;
     this.type = type;
   }
   accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitTypedef(this); }
