@@ -14,3 +14,7 @@ x = {
 def foo():
   pass
 
+
+def bar[X, Y]():
+  pass
+
