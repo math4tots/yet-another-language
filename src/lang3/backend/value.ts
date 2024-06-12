@@ -1,6 +1,7 @@
+import type { State } from "./state";
 
 
 export type Value =
   null | boolean | number | string |
   Value[] | { [key: string]: Value; } |
-  ((args: Value[]) => Value);
+  ((state: State, args: Value[]) => Value);
