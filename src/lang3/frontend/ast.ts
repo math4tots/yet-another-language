@@ -29,6 +29,7 @@ export interface ExpressionVisitor<R> {
 }
 
 export interface StatementVisitor<R> {
+  visitBlock(s: Block): R;
   visitExpressionStatement(s: ExpressionStatement): R;
   visitIf(s: If): R;
   visitWhile(s: While): R;
@@ -140,12 +141,13 @@ export class TableDisplay extends Expression {
   accept<R>(visitor: ExpressionVisitor<R>): R { return visitor.visitTableDisplay(this); }
 }
 
-export class Block extends Node {
+export class Block extends Statement {
   readonly statements: Statement[];
   constructor(location: Location, statements: Statement[]) {
     super(location);
     this.statements = statements;
   }
+  accept<R>(visitor: StatementVisitor<R>): R { return visitor.visitBlock(this); }
 }
 
 export class ExpressionStatement extends Statement {
