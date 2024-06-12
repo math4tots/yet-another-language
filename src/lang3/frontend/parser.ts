@@ -121,6 +121,14 @@ export function parse(source: string, uri: string) {
     return new ast.Identifier(join(token), token.value);
   }
 
+  function parseIdentifierOrStringLiteralAsIdentifier() {
+    if (at('STRING')) {
+      const string = parseStringLiteral();
+      return new ast.Identifier(string.location, string.value as string);
+    }
+    return parseIdentifier();
+  }
+
   function parsePrefix(): ast.Expression {
     if (at('null')) return new ast.Literal(join(next()), null);
     if (at('true')) return new ast.Literal(join(next()), true);
@@ -144,9 +152,9 @@ export function parse(source: string, uri: string) {
       return new ast.ListDisplay(join(start, end), values);
     }
     if (consume('{')) {
-      const entries: [ast.Expression, ast.Expression][] = [];
+      const entries: [ast.Identifier, ast.Expression][] = [];
       while (!at('}')) {
-        const key = parseExpression();
+        const key = parseIdentifierOrStringLiteralAsIdentifier();
         expect(':');
         const value = parseExpression();
         entries.push([key, value]);

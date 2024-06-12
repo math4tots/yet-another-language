@@ -132,8 +132,8 @@ export class ListDisplay extends Expression {
 }
 
 export class TableDisplay extends Expression {
-  readonly pairs: [Expression, Expression][];
-  constructor(location: Location, pairs: [Expression, Expression][]) {
+  readonly pairs: [Identifier, Expression][];
+  constructor(location: Location, pairs: [Identifier, Expression][]) {
     super(location);
     this.pairs = pairs;
   }
