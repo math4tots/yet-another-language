@@ -175,10 +175,12 @@ export class Interpreter implements ast.StatementVisitor<void>, ast.ExpressionVi
       throw this.newRuntimeError(`"${methodName}" is not a method`);
     }
     const args = e.args.map(arg => arg.accept(this));
+    const oldLocationVariable = this.scope['__location__'];
     try {
       this.scope['__location__'] = new Variable(false, e.location as unknown as TableValue);
       return method.call(owner, this, args);
     } finally {
+      this.scope['__location__'] = oldLocationVariable;
     }
   }
   visitListDisplay(e: ast.ListDisplay): Value {
