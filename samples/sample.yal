@@ -5,6 +5,11 @@ hello world
 123
 123.4
 
+x = {
+  a: b,
+  a: b,
+}
+
 
 def foo():
   pass

@@ -10,6 +10,15 @@ export class Location {
   }
 }
 
+export class ParseError {
+  readonly location: Location;
+  readonly message: string;
+  constructor(location: Location, message: string) {
+    this.location = location;
+    this.message = message;
+  }
+}
+
 export interface ExpressionVisitor<R> {
   visitLiteral(e: Literal): R;
   visitIdentifier(e: Identifier): R;
@@ -43,6 +52,17 @@ export abstract class Expression extends Node {
 
 export abstract class Statement extends Node {
   abstract accept<R>(visitor: StatementVisitor<R>): R;
+}
+
+export class File extends Node {
+  readonly statements: Statement[];
+  readonly errors: ParseError[];
+  constructor(location: Location, statements: Statement[], errors: ParseError[]) {
+    super(location);
+    this.statements = statements;
+    this.errors = errors;
+  }
+  get uri() { return this.location.uri; }
 }
 
 export type LiteralValue = null | boolean | number | string;
@@ -224,14 +244,14 @@ export class FunctionDefinition extends Statement {
   readonly identifier: Identifier;
   readonly typeParameters: TypeParameter[] | undefined;
   readonly parameters: Parameter[];
-  readonly returnType: Expression;
+  readonly returnType: Expression | undefined;
   readonly body: Block;
   constructor(
     location: Location,
     identifier: Identifier,
     typeParameters: TypeParameter[] | undefined,
     parameters: Parameter[],
-    returnType: Expression,
+    returnType: Expression | undefined,
     body: Block) {
     super(location);
     this.identifier = identifier;
@@ -244,8 +264,8 @@ export class FunctionDefinition extends Statement {
 }
 
 export class Return extends Statement {
-  readonly expression: Expression;
-  constructor(location: Location, expression: Expression) {
+  readonly expression: Expression | undefined;
+  constructor(location: Location, expression: Expression | undefined) {
     super(location);
     this.expression = expression;
   }

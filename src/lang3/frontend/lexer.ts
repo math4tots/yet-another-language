@@ -28,7 +28,7 @@ export const KeywordArray = [
   'var', 'const', 'def', 'class',
   'return', 'yield', 'async', 'await',
   'for', 'while', 'break', 'continue',
-  'if', 'elif', 'else', 'and', 'or', 'not',
+  'if', 'then', 'elif', 'else', 'and', 'or', 'not',
   'raise', 'try', 'except', 'finally', 'with',
   'pass',
   'typedef',
@@ -50,6 +50,7 @@ export const SymbolArray = [
 
   // double character tokens
   '//', '**', '!=', '==', '<<', '<=', '>>', '>=',
+  '->',
 ] as const;
 
 export type SymbolTokenType = typeof SymbolArray[number];
@@ -58,19 +59,28 @@ export const SymbolMap = new Map<string, SymbolTokenType>(SymbolArray.map(s => [
 
 export const MaxSymbolLength = Math.max(...SymbolArray.map(s => s.length));
 
-export type Token = {
-  readonly type: SymbolTokenType | KeywordTokenType | 'INDENT' | 'DEDENT' | 'NEWLINE' | 'EOF';
-  readonly range: Range;
-  readonly value?: undefined;
-} | {
-  readonly type: 'NUMBER';
+export type NumberValueTokenType = 'NUMBER';
+export type NumberValueToken = {
+  readonly type: NumberValueTokenType;
   readonly range: Range;
   readonly value: number;
-} | {
-  readonly type: 'STRING' | 'IDENTIFIER' | 'ERROR';
+};
+
+export type StringValueTokenType = 'STRING' | 'IDENTIFIER' | 'ERROR';
+export type StringValueToken = {
+  readonly type: StringValueTokenType;
   readonly range: Range;
   readonly value: string;
 };
+
+export type NoValueTokenType = SymbolTokenType | KeywordTokenType | 'INDENT' | 'DEDENT' | 'NEWLINE' | 'EOF';
+export type NoValueToken = {
+  readonly type: SymbolTokenType | KeywordTokenType | 'INDENT' | 'DEDENT' | 'NEWLINE' | 'EOF';
+  readonly range: Range;
+  readonly value?: undefined;
+};
+
+export type Token = NoValueToken | NumberValueToken | StringValueToken;
 
 export type TokenType = Token['type'];
 
@@ -233,6 +243,18 @@ export function* lex(source: string): Generator<Token, Token, any> {
       if (type) {
         i += length, column += length;
         yield { type, range: rangeFrom(tokenStart) };
+        switch (type) {
+          case '(':
+          case '[':
+          case '{':
+            groupingDepth++;
+            break;
+          case ')':
+          case ']':
+          case '}':
+            groupingDepth--;
+            break;
+        }
         continue nextToken;
       }
     }
